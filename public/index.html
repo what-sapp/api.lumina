@@ -5,191 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lumina | Home</title>
     
-    <!-- Preconnect -->
+    <!-- Preconnect untuk speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Fonts -->
+    <!-- CDN yang diperlukan (dioptimasi) -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
-    
-    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/styles.css">
-    
-    <style>
-        /* Tambahan khusus homepage */
-        .btn-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .subtitle {
-            font-size: 0.6875rem;
-            color: var(--gray-700);
-            margin-bottom: 2rem;
-            line-height: 1.6;
-            max-width: 28rem;
-        }
-
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin-bottom: 3rem;
-        }
-
-        .feature-title {
-            font-weight: 700;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-            margin-bottom: 0.5rem;
-            color: var(--gray-800);
-        }
-
-        .feature-desc {
-            font-size: 0.6875rem;
-            color: var(--gray-500);
-            line-height: 1.6;
-        }
-
-        .github-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--gray-400);
-            font-size: 0.6875rem;
-            text-decoration: none;
-            margin-bottom: 1rem;
-            transition: color var(--transition-fast);
-        }
-
-        .github-link:hover {
-            color: var(--gray-500);
-        }
-
-        footer {
-            margin-top: 4rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--gray-200);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .copyright {
-            font-size: 0.625rem;
-            color: var(--gray-400);
-            font-weight: 700;
-            letter-spacing: 0.4em;
-            text-transform: uppercase;
-        }
-    </style>
 </head>
-<body>
+<body class="bg-white min-h-screen pt-[84px] pb-20">
 
-    <div id="page-loader" class="page-loader">
+    <div id="page-loader" class="page-loader bg-white">
         <div class="loader"></div>
     </div>
 
-    <nav>
-        <div class="nav-logo">
-            Lumina <span>API`s</span>
+    <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
+        <div class="text-white font-bold tracking-tighter uppercase text-sm">
+            Lumina <span class="text-gray-400">API`s</span>
         </div>
-        <div class="nav-links">
-            <a href="/" class="active">Home</a>
-            <a href="/docs">Docs</a>
+        <div class="flex gap-6">
+            <a href="/" class="text-white text-[11px] font-bold uppercase tracking-wider border-b-2 border-white pb-1">Home</a>
+            <a href="/docs" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Docs</a>
         </div>
     </nav>
 
-    <div class="container">
+    <div class="px-10 md:px-5 max-w-3xl mx-auto">
         
-        <div class="industrial-banner">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
+        <div class="industrial-banner p-10 py-16 w-full mb-10">
+            <div class="dot -top-1.5 -left-1.5"></div>
+            <div class="dot -top-1.5 -right-1.5"></div>
+            <div class="dot -bottom-1.5 -left-1.5"></div>
+            <div class="dot -bottom-1.5 -right-1.5"></div>
             
-            <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                </svg>
-                <span>Lumina Api`s</span>
-            </a>
+            <div class="flex items-center gap-2 mb-4">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center text-gray-400 hover:text-gray-500 transition-colors" style="font-size: 11px;">
+                    <i class="fab fa-github mr-2"></i>
+                    <span class="font-medium">Lumina Api`s</span>
+                </a>
+            </div>
             
-            <h1>
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight leading-tight">
                 Build Faster with<br>Free REST APIs
             </h1>
             
-            <p class="subtitle">
+            <p class="text-[11px] text-gray-700 mb-8 leading-relaxed max-w-md">
                 Akses koleksi RESTful API publik berkualitas tinggi tanpa hambatan autentikasi. 
                 Dibuat untuk mempercepat alur kerja pengembangan aplikasi Anda.
             </p>
 
-            <div class="btn-group">
-                <a href="/docs" class="btn-solid">
+            <div class="flex flex-wrap gap-4">
+                <a href="/docs" class="btn-solid bg-gray-800 text-white px-8 py-3.5 text-[11px] font-bold uppercase tracking-widest flex items-center gap-2">
                     Get Started
-                    <span class="material-icons" style="font-size: 0.875rem;">arrow_forward</span>
+                    <span class="material-icons text-sm">arrow_forward</span>
                 </a>
-                <a href="#status" class="btn-outline">
+                <a href="#status" class="border-2 border-gray-800 text-gray-800 px-8 py-3.5 text-[11px] font-bold uppercase tracking-widest hover:bg-gray-50 transition">
                     System Status
                 </a>
             </div>
         </div>
 
-        <div class="features">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <span class="material-icons" style="color: var(--gray-600); font-size: 1.25rem;">bolt</span>
+        <div class="grid md:grid-cols-2 gap-4 mb-12">
+            <div class="border border-gray-300 p-6 bg-white relative hover:border-gray-800 transition-all group">
+                <div class="bg-gray-50 p-2 inline-block mb-4 group-hover:bg-gray-100 transition-colors">
+                    <span class="material-icons text-gray-600 align-middle text-xl">bolt</span>
                 </div>
-                <h3 class="feature-title">Lightning Fast</h3>
-                <p class="feature-desc">
+                <h3 class="font-bold text-sm uppercase tracking-wide mb-2 text-gray-800">Lightning Fast</h3>
+                <p class="text-[11px] text-gray-500 leading-relaxed">
                     Optimasi latency rendah di bawah 100ms untuk setiap request data publik Anda.
                 </p>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <span class="material-icons" style="color: var(--gray-600); font-size: 1.25rem;">no_encryption</span>
+            <div class="border border-gray-300 p-6 bg-white relative hover:border-gray-800 transition-all group">
+                <div class="bg-gray-50 p-2 inline-block mb-4 group-hover:bg-gray-100 transition-colors">
+                    <span class="material-icons text-gray-600 align-middle text-xl">no_encryption</span>
                 </div>
-                <h3 class="feature-title">No Auth Required</h3>
-                <p class="feature-desc">
+                <h3 class="font-bold text-sm uppercase tracking-wide mb-2 text-gray-800">No Auth Required</h3>
+                <p class="text-[11px] text-gray-500 leading-relaxed">
                     Langsung panggil endpoint tanpa perlu registrasi atau konfigurasi API Key.
                 </p>
             </div>
         </div>
 
-        <footer>
-            <span class="copyright">
+        <div class="mt-16 pt-8 border-t border-gray-200 flex justify-between items-center">
+            <span class="text-[10px] text-gray-400 font-bold tracking-[0.4em] uppercase">
                 © 2025 Robin • All Rights Reserved
             </span>
-        </footer>
+        </div>
     </div>
 
     <script>
-        // Smooth loader
-        window.addEventListener('load', () => {
+        // Optimized loader dengan timing konsisten
+        window.addEventListener('load', function() {
             const loader = document.getElementById('page-loader');
-            setTimeout(() => {
-                loader.style.opacity = '0';
-                setTimeout(() => { 
-                    loader.style.display = 'none'; 
-                }, 300);
-            }, 200);
-        });
-
-        // Smooth scroll
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
+            if (loader) {
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    setTimeout(() => {
+                        loader.style.display = 'none';
+                    }, 300);
+                }, 300); // Timing konsisten
+            }
         });
     </script>
 </body>
