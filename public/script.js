@@ -95,13 +95,23 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    // --- 4. MODAL & PARAMETER LOGIC ---
+    // --- 4. MODAL & PARAMETER LOGIC (UPDATED!) ---
     function openApiModal(name, endpoint, description) {
         const modal = document.getElementById('api-modal');
         const modalContent = modal.querySelector('.relative.z-10');
         const paramsContainer = document.getElementById('params-container');
         const responseContainer = document.getElementById('response-container');
         const responseData = document.getElementById('response-data');
+        
+        // ✅ UPDATE: Display URL endpoint
+        const apiUrlElement = document.getElementById('api-url');
+        if (apiUrlElement) {
+            // Build full URL
+            const baseUrl = window.location.origin;
+            const cleanEndpoint = endpoint.split('?')[0]; // Remove query params for display
+            const fullUrl = `${baseUrl}${cleanEndpoint}`;
+            apiUrlElement.textContent = fullUrl;
+        }
         
         responseContainer.classList.add('hidden');
         paramsContainer.innerHTML = '';
