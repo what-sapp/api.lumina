@@ -7,263 +7,125 @@
     <link id="api-icon" rel="icon" href="/image/icon.png" type="image/png">
     <title id="api-title">Lumina | Documentation</title>
     
-    <!-- Preconnect -->
+    <!-- Preconnect untuk speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Fonts -->
+    <!-- CDN yang diperlukan (dioptimasi) -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
-    
-    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/styles.css">
-    
-    <style>
-        /* Tambahan khusus docs page */
-        .search-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gray-400);
-            pointer-events: none;
-        }
-
-        .info-button {
-            background-color: var(--gray-50);
-            padding: 0.5rem;
-            border: 1px solid var(--gray-200);
-            cursor: pointer;
-            transition: background-color var(--transition-fast);
-        }
-
-        .info-button:hover {
-            background-color: var(--gray-100);
-        }
-
-        .info-button:focus {
-            outline: none;
-        }
-
-        .api-author {
-            background-color: var(--gray-800);
-            color: white;
-            font-size: 0.625rem;
-            font-weight: 700;
-            padding: 0.25rem 0.5rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            flex-shrink: 0;
-        }
-
-        .modal-method {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.625rem;
-            font-weight: 700;
-            background-color: #2563eb;
-            color: white;
-            margin-right: 0.5rem;
-            letter-spacing: 0.1em;
-        }
-
-        .response-status {
-            padding: 0.125rem 0.5rem;
-            font-size: 0.625rem;
-            font-weight: 700;
-            background-color: #d1fae5;
-            color: #065f46;
-            margin-right: 0.5rem;
-            text-transform: uppercase;
-        }
-
-        .response-time {
-            color: var(--gray-400);
-            font-weight: 700;
-            font-size: 0.625rem;
-        }
-
-        .response-header {
-            font-size: 0.625rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--gray-400);
-        }
-
-        .close-button {
-            color: var(--gray-400);
-            cursor: pointer;
-            transition: color var(--transition-fast);
-            background: none;
-            border: none;
-            padding: 0;
-        }
-
-        .close-button:hover {
-            color: var(--gray-900);
-        }
-
-        .close-button:focus {
-            outline: none;
-        }
-
-        @media (min-width: 1024px) {
-            .info-button {
-                display: none;
-            }
-        }
-    </style>
 </head>
-<body>
-    <div id="page-loader" class="page-loader">
+<body class="bg-white min-h-screen pt-[84px] pb-10">
+
+    <div id="page-loader" class="page-loader bg-white">
         <div class="loader"></div>
     </div>
 
-    <nav>
-        <div class="nav-logo">
-            Lumina <span>API`s</span>
+    <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
+        <div class="text-white font-bold tracking-tighter uppercase text-sm">
+            Lumina <span class="text-gray-400">API`s</span>
         </div>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/docs" class="active">Docs</a>
+        <div class="flex gap-6">
+            <a href="/" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Home</a>
+            <a href="/docs" class="text-white text-[11px] font-bold uppercase tracking-wider border-b-2 border-white pb-1">Docs</a>
         </div>
     </nav>
     
-    <div class="container">
-        <div style="display: flex; align-items: center; margin-bottom: 1.5rem; justify-content: space-between;">
-            <div style="display: flex; gap: 0.75rem;">
+    <div class="px-10 md:px-5 max-w-3xl mx-auto">
+        <div class="flex flex-row items-center mb-6 justify-between">
+            <div class="flex flex-row gap-3">
                 <a id="api-info" target="_blank">
-                    <button class="info-button">
-                        <span class="material-icons" style="vertical-align: middle; color: var(--gray-600);">info</span>
+                    <button class="bg-gray-50 p-2 lg:hidden focus:outline-none border border-gray-200">
+                        <span class="material-icons text-gray-600 align-middle">info</span>
                     </button>
                 </a>
             </div>
         </div>
 
-        <div id="banner" class="industrial-banner">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
+        <div id="banner" class="industrial-banner p-7 py-10 w-full mb-7 bg-white">
+            <div class="dot -top-1.5 -left-1.5"></div>
+            <div class="dot -top-1.5 -right-1.5"></div>
+            <div class="dot -bottom-1.5 -left-1.5"></div>
+            <div class="dot -bottom-1.5 -right-1.5"></div>
             
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
-                    <span>Lumina Api`s</span>
+            <div class="flex items-center gap-2 mb-2">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center text-gray-400 hover:text-gray-500 transition-colors" style="font-size: 11px;">
+                    <i class="fab fa-github mr-2"></i>
+                    <span class="font-medium">Lumina Api`s</span>
                 </a>
             </div>
             
-            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                <h2 id="api-name" style="font-size: 1.875rem; font-weight: 700; letter-spacing: -0.025em; margin: 0;">Name</h2>
-                <div id="api-author" class="api-author">by Who.</div>
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+                <h2 id="api-name" class="text-3xl font-bold tracking-tight">Name</h2>
+                <div id="api-author" class="bg-gray-800 text-white text-[10px] font-bold px-2 py-1 tracking-widest uppercase shrink-0">by Who.</div>
             </div>
-            
-            <p id="api-desc" style="font-size: 0.6875rem; color: var(--gray-600); margin-bottom: 1rem; line-height: 1.6;">Desc</p>
-            
-            <div id="api-links" style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.6875rem; color: var(--gray-500);"></div>
-            
-            <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;">
-                <span id="api-copyright" style="font-size: 0.625rem; color: var(--gray-400); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">© 2025 Rynxzyy • DevAPI</span>
+            <p id="api-desc" class="text-[11px] text-gray-600 mb-4 leading-relaxed">Desc</p>
+            <div id="api-links" class="flex flex-col gap-1 text-[11px] text-gray-500"></div>
+            <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                <span id="api-copyright" class="text-[10px] text-gray-400 font-bold tracking-widest uppercase">© 2025 Rynxzyy • DevAPI</span>
             </div>
         </div>
         
-        <div class="search-container">
+        <div class="relative w-full mb-6">
             <input 
                 type="text" 
                 id="api-search" 
-                class="search-input" 
+                class="w-full px-4 py-4 text-sm text-gray-700 border-2 border-gray-100 focus:outline-none focus:border-gray-800 transition-all pl-12" 
                 placeholder="Search API Endpoints...">
-            <span class="material-icons search-icon">search</span>
+            <span class="material-icons absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">search</span>
         </div>
         
         <div class="tab-content" id="api-content"></div>
     </div>
     
-    <div id="api-modal" class="modal-overlay">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <div style="display: flex; align-items: center;">
-                    <span id="api-method" class="modal-method">GET</span>
-                    <h3 id="modal-title" style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.025em; margin: 0;">API Request</h3>
+    <div id="api-modal" class="fixed inset-0 z-50 hidden overflow-y-auto overflow-x-hidden flex items-center justify-center p-6 transition-opacity duration-200 ease-out opacity-0">
+        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm opacity-0 transition-opacity duration-200 ease-out"></div>
+        <div class="relative z-10 bg-white border-2 border-gray-800 shadow-[8px_8px_0px_0px_rgba(31,41,55,1)] w-full max-w-lg mx-auto p-8 my-auto transform scale-95 opacity-0 transition-all duration-200 ease-out">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center">
+                    <span id="api-method" class="px-2 py-1 text-[10px] font-bold bg-blue-600 text-white mr-2 tracking-widest">GET</span>
+                    <h3 class="text-xl font-bold tracking-tight" id="modal-title">API Request</h3>
                 </div>
-                <button id="close-modal" class="close-button">
+                <button id="close-modal" class="text-gray-400 hover:text-gray-900 transition-colors focus:outline-none">
                     <span class="material-icons">close</span>
                 </button>
             </div>
             
-            <div style="margin-bottom: 1.25rem;">
-                <p id="api-description" style="font-size: 0.75rem; font-weight: 500; color: var(--gray-500); line-height: 1.6;">API description will appear here</p>
+            <div class="mb-5">
+                <p id="api-description" class="text-xs font-medium text-gray-500 leading-relaxed">API description will appear here</p>
             </div>
             
-            <div id="params-container" style="margin-bottom: 1.5rem;"></div>
+            <div id="params-container" class="mb-6"></div>
             
-            <button id="submit-api" class="btn-solid" style="width: 100%;">
+            <button id="submit-api" class="w-full bg-gray-800 hover:bg-gray-900 text-white px-4 py-3 text-[11px] font-bold uppercase tracking-[0.2em] transition-all">
                 Send Request
             </button>
             
-            <div id="response-container" class="response-container">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-                    <h4 class="response-header">Response</h4>
-                    <div style="display: flex; align-items: center;">
-                        <span id="response-status" class="response-status">200 OK</span>
-                        <span id="response-time" class="response-time">200ms</span>
+            <div id="response-container" class="mt-6 hidden border-t border-gray-100 pt-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Response</h4>
+                    <div class="flex items-center">
+                        <span id="response-status" class="px-2 py-0.5 text-[10px] font-bold bg-green-100 text-green-700 mr-2 uppercase">200 OK</span>
+                        <span id="response-time" class="text-[10px] font-bold text-gray-400">200ms</span>
                     </div>
                 </div>
-                <pre id="response-data"></pre>
+                <pre id="response-data" class="bg-gray-50 p-4 text-[11px] font-mono text-gray-700 overflow-auto max-h-60 border border-gray-100"></pre>
             </div>
         </div>
     </div>
 
     <script src="/script.js"></script>
     <script>
-        // Smooth loader
+        // Optimized loader dengan timing konsisten
         window.addEventListener('load', () => {
             const loader = document.getElementById('page-loader');
             setTimeout(() => {
                 loader.style.opacity = '0';
-                setTimeout(() => { 
-                    loader.style.display = 'none'; 
-                }, 300);
-            }, 200);
+                setTimeout(() => { loader.style.display = 'none'; }, 300);
+            }, 300); // Timing konsisten dengan index.html
         });
-
-        // Modal handlers
-        const modal = document.getElementById('api-modal');
-        const closeBtn = document.getElementById('close-modal');
-        
-        function openModal() {
-            modal.classList.add('show');
-            document.body.classList.add('noscroll');
-        }
-        
-        function closeModal() {
-            modal.classList.remove('show');
-            document.body.classList.remove('noscroll');
-        }
-        
-        if (closeBtn) {
-            closeBtn.addEventListener('click', closeModal);
-        }
-        
-        // Close on backdrop click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal || e.target.classList.contains('modal-backdrop')) {
-                closeModal();
-            }
-        });
-
-        // ESC key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('show')) {
-                closeModal();
-            }
-        });
-
-        // Expose untuk script.js
-        window.openModal = openModal;
-        window.closeModal = closeModal;
     </script>
 </body>
 </html>
