@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta id="api-description" name="description" content="Description">
+    <link id="api-icon" rel="icon" href="/image/icon.png" type="image/png">
+    <title id="api-title">Lumina | Documentation</title>
+    
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/styles.css">
+    
+    <style>
+        /* Tambahan khusus docs page */
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            pointer-events: none;
+        }
+
+        .info-button {
+            background-color: var(--gray-50);
+            padding: 0.5rem;
+            border: 1px solid var(--gray-200);
+            cursor: pointer;
+            transition: background-color var(--transition-fast);
+        }
+
+        .info-button:hover {
+            background-color: var(--gray-100);
+        }
+
+        .info-button:focus {
+            outline: none;
+        }
+
+        .api-author {
+            background-color: var(--gray-800);
+            color: white;
+            font-size: 0.625rem;
+            font-weight: 700;
+            padding: 0.25rem 0.5rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .modal-method {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.625rem;
+            font-weight: 700;
+            background-color: #2563eb;
+            color: white;
+            margin-right: 0.5rem;
+            letter-spacing: 0.1em;
+        }
+
+        .response-status {
+            padding: 0.125rem 0.5rem;
+            font-size: 0.625rem;
+            font-weight: 700;
+            background-color: #d1fae5;
+            color: #065f46;
+            margin-right: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .response-time {
+            color: var(--gray-400);
+            font-weight: 700;
+            font-size: 0.625rem;
+        }
+
+        .response-header {
+            font-size: 0.625rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--gray-400);
+        }
+
+        .close-button {
+            color: var(--gray-400);
+            cursor: pointer;
+            transition: color var(--transition-fast);
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .close-button:hover {
+            color: var(--gray-900);
+        }
+
+        .close-button:focus {
+            outline: none;
+        }
+
+        @media (min-width: 1024px) {
+            .info-button {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="page-loader" class="page-loader">
+        <div class="loader"></div>
+    </div>
+
+    <nav>
+        <div class="nav-logo">
+            Lumina <span>API`s</span>
+        </div>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/docs" class="active">Docs</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div style="display: flex; align-items: center; margin-bottom: 1.5rem; justify-content: space-between;">
+            <div style="display: flex; gap: 0.75rem;">
+                <a id="api-info" target="_blank">
+                    <button class="info-button">
+                        <span class="material-icons" style="vertical-align: middle; color: var(--gray-600);">info</span>
+                    </button>
+                </a>
+            </div>
+        </div>
+
+        <div id="banner" class="industrial-banner">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    <span>Lumina Api`s</span>
+                </a>
+            </div>
+            
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <h2 id="api-name" style="font-size: 1.875rem; font-weight: 700; letter-spacing: -0.025em; margin: 0;">Name</h2>
+                <div id="api-author" class="api-author">by Who.</div>
+            </div>
+            
+            <p id="api-desc" style="font-size: 0.6875rem; color: var(--gray-600); margin-bottom: 1rem; line-height: 1.6;">Desc</p>
+            
+            <div id="api-links" style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.6875rem; color: var(--gray-500);"></div>
+            
+            <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;">
+                <span id="api-copyright" style="font-size: 0.625rem; color: var(--gray-400); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">© 2025 Rynxzyy • DevAPI</span>
+            </div>
+        </div>
+        
+        <div class="search-container">
+            <input 
+                type="text" 
+                id="api-search" 
+                class="search-input" 
+                placeholder="Search API Endpoints...">
+            <span class="material-icons search-icon">search</span>
+        </div>
+        
+        <div class="tab-content" id="api-content"></div>
+    </div>
+    
+    <div id="api-modal" class="modal-overlay">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div style="display: flex; align-items: center;">
+                    <span id="api-method" class="modal-method">GET</span>
+                    <h3 id="modal-title" style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.025em; margin: 0;">API Request</h3>
+                </div>
+                <button id="close-modal" class="close-button">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            
+            <div style="margin-bottom: 1.25rem;">
+                <p id="api-description" style="font-size: 0.75rem; font-weight: 500; color: var(--gray-500); line-height: 1.6;">API description will appear here</p>
+            </div>
+            
+            <div id="params-container" style="margin-bottom: 1.5rem;"></div>
+            
+            <button id="submit-api" class="btn-solid" style="width: 100%;">
+                Send Request
+            </button>
+            
+            <div id="response-container" class="response-container">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <h4 class="response-header">Response</h4>
+                    <div style="display: flex; align-items: center;">
+                        <span id="response-status" class="response-status">200 OK</span>
+                        <span id="response-time" class="response-time">200ms</span>
+                    </div>
+                </div>
+                <pre id="response-data"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="/script.js"></script>
+    <script>
+        // Smooth loader
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('page-loader');
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                setTimeout(() => { 
+                    loader.style.display = 'none'; 
+                }, 300);
+            }, 200);
+        });
+
+        // Modal handlers
+        const modal = document.getElementById('api-modal');
+        const closeBtn = document.getElementById('close-modal');
+        
+        function openModal() {
+            modal.classList.add('show');
+            document.body.classList.add('noscroll');
+        }
+        
+        function closeModal() {
+            modal.classList.remove('show');
+            document.body.classList.remove('noscroll');
+        }
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeModal);
+        }
+        
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.classList.contains('modal-backdrop')) {
+                closeModal();
+            }
+        });
+
+        // ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('show')) {
+                closeModal();
+            }
+        });
+
+        // Expose untuk script.js
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+    </script>
+</body>
+</html>
