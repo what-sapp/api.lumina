@@ -1,41 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>404</title>
-        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-        <title>404</title>
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-            * {
-                color: #333;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found | Lumina API</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', -apple-system, sans-serif;
+            background-color: #ffffff;
+            background-image: radial-gradient(circle, rgba(229, 231, 235, 0.4) 1px, transparent 1px);
+            background-size: 30px 30px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .error-container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        /* Industrial banner style */
+        .error-banner {
+            border: 2px dashed #6b7280;
+            position: relative;
+            background: white;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #1f2937;
+            border-radius: 50%;
+            z-index: 10;
+        }
+
+        .dot:nth-child(1) { top: -7px; left: -7px; }
+        .dot:nth-child(2) { top: -7px; right: -7px; }
+        .dot:nth-child(3) { bottom: -7px; left: -7px; }
+        .dot:nth-child(4) { bottom: -7px; right: -7px; }
+
+        /* 404 Number with glitch effect */
+        .error-code {
+            font-size: 8rem;
+            font-weight: 700;
+            color: #1f2937;
+            line-height: 1;
+            margin-bottom: 1rem;
+            letter-spacing: -0.05em;
+            animation: glitch 3s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 90%, 100% {
+                transform: translate(0);
             }
-            body, html {
-                font-family: 'Poppins', sans-serif;
-                height: 100%;
-                overflow: hidden;
-                margin: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background-color: white;
+            92% {
+                transform: translate(-2px, 2px);
             }
-            .bg-divider {
-                background-color: #333;
+            94% {
+                transform: translate(2px, -2px);
             }
-            .w-divider {
-                width: 1px;
+            96% {
+                transform: translate(-2px, -2px);
             }
-        </style>
-    </head>
-    <body class="font-sans antialiased">
-        <div class="flex flex-col items-center justify-center h-screen text-white">
-            <div class="flex h-5 items-center space-x-4">
-                <h1 class="text-4xl font-bold" style="color: #333">404</h1>
-                <div class="shrink-0 bg-divider border-none h-full w-divider" role="separator"></div>
-                <h2 style="color: #333">Page Not Found-!!</h2>
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.025em;
+        }
+
+        .error-message {
+            font-size: 0.875rem;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2rem;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: #1f2937;
+            color: white;
+            box-shadow: 4px 4px 0px 0px #1f2937;
+        }
+
+        .btn-primary:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px 0px #1f2937;
+        }
+
+        .btn-primary:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px 0px #1f2937;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #1f2937;
+            border: 2px solid #1f2937;
+        }
+
+        .btn-secondary:hover {
+            background: #f9fafb;
+        }
+
+        /* Helpful links */
+        .helpful-links {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .helpful-title {
+            font-size: 0.625rem;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            text-decoration: none;
+            font-size: 0.75rem;
+            color: #4b5563;
+            transition: all 0.2s ease;
+        }
+
+        .link-item:hover {
+            background: white;
+            border-color: #1f2937;
+            color: #1f2937;
+        }
+
+        .link-item .material-icons {
+            font-size: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .error-code {
+                font-size: 5rem;
+            }
+
+            .error-title {
+                font-size: 1.25rem;
+            }
+
+            .error-banner {
+                padding: 2rem;
+            }
+
+            .link-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-banner">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            
+            <span class="material-icons error-icon">error_outline</span>
+            
+            <h1 class="error-code">404</h1>
+            
+            <h2 class="error-title">Page Not Found</h2>
+            
+            <p class="error-message">
+                Oops! Halaman yang kamu cari tidak ditemukan. 
+                Mungkin URL salah atau halaman telah dipindahkan.
+            </p>
+
+            <div class="btn-group">
+                <a href="/" class="btn btn-primary">
+                    <span class="material-icons" style="font-size: 0.875rem;">home</span>
+                    Back to Home
+                </a>
+                <a href="/docs" class="btn btn-secondary">
+                    <span class="material-icons" style="font-size: 0.875rem;">description</span>
+                    View Docs
+                </a>
+            </div>
+
+            <div class="helpful-links">
+                <p class="helpful-title">Helpful Links</p>
+                <div class="link-grid">
+                    <a href="/" class="link-item">
+                        <span class="material-icons">home</span>
+                        <span>Homepage</span>
+                    </a>
+                    <a href="/docs" class="link-item">
+                        <span class="material-icons">description</span>
+                        <span>Documentation</span>
+                    </a>
+                    <a href="/endpoints" class="link-item">
+                        <span class="material-icons">api</span>
+                        <span>API Endpoints</span>
+                    </a>
+                    <a href="/contributors" class="link-item">
+                        <span class="material-icons">people</span>
+                        <span>Contributors</span>
+                    </a>
+                </div>
             </div>
         </div>
-    </body>
+    </div>
+
+    <script>
+        // Easter egg: press 'h' to go home
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'h' || e.key === 'H') {
+                window.location.href = '/';
+            }
+        });
+
+        // Smooth animations on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const banner = document.querySelector('.error-banner');
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                banner.style.transition = 'all 0.5s ease';
+                banner.style.opacity = '1';
+                banner.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    </script>
+</body>
 </html>
