@@ -168,19 +168,25 @@
         <div class="loader"></div>
     </div>
 
-    <!-- Navbar with Hamburger Only -->
+    <!-- Navbar with Hamburger -->
     <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
         <div class="text-white font-bold tracking-tighter uppercase text-sm">
             Lumina <span class="text-gray-400">API`s</span>
         </div>
+        
+        <!-- Desktop Navigation -->
+        <div class="desktop-nav flex gap-6">
+            <a href="/" class="text-white text-[11px] font-bold uppercase tracking-wider border-b-2 border-white pb-1">Home</a>
+            <a href="/docs" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Docs</a>
+            <a href="/contributors" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Contributors</a>
+            <a href="/status" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Status</a>
+        </div>
 
-        <!-- Modern Hamburger Icon -->
+        <!-- Hamburger Icon -->
         <div class="hamburger" id="hamburger">
-            <div class="hamburger-inner">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
+            <span></span>
+            <span></span>
+            <span></span>
         </div>
     </nav>
 
@@ -190,71 +196,35 @@
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobile-menu">
         <div class="p-6">
-            <div class="flex items-center gap-3 mb-6 pb-4 border-b-2 border-gray-100">
-                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                    <span class="material-icons text-white text-lg">apps</span>
-                </div>
-                <div>
-                    <span class="text-sm font-bold text-gray-900 uppercase tracking-tight block">Navigation</span>
-                    <span class="text-[10px] text-gray-500 uppercase tracking-wider">Lumina API</span>
-                </div>
+            <div class="flex items-center gap-2 mb-6 pb-4 border-b border-gray-200">
+                <span class="material-icons text-gray-800">menu_open</span>
+                <span class="text-sm font-bold text-gray-800 uppercase tracking-tight">Menu</span>
             </div>
             
             <nav class="space-y-2">
-                <a href="/" class="menu-item active flex items-center gap-4 px-4 py-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white font-bold text-sm uppercase tracking-wide rounded-lg shadow-md transition-all hover:shadow-lg">
-                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm">home</span>
-                    </div>
+                <a href="/" class="flex items-center gap-3 px-4 py-3 bg-gray-800 text-white font-bold text-sm uppercase tracking-wide rounded">
+                    <span class="material-icons text-lg">home</span>
                     <span>Home</span>
                 </a>
-                <a href="/docs" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
-                    <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-blue-600">description</span>
-                    </div>
+                <a href="/docs" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 font-bold text-sm uppercase tracking-wide rounded transition">
+                    <span class="material-icons text-lg">description</span>
                     <span>Documentation</span>
                 </a>
-                <a href="/contributors" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
-                    <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-purple-600">people</span>
-                    </div>
+                <a href="/contributors" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 font-bold text-sm uppercase tracking-wide rounded transition">
+                    <span class="material-icons text-lg">people</span>
                     <span>Contributors</span>
                 </a>
-                <a href="/status" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
-                    <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-green-600">bar_chart</span>
-                    </div>
+                <a href="/status" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 font-bold text-sm uppercase tracking-wide rounded transition">
+                    <span class="material-icons text-lg">bar_chart</span>
                     <span>API Status</span>
                 </a>
             </nav>
 
-            <div class="mt-8 pt-6 border-t-2 border-gray-100">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center gap-4 px-4 py-4 bg-gray-900 text-white font-semibold text-sm rounded-lg hover:bg-black transition-all shadow-md hover:shadow-lg">
-                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <i class="fab fa-github text-sm"></i>
-                    </div>
-                    <div class="flex-1">
-                        <span class="block">View on GitHub</span>
-                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Open Source</span>
-                    </div>
-                    <span class="material-icons text-sm">arrow_forward</span>
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium text-sm rounded transition">
+                    <i class="fab fa-github text-lg"></i>
+                    <span>View on GitHub</span>
                 </a>
-            </div>
-
-            <div class="mt-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-gray-100">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="material-icons text-sm text-purple-600">info</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-700">Quick Stats</span>
-                </div>
-                <div class="grid grid-cols-2 gap-2 mt-3">
-                    <div class="bg-white p-2 rounded">
-                        <div class="text-lg font-bold text-gray-900">42+</div>
-                        <div class="text-[9px] text-gray-500 uppercase">Endpoints</div>
-                    </div>
-                    <div class="bg-white p-2 rounded">
-                        <div class="text-lg font-bold text-gray-900">99.9%</div>
-                        <div class="text-[9px] text-gray-500 uppercase">Uptime</div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -337,6 +307,26 @@
                 }, 300);
             }
         });
+
+        // Fetch real endpoint count
+        async function fetchEndpointCount() {
+            try {
+                const response = await fetch('/endpoints');
+                const data = await response.json();
+                
+                if (data.status && data.count) {
+                    const widget = document.getElementById('total-endpoints-widget');
+                    if (widget) {
+                        widget.textContent = data.count + '+';
+                    }
+                }
+            } catch (error) {
+                console.log('Could not fetch endpoint count');
+            }
+        }
+
+        // Load count on page load
+        fetchEndpointCount();
 
         // Hamburger Menu Toggle
         const hamburger = document.getElementById('hamburger');
