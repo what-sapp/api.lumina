@@ -122,7 +122,10 @@ function loadEndpointsFromDirectory(directory, baseRoute = '') {
 // Load API endpoints
 const allEndpoints = loadEndpointsFromDirectory('api');
 
+// ========================================
 // Routes - HTML Pages
+// ========================================
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -131,12 +134,19 @@ app.get('/docs', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'docs.html'));
 });
 
-// ✅ TAMBAHAN: Route untuk Contributors
 app.get('/contributors', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'contributors.html'));
 });
 
+// ✅ NEW: Route untuk Status/Debug Page
+app.get('/status', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'status.html'));
+});
+
+// ========================================
 // API Routes
+// ========================================
+
 app.get('/endpoints', (req, res) => {
     const totalEndpoints = allEndpoints.reduce((total, category) => {
         return total + category.items.length;
@@ -154,6 +164,10 @@ app.get('/set', (req, res) => {
         ...set
     });
 });
+
+// ========================================
+// Error Handlers
+// ========================================
 
 // 404 handler
 app.use((req, res, next) => {
