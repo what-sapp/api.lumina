@@ -249,6 +249,82 @@
             logsContainer.scrollTop = logsContainer.scrollHeight;
         }
 
+        // Get default test values for parameters
+        function getDefaultValue(paramName, endpointName) {
+            const paramLower = paramName.toLowerCase();
+            const endpointLower = endpointName.toLowerCase();
+            
+            // Smart defaults based on parameter name
+            const defaults = {
+                // Text/Prompt
+                'prompt': 'Hello',
+                'text': 'test',
+                'query': 'test',
+                'q': 'test',
+                'message': 'Hello',
+                'content': 'test content',
+                
+                // Search
+                'search': 'anime',
+                'keyword': 'cute',
+                'term': 'test',
+                
+                // User/Profile
+                'username': 'testuser',
+                'user': 'testuser',
+                'name': 'Test User',
+                
+                // URLs
+                'url': 'https://example.com',
+                'link': 'https://example.com',
+                
+                // Numbers
+                'count': '1',
+                'limit': '5',
+                'page': '1',
+                'amount': '10',
+                
+                // IDs
+                'id': '1',
+                'userid': '123',
+                
+                // Locations
+                'city': 'Jakarta',
+                'location': 'Jakarta',
+                'country': 'Indonesia',
+                
+                // Other
+                'lang': 'en',
+                'language': 'english',
+                'type': 'image',
+                'category': 'anime'
+            };
+            
+            // Check if parameter name matches any default
+            for (const [key, value] of Object.entries(defaults)) {
+                if (paramLower.includes(key)) {
+                    return value;
+                }
+            }
+            
+            // Endpoint-specific defaults
+            if (endpointLower.includes('chat') || endpointLower.includes('ai')) {
+                return 'Hello, how are you?';
+            }
+            if (endpointLower.includes('search') || endpointLower.includes('google')) {
+                return 'artificial intelligence';
+            }
+            if (endpointLower.includes('translate')) {
+                return 'hello world';
+            }
+            if (endpointLower.includes('image') || endpointLower.includes('photo')) {
+                return 'cute anime girl';
+            }
+            
+            // Fallback
+            return 'test';
+        }
+
         // Fetch endpoints
         async function fetchEndpoints() {
             try {
@@ -307,7 +383,7 @@
             });
         }
 
-        // Test single endpoint
+        // Test single endpoint (with smart parameter handling)
         window.testEndpoint = async function(index) {
             const endpoint = endpoints[index];
             const element = document.getElementById(`endpoint-${index}`);
@@ -318,11 +394,30 @@
             badge.textContent = 'Testing...';
             badge.className = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-yellow-100 text-yellow-700';
 
-            log(`Testing: ${endpoint.path}`, 'info');
+            // Smart parameter handling
+            let testUrl = endpoint.path;
+            
+            // Check if endpoint has parameters
+            if (testUrl.includes('?')) {
+                const [base, params] = testUrl.split('?');
+                const paramsList = params.split('&');
+                const filledParams = [];
+                
+                // Auto-fill parameters with default test values
+                paramsList.forEach(param => {
+                    const paramName = param.split('=')[0];
+                    const defaultValue = getDefaultValue(paramName, endpoint.name);
+                    filledParams.push(`${paramName}=${encodeURIComponent(defaultValue)}`);
+                });
+                
+                testUrl = `${base}?${filledParams.join('&')}`;
+            }
+
+            log(`Testing: ${testUrl}`, 'info');
 
             try {
                 const start = Date.now();
-                const response = await fetch(endpoint.path);
+                const response = await fetch(testUrl);
                 const duration = Date.now() - start;
 
                 if (response.ok) {
