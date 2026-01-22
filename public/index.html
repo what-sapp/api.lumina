@@ -14,6 +14,100 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/styles.css">
+    
+    <style>
+        /* Hamburger Menu Styles */
+        .mobile-menu {
+            position: fixed;
+            top: 64px;
+            right: -100%;
+            width: 280px;
+            height: calc(100vh - 64px);
+            background: white;
+            box-shadow: -4px 0 12px rgba(0,0,0,0.1);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 40;
+            overflow-y: auto;
+        }
+
+        .mobile-menu.active {
+            right: 0;
+        }
+
+        .mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 39;
+        }
+
+        .mobile-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Hamburger Icon Animation */
+        .hamburger {
+            width: 24px;
+            height: 20px;
+            position: relative;
+            cursor: pointer;
+            display: none;
+        }
+
+        .hamburger span {
+            display: block;
+            position: absolute;
+            height: 2px;
+            width: 100%;
+            background: white;
+            border-radius: 2px;
+            opacity: 1;
+            left: 0;
+            transition: all 0.25s ease;
+        }
+
+        .hamburger span:nth-child(1) { top: 0; }
+        .hamburger span:nth-child(2) { top: 9px; }
+        .hamburger span:nth-child(3) { top: 18px; }
+
+        .hamburger.active span:nth-child(1) {
+            top: 9px;
+            transform: rotate(135deg);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+            left: -60px;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            top: 9px;
+            transform: rotate(-135deg);
+        }
+
+        /* Show hamburger on mobile */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: block;
+            }
+            
+            .desktop-nav {
+                display: none;
+            }
+        }
+
+        /* Desktop nav visible on larger screens */
+        @media (min-width: 769px) {
+            .mobile-menu {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body class="bg-white min-h-screen pt-[84px] pb-20">
 
@@ -21,18 +115,66 @@
         <div class="loader"></div>
     </div>
 
-    <!-- ✅ UPDATED: Navbar dengan 4 links -->
+    <!-- Navbar with Hamburger -->
     <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
         <div class="text-white font-bold tracking-tighter uppercase text-sm">
             Lumina <span class="text-gray-400">API`s</span>
         </div>
-        <div class="flex gap-6">
+        
+        <!-- Desktop Navigation -->
+        <div class="desktop-nav flex gap-6">
             <a href="/" class="text-white text-[11px] font-bold uppercase tracking-wider border-b-2 border-white pb-1">Home</a>
             <a href="/docs" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Docs</a>
             <a href="/contributors" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Contributors</a>
             <a href="/status" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Status</a>
         </div>
+
+        <!-- Hamburger Icon -->
+        <div class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
     </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobile-menu">
+        <div class="p-6">
+            <div class="flex items-center gap-2 mb-6 pb-4 border-b border-gray-200">
+                <span class="material-icons text-gray-800">menu_open</span>
+                <span class="text-sm font-bold text-gray-800 uppercase tracking-tight">Menu</span>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="/" class="flex items-center gap-3 px-4 py-3 bg-gray-800 text-white font-bold text-sm uppercase tracking-wide rounded">
+                    <span class="material-icons text-lg">home</span>
+                    <span>Home</span>
+                </a>
+                <a href="/docs" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 font-bold text-sm uppercase tracking-wide rounded transition">
+                    <span class="material-icons text-lg">description</span>
+                    <span>Documentation</span>
+                </a>
+                <a href="/contributors" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 font-bold text-sm uppercase tracking-wide rounded transition">
+                    <span class="material-icons text-lg">people</span>
+                    <span>Contributors</span>
+                </a>
+                <a href="/status" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 font-bold text-sm uppercase tracking-wide rounded transition">
+                    <span class="material-icons text-lg">bar_chart</span>
+                    <span>API Status</span>
+                </a>
+            </nav>
+
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium text-sm rounded transition">
+                    <i class="fab fa-github text-lg"></i>
+                    <span>View on GitHub</span>
+                </a>
+            </div>
+        </div>
+    </div>
 
     <div class="px-10 md:px-5 max-w-3xl mx-auto">
         
@@ -58,7 +200,6 @@
                 Dibuat untuk mempercepat alur kerja pengembangan aplikasi Anda.
             </p>
 
-            <!-- ✅ UPDATED: Buttons dengan icon & link ke Status -->
             <div class="flex flex-wrap gap-4">
                 <a href="/docs" class="btn-solid bg-gray-800 text-white px-8 py-3.5 text-[11px] font-bold uppercase tracking-widest flex items-center gap-2">
                     Get Started
@@ -101,7 +242,7 @@
     </div>
 
     <script>
-        // Optimized loader dengan timing konsisten
+        // Optimized loader
         window.addEventListener('load', function() {
             const loader = document.getElementById('page-loader');
             if (loader) {
@@ -110,7 +251,39 @@
                     setTimeout(() => {
                         loader.style.display = 'none';
                     }, 300);
-                }, 300); // Timing konsisten
+                }, 300);
+            }
+        });
+
+        // Hamburger Menu Toggle
+        const hamburger = document.getElementById('hamburger');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+
+        function toggleMenu() {
+            hamburger.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+            mobileOverlay.classList.toggle('active');
+            document.body.classList.toggle('noscroll');
+        }
+
+        hamburger.addEventListener('click', toggleMenu);
+        mobileOverlay.addEventListener('click', toggleMenu);
+
+        // Close menu on link click
+        const mobileLinks = mobileMenu.querySelectorAll('a');
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (mobileMenu.classList.contains('active')) {
+                    toggleMenu();
+                }
+            });
+        });
+
+        // Close menu on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                toggleMenu();
             }
         });
     </script>
