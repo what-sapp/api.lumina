@@ -494,6 +494,70 @@
             }
         }
 
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            window.location.reload();
+        });
+
+        document.getElementById('test-all-btn').addEventListener('click', testAllEndpoints);
+
+        document.getElementById('clear-logs-btn').addEventListener('click', () => {
+            document.getElementById('debug-logs').innerHTML = '<div class="text-gray-500">Logs cleared</div>';
+        });
+
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('page-loader');
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                setTimeout(() => { loader.style.display = 'none'; }, 300);
+            }, 300);
+        });
+
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('last-update').textContent = now.toLocaleTimeString('id-ID');
+        }, 1000);
+
+        // Hamburger Menu Toggle
+        const hamburger = document.getElementById('hamburger');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+
+        function toggleMenu() {
+            hamburger.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+            mobileOverlay.classList.toggle('active');
+            document.body.classList.toggle('noscroll');
+        }
+
+        hamburger.addEventListener('click', toggleMenu);
+        mobileOverlay.addEventListener('click', toggleMenu);
+
+        const mobileLinks = mobileMenu.querySelectorAll('a');
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (mobileMenu.classList.contains('active')) {
+                    toggleMenu();
+                }
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                toggleMenu();
+            }
+        });
+
+        fetchEndpoints();
+    </script>
+</body>
+</html>Indicator.className = 'w-16 h-16 status-degraded rounded-full flex items-center justify-center';
+                statusText.textContent = 'Degraded Performance';
+            } else {
+                statusIndicator.className = 'w-16 h-16 status-offline rounded-full flex items-center justify-center';
+                statusText.textContent = 'Major Outage';
+            }
+        }
+
         // Event listeners
         document.getElementById('refresh-btn').addEventListener('click', () => {
             window.location.reload();
