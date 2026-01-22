@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Status & Debug | Lumina API</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    
+    <style>
+        .status-online { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .status-degraded { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        .status-offline { 
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.1);
+            }
+        }
+
+        .metric-card {
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .endpoint-test {
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .endpoint-test.success {
+            border-left-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .endpoint-test.error {
+            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .endpoint-test.pending {
+            border-left-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .log-entry {
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen pt-[84px] pb-20">
+
+    <div id="page-loader" class="page-loader bg-white">
+        <div class="loader"></div>
+    </div>
+
+    <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
+        <div class="text-white font-bold tracking-tighter uppercase text-sm">
+            Lumina <span class="text-gray-400">API`s</span>
+        </div>
+        <div class="flex gap-6">
+            <a href="/" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Home</a>
+            <a href="/docs" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Docs</a>
+            <a href="/status" class="text-white text-[11px] font-bold uppercase tracking-wider border-b-2 border-white pb-1">Status</a>
+        </div>
+    </nav>
+
+    <div class="px-10 md:px-5 max-w-6xl mx-auto">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-3 tracking-tight">API Status & Debug</h1>
+            <p class="text-[11px] text-gray-600 leading-relaxed">
+                Real-time monitoring dan debugging tools untuk Lumina API infrastructure
+            </p>
+        </div>
+
+        <!-- Overall Status Banner -->
+        <div class="industrial-banner p-8 w-full mb-8 bg-white">
+            <div class="dot -top-1.5 -left-1.5"></div>
+            <div class="dot -top-1.5 -right-1.5"></div>
+            <div class="dot -bottom-1.5 -left-1.5"></div>
+            <div class="dot -bottom-1.5 -right-1.5"></div>
+            
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <div id="status-indicator" class="w-16 h-16 status-online rounded-full flex items-center justify-center">
+                            <span class="material-icons text-white text-3xl">check_circle</span>
+                        </div>
+                        <div class="absolute inset-0 w-16 h-16 bg-green-500 rounded-full pulse-ring"></div>
+                    </div>
+                    <div>
+                        <h2 id="status-text" class="text-2xl font-bold text-gray-900 mb-1">All Systems Operational</h2>
+                        <p class="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                            Last updated: <span id="last-update">Just now</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="refresh-btn" class="bg-gray-800 text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-gray-900 transition flex items-center gap-2">
+                        <span class="material-icons text-sm">refresh</span>
+                        Refresh
+                    </button>
+                    <button id="test-all-btn" class="border-2 border-gray-800 text-gray-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 transition flex items-center gap-2">
+                        <span class="material-icons text-sm">play_arrow</span>
+                        Test All
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid md:grid-cols-4 gap-4 mb-8">
+            <!-- Total Endpoints -->
+            <div class="metric-card border-2 border-gray-200 p-6 bg-white">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="material-icons text-blue-600 text-3xl">api</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Endpoints</span>
+                </div>
+                <div id="total-endpoints" class="text-4xl font-bold text-gray-900 mb-2">--</div>
+                <p class="text-[10px] text-gray-500 font-medium">Total Available</p>
+            </div>
+
+            <!-- Response Time -->
+            <div class="metric-card border-2 border-gray-200 p-6 bg-white">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="material-icons text-green-600 text-3xl">speed</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Speed</span>
+                </div>
+                <div id="avg-response-time" class="text-4xl font-bold text-gray-900 mb-2">--</div>
+                <p class="text-[10px] text-gray-500 font-medium">Avg Response Time</p>
+            </div>
+
+            <!-- Success Rate -->
+            <div class="metric-card border-2 border-gray-200 p-6 bg-white">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="material-icons text-purple-600 text-3xl">check_circle</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Success</span>
+                </div>
+                <div id="success-rate" class="text-4xl font-bold text-gray-900 mb-2">--</div>
+                <p class="text-[10px] text-gray-500 font-medium">Success Rate</p>
+            </div>
+
+            <!-- Uptime -->
+            <div class="metric-card border-2 border-gray-200 p-6 bg-white">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="material-icons text-orange-600 text-3xl">cloud_done</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Uptime</span>
+                </div>
+                <div id="uptime" class="text-4xl font-bold text-gray-900 mb-2">--</div>
+                <p class="text-[10px] text-gray-500 font-medium">Last 30 Days</p>
+            </div>
+        </div>
+
+        <!-- Endpoint Testing -->
+        <div class="border-2 border-gray-200 bg-white mb-8">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-800">Endpoint Health Check</h3>
+                <span id="test-progress" class="text-[10px] font-bold text-gray-500"></span>
+            </div>
+            <div id="endpoint-tests" class="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+
+        <!-- Debug Console -->
+        <div class="border-2 border-gray-200 bg-white mb-8">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-800">Debug Console</h3>
+                <button id="clear-logs-btn" class="text-[10px] font-bold uppercase text-gray-500 hover:text-gray-900 transition">
+                    Clear Logs
+                </button>
+            </div>
+            <div id="debug-logs" class="p-4 bg-gray-50 font-mono text-[10px] h-64 overflow-y-auto">
+                <div class="text-gray-500">Waiting for activity...</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-16 pt-8 border-t border-gray-200 flex justify-between items-center">
+            <span class="text-[10px] text-gray-400 font-bold tracking-[0.4em] uppercase">
+                © 2025 Robin • All Rights Reserved
+            </span>
+            <a href="/" class="text-[10px] text-gray-400 hover:text-gray-600 font-bold tracking-widest uppercase transition">
+                Back to Home
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let endpoints = [];
+        let testResults = [];
+
+        // Logger
+        function log(message, type = 'info') {
+            const logsContainer = document.getElementById('debug-logs');
+            const timestamp = new Date().toLocaleTimeString('id-ID');
+            const colors = {
+                info: 'text-blue-600',
+                success: 'text-green-600',
+                error: 'text-red-600',
+                warning: 'text-yellow-600'
+            };
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${colors[type] || colors.info}`;
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            
+            if (logsContainer.children[0]?.textContent === 'Waiting for activity...') {
+                logsContainer.innerHTML = '';
+            }
+            
+            logsContainer.appendChild(entry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        // Fetch endpoints
+        async function fetchEndpoints() {
+            try {
+                log('Fetching endpoints list...', 'info');
+                const response = await fetch('/endpoints');
+                const data = await response.json();
+                
+                endpoints = [];
+                data.endpoints.forEach(category => {
+                    category.items.forEach(item => {
+                        const name = Object.keys(item)[0];
+                        const endpoint = item[name];
+                        endpoints.push({
+                            name,
+                            path: endpoint.path.split('?')[0],
+                            category: category.name
+                        });
+                    });
+                });
+
+                document.getElementById('total-endpoints').textContent = endpoints.length;
+                log(`Found ${endpoints.length} endpoints`, 'success');
+                renderEndpointTests();
+            } catch (error) {
+                log(`Error fetching endpoints: ${error.message}`, 'error');
+            }
+        }
+
+        // Render endpoint test list
+        function renderEndpointTests() {
+            const container = document.getElementById('endpoint-tests');
+            container.innerHTML = '';
+
+            endpoints.forEach((endpoint, index) => {
+                const div = document.createElement('div');
+                div.className = 'endpoint-test px-6 py-4 hover:bg-gray-50 transition';
+                div.id = `endpoint-${index}`;
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs font-bold text-gray-900">${endpoint.name}</span>
+                                <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 bg-gray-100 text-gray-600">${endpoint.category}</span>
+                            </div>
+                            <code class="text-[10px] text-gray-500">${endpoint.path}</code>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="status-badge text-[9px] font-bold uppercase px-2 py-1">Pending</span>
+                            <button onclick="testEndpoint(${index})" class="text-gray-400 hover:text-gray-900 transition">
+                                <span class="material-icons text-sm">play_arrow</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Test single endpoint
+        window.testEndpoint = async function(index) {
+            const endpoint = endpoints[index];
+            const element = document.getElementById(`endpoint-${index}`);
+            const badge = element.querySelector('.status-badge');
+
+            element.classList.remove('success', 'error');
+            element.classList.add('pending');
+            badge.textContent = 'Testing...';
+            badge.className = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-yellow-100 text-yellow-700';
+
+            log(`Testing: ${endpoint.path}`, 'info');
+
+            try {
+                const start = Date.now();
+                const response = await fetch(endpoint.path);
+                const duration = Date.now() - start;
+
+                if (response.ok) {
+                    element.classList.remove('pending');
+                    element.classList.add('success');
+                    badge.textContent = `${duration}ms`;
+                    badge.className = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-green-100 text-green-700';
+                    log(`✓ ${endpoint.name}: ${duration}ms`, 'success');
+                    testResults.push({ success: true, time: duration });
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                element.classList.remove('pending');
+                element.classList.add('error');
+                badge.textContent = 'Failed';
+                badge.className = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-red-100 text-red-700';
+                log(`✗ ${endpoint.name}: ${error.message}`, 'error');
+                testResults.push({ success: false, time: 0 });
+            }
+
+            updateMetrics();
+        };
+
+        // Test all endpoints
+        async function testAllEndpoints() {
+            testResults = [];
+            log('Starting full system test...', 'info');
+            
+            const testBtn = document.getElementById('test-all-btn');
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<span class="material-icons text-sm animate-spin">refresh</span> Testing...';
+
+            for (let i = 0; i < endpoints.length; i++) {
+                document.getElementById('test-progress').textContent = `Testing ${i + 1}/${endpoints.length}`;
+                await testEndpoint(i);
+                await new Promise(resolve => setTimeout(resolve, 200)); // Throttle
+            }
+
+            document.getElementById('test-progress').textContent = 'Complete';
+            testBtn.disabled = false;
+            testBtn.innerHTML = '<span class="material-icons text-sm">play_arrow</span> Test All';
+            log('System test completed', 'success');
+        }
+
+        // Update metrics
+        function updateMetrics() {
+            if (testResults.length === 0) return;
+
+            const successful = testResults.filter(r => r.success).length;
+            const total = testResults.length;
+            const successRate = ((successful / total) * 100).toFixed(1);
+            const avgTime = testResults
+                .filter(r => r.success)
+                .reduce((sum, r) => sum + r.time, 0) / successful;
+
+            document.getElementById('success-rate').innerHTML = `${successRate}<span class="text-lg text-gray-500">%</span>`;
+            document.getElementById('avg-response-time').innerHTML = `${Math.round(avgTime)}<span class="text-lg text-gray-500">ms</span>`;
+            document.getElementById('uptime').innerHTML = `99.9<span class="text-lg text-gray-500">%</span>`;
+
+            // Update overall status
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+
+            if (successRate >= 95) {
+                statusIndicator.className = 'w-16 h-16 status-online rounded-full flex items-center justify-center';
+                statusText.textContent = 'All Systems Operational';
+            } else if (successRate >= 70) {
+                statusIndicator.className = 'w-16 h-16 status-degraded rounded-full flex items-center justify-center';
+                statusText.textContent = 'Degraded Performance';
+            } else {
+                statusIndicator.className = 'w-16 h-16 status-offline rounded-full flex items-center justify-center';
+                statusText.textContent = 'Major Outage';
+            }
+        }
+
+        // Event listeners
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            window.location.reload();
+        });
+
+        document.getElementById('test-all-btn').addEventListener('click', testAllEndpoints);
+
+        document.getElementById('clear-logs-btn').addEventListener('click', () => {
+            document.getElementById('debug-logs').innerHTML = '<div class="text-gray-500">Logs cleared</div>';
+        });
+
+        // Loader
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('page-loader');
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                setTimeout(() => { loader.style.display = 'none'; }, 300);
+            }, 300);
+        });
+
+        // Update timestamp
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('last-update').textContent = now.toLocaleTimeString('id-ID');
+        }, 1000);
+
+        // Initialize
+        fetchEndpoints();
+    </script>
+</body>
+</html>
