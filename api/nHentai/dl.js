@@ -5,7 +5,7 @@ const VPS_BASE = 'http://13.70.109.60:1072'; // ganti sesuai VPS publik-mu
 
 module.exports = {
   name: 'VPS Download',
-  desc: 'Get doujin download URL from VPS nHentai Scraper',
+  desc: 'Get all page URLs for a doujin chapter from VPS',
   category: 'nHentai',
   params: ['id'],
   run: async function (req, res) {
@@ -19,15 +19,21 @@ module.exports = {
         return res.status(400).json({ status: false, error: "Parameter 'id' is required" });
       }
 
-      // Panggil VPS
-      const endpoint = `${VPS_BASE}/download/${id}`;
+      // Panggil VPS chapter endpoint
+      const endpoint = `${VPS_BASE}/chapter/${id}`;
       const { data } = await axios.get(endpoint, { timeout: 15000 });
 
-      // Kirim URL download ke frontend
+      if (!data.success || !data.data?.pages) {
+        return res.status(404).json({ status: false, error: 'Chapter not found or empty' });
+      }
+
+      // Kirim semua URL halaman ke frontend
       res.status(200).json({
-        status: data.success ?? true,
+        status: true,
         creator: 'robin',
-        url: data.path ?? null // path dari VPS adalah URL file
+        id: data.data.id,
+        title: data.data.title,
+        pages: data.data.pages // array URL per halaman
       });
 
     } catch (error) {
