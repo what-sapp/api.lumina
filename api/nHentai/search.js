@@ -1,14 +1,14 @@
 // api/search.js
-import axios from 'axios';
+const axios = require('axios');
 
-const VPS_BASE = 'http://13.70.109.60:1072'; // IP VPS kamu + port publik
+const VPS_BASE = 'http://13.70.109.60:1072'; // IP VPS + port publik
 
-export default {
+module.exports = {
   name: 'VPS Search',
   desc: 'Search doujins from VPS nHentai Scraper',
   category: 'nHentai',
   params: ['q', 'page'],
-  async run(req, res) {
+  run: async function (req, res) {
     try {
       if (req.method !== 'GET') {
         return res.status(405).json({ status: false, error: 'Method not allowed' });
