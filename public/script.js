@@ -1,3 +1,7 @@
+// ─────────────────────────────────────────────────────────────
+// script.js  —  Lumina Docs (docs.html)
+// ─────────────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', async function () {
     // --- 1. INITIAL STATE & LOADER ---
     document.body.classList.add('noscroll');
@@ -16,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // --- 2. DATA FETCHING ---
     try {
         const endpoints = await (await fetch('/endpoints')).json();
-        const set = await (await fetch('/set')).json();
+        const set       = await (await fetch('/set')).json();
         
         setContent('api-icon', 'href', set.icon);
         setContent('api-title', 'textContent', set.name.main);
@@ -64,8 +68,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             const row = categoryWrapper.querySelector('.row');
             category.items.forEach(itemData => {
                 const itemName = Object.keys(itemData)[0];
-                const item = itemData[itemName];
-                const itemEl = document.createElement('div');
+                const item     = itemData[itemName];
+                const itemEl   = document.createElement('div');
                 itemEl.className = 'api-item-card w-full mb-2';
                 itemEl.dataset.name = itemName.toLowerCase();
                 itemEl.dataset.desc = (item.desc || '').toLowerCase();
@@ -95,29 +99,27 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    // --- 4. MODAL & PARAMETER LOGIC (UPDATED!) ---
+    // --- 4. MODAL & PARAMETER LOGIC ---
     function openApiModal(name, endpoint, description) {
-        const modal = document.getElementById('api-modal');
-        const modalContent = modal.querySelector('.relative.z-10');
-        const paramsContainer = document.getElementById('params-container');
+        const modal            = document.getElementById('api-modal');
+        const modalContent     = modal.querySelector('.relative.z-10');
+        const paramsContainer  = document.getElementById('params-container');
         const responseContainer = document.getElementById('response-container');
-        const responseData = document.getElementById('response-data');
+        const responseData     = document.getElementById('response-data');
         
-        // ✅ UPDATE: Display URL endpoint
+        // Display URL endpoint
         const apiUrlElement = document.getElementById('api-url');
         if (apiUrlElement) {
-            // Build full URL
-            const baseUrl = window.location.origin;
-            const cleanEndpoint = endpoint.split('?')[0]; // Remove query params for display
-            const fullUrl = `${baseUrl}${cleanEndpoint}`;
-            apiUrlElement.textContent = fullUrl;
+            const baseUrl      = window.location.origin;
+            const cleanEndpoint = endpoint.split('?')[0];
+            apiUrlElement.textContent = `${baseUrl}${cleanEndpoint}`;
         }
         
         responseContainer.classList.add('hidden');
         paramsContainer.innerHTML = '';
-        responseData.innerHTML = '';
-        document.getElementById('modal-title').textContent = name;
-        document.getElementById('api-description').textContent = description;
+        responseData.innerHTML   = '';
+        document.getElementById('modal-title').textContent      = name;
+        document.getElementById('api-description').textContent  = description;
         document.getElementById('submit-api').classList.remove('hidden');
         paramsContainer.classList.remove('hidden');
 
@@ -127,8 +129,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (pathMatches) pathMatches.forEach(m => params.push(m.replace(/{|}/g, '')));
         
         if (endpoint.includes('?')) {
-            const queryPart = endpoint.split('?')[1];
-            queryPart.split('&').forEach(p => {
+            endpoint.split('?')[1].split('&').forEach(p => {
                 const pName = p.split('=')[0];
                 if (pName && !params.includes(pName)) params.push(pName);
             });
@@ -149,10 +150,10 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     function createParamInput(name, container) {
         const isOptional = name.startsWith('_');
-        const cleanName = isOptional ? name.substring(1) : name;
-        const div = document.createElement('div');
-        div.className = 'mb-3';
-        div.innerHTML = `
+        const cleanName  = isOptional ? name.substring(1) : name;
+        const div        = document.createElement('div');
+        div.className    = 'mb-3';
+        div.innerHTML    = `
             <label class="text-[10px] font-bold uppercase text-gray-400 mb-1 block">${cleanName} ${isOptional ? '(Optional)' : '*'}</label>
             <input type="text" id="param-${name}" class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none" placeholder="Enter ${cleanName}...">
             <p id="error-${name}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
@@ -160,11 +161,28 @@ document.addEventListener('DOMContentLoaded', async function () {
         container.appendChild(div);
     }
 
-    // --- 5. REQUEST HANDLER (SUPPORT IMAGES) ---
+    // ─── 5. LIVE ACTIVITY LOGGER (ke localStorage, dibaca oleh status.html) ───
+    function logActivity(entry) {
+        try {
+            const KEY  = 'lumina_live_activity';
+            const MAX  = 50;
+            let logs   = [];
+            try { logs = JSON.parse(localStorage.getItem(KEY)) || []; } catch (_) {}
+
+            logs.push(entry);
+            if (logs.length > MAX) logs = logs.slice(-MAX); // FIFO — buang yang lama
+
+            localStorage.setItem(KEY, JSON.stringify(logs));
+        } catch (_) {
+            // localStorage mungkin blocked — silent fail
+        }
+    }
+
+    // --- 6. REQUEST HANDLER ---
     async function handleApiRequest(endpoint, paramsContainer) {
-        const submitBtn = document.getElementById('submit-api');
+        const submitBtn         = document.getElementById('submit-api');
         const responseContainer = document.getElementById('response-container');
-        const responseData = document.getElementById('response-data');
+        const responseData      = document.getElementById('response-data');
         
         let isValid = true;
         let baseUrl = endpoint.split('?')[0];
@@ -173,7 +191,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const inputs = paramsContainer.querySelectorAll('input');
         inputs.forEach(input => {
             const pName = input.id.replace('param-', '');
-            const val = input.value.trim();
+            const val   = input.value.trim();
             const error = document.getElementById(`error-${pName}`);
 
             if (!pName.startsWith('_') && !val) {
@@ -203,16 +221,26 @@ document.addEventListener('DOMContentLoaded', async function () {
         
         const start = Date.now();
         try {
-            const res = await fetch(finalUrl);
+            const res      = await fetch(finalUrl);
             const duration = Date.now() - start;
             const contentType = res.headers.get('content-type');
             
             document.getElementById('response-status').textContent = res.status;
-            document.getElementById('response-time').textContent = `${duration}ms`;
+            document.getElementById('response-time').textContent   = `${duration}ms`;
 
-            // PENANGANAN GAMBAR
+            // ── Log ke localStorage ──
+            logActivity({
+                endpoint:  finalUrl,
+                status:    res.status,
+                ok:        res.ok,
+                duration:  duration,
+                error:     res.ok ? null : `HTTP ${res.status}`,
+                timestamp: Date.now()
+            });
+
+            // ── Render response ──
             if (contentType && contentType.includes('image/')) {
-                const blob = await res.blob();
+                const blob   = await res.blob();
                 const imgUrl = URL.createObjectURL(blob);
                 responseData.innerHTML = `
                     <div class="flex flex-col items-center">
@@ -220,23 +248,30 @@ document.addEventListener('DOMContentLoaded', async function () {
                         <a href="${imgUrl}" download="result.jpg" class="bg-gray-800 text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all">Download Image</a>
                     </div>
                 `;
-            } 
-            // PENANGANAN JSON
-            else if (contentType && contentType.includes('application/json')) {
+            } else if (contentType && contentType.includes('application/json')) {
                 const json = await res.json();
                 responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700">${JSON.stringify(json, null, 2)}</pre>`;
-            } 
-            // PENANGANAN TEKS
-            else {
+            } else {
                 const text = await res.text();
                 responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700">${text}</pre>`;
             }
         } catch (err) {
+            const duration = Date.now() - start;
             responseData.innerHTML = `<span class="text-red-500 font-bold uppercase text-[10px]">Error: ${err.message}</span>`;
+
+            // ── Log error ke localStorage juga ──
+            logActivity({
+                endpoint:  finalUrl,
+                status:    0,
+                ok:        false,
+                duration:  duration,
+                error:     err.message,
+                timestamp: Date.now()
+            });
         }
     }
 
-    // --- 6. UTILS ---
+    // --- 7. UTILS ---
     function setupAccordion() {
         document.querySelectorAll('.category-header').forEach(header => {
             header.addEventListener('click', () => {
@@ -264,7 +299,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     window.closeModal = function() {
-        const modal = document.getElementById('api-modal');
+        const modal        = document.getElementById('api-modal');
         const modalContent = modal.querySelector('.relative.z-10');
         modal.classList.remove('opacity-100');
         modalContent.classList.add('scale-95', 'opacity-0');
