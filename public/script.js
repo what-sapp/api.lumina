@@ -57,7 +57,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             
             categoryWrapper.innerHTML = `
                 <div class="category-header flex items-center justify-between p-4 bg-gray-100 border border-gray-300 transition-all hover:bg-gray-200 cursor-pointer">
-                    <h3 class="text-sm font-bold text-gray-700 uppercase tracking-tight">${category.name}</h3>
+                    <div class="flex items-center gap-3">
+                        <span class="material-icons text-gray-500" style="font-size:18px;">folder</span>
+                        <h3 class="text-sm font-bold text-gray-700 uppercase tracking-tight">${category.name}</h3>
+                    </div>
                     <span class="material-icons accordion-icon text-gray-600">expand_more</span>
                 </div>
                 <div class="accordion-content">
@@ -275,8 +278,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     function setupAccordion() {
         document.querySelectorAll('.category-header').forEach(header => {
             header.addEventListener('click', () => {
-                header.nextElementSibling.classList.toggle('active');
+                const accordion = header.nextElementSibling;
+                const isOpen    = accordion.classList.toggle('active');
                 header.querySelector('.accordion-icon').classList.toggle('rotate');
+
+                // swap folder icon: folder ↔ folder_open
+                const folderIcon = header.querySelector('.material-icons.text-gray-500');
+                if (folderIcon) folderIcon.textContent = isOpen ? 'folder_open' : 'folder';
             });
         });
     }
@@ -292,7 +300,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 if (term && match) {
                     const accordion = card.closest('.accordion-content');
                     accordion.classList.add('active');
-                    accordion.previousElementSibling.querySelector('.accordion-icon').classList.add('rotate');
+                    const header = accordion.previousElementSibling;
+                    header.querySelector('.accordion-icon').classList.add('rotate');
+                    const folderIcon = header.querySelector('.material-icons.text-gray-500');
+                    if (folderIcon) folderIcon.textContent = 'folder_open';
                 }
             });
         });
