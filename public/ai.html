@@ -374,34 +374,36 @@
             const typingDiv = addMessage('assistant', '', true);
 
             try {
-                // Build query parameters
-                const params = new URLSearchParams({
+                // Build request body
+                const requestBody = {
                     model: modelSelector.value,
                     prompt: message || 'apa ini?',
                     system_instruction: 'Kamu adalah Lumina, asisten AI yang pintar dan membantu'
-                });
+                };
 
-                // Handle image
+                // Add image if exists
                 if (currentImage) {
-                    // Extract base64 data without prefix
                     const base64Data = currentImage.split(',')[1];
-                    params.append('media', base64Data);
+                    requestBody.media = base64Data;
                 }
 
-                // Handle history
+                // Add history if exists
                 if (chatHistory.length > 0) {
-                    params.append('history', JSON.stringify(chatHistory));
+                    requestBody.history = chatHistory;
                 }
 
                 console.log('Sending request to API...');
 
-                // Send GET request to correct endpoint
-                const apiResponse = await fetch(`https://api.nefu.biz.id/ai/geminiall?${params.toString()}`, {
-    method: 'GET',
-    headers: {
-        'Accept': 'application/json'
-    }
-});
+                // Send POST request
+                const apiResponse = await fetch('https://api.nefu.biz.id/ai/geminiall', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
                 console.log('Response status:', apiResponse.status);
 
                 if (!apiResponse.ok) {
@@ -412,15 +414,15 @@
                 const result = await apiResponse.json();
                 console.log('Response data:', result);
 
-                // Remove typing
+                // Remove typing indicator
                 typingDiv.remove();
 
-                // Cek struktur response yang baru (nested dalam data)
+                // Handle response sesuai struktur API
                 if (result.status && result.data && result.data.reply) {
                     // Add AI response
                     addMessage('assistant', result.data.reply);
                     
-                    // Update history dengan format yang benar dari API
+                    // Update history dengan format dari API
                     if (result.data.history) {
                         chatHistory = result.data.history;
                     }
@@ -429,8 +431,8 @@
                     messageCount++;
                     messageCountEl.textContent = messageCount;
                 } else {
-                    addMessage('assistant', 'Maaf, API tidak memberikan response yang valid 😿');
-                    console.error('Invalid API response:', result);
+                    addMessage('assistant', 'Maaf, response dari API tidak valid ✨');
+                    console.error('Unexpected response:', result);
                 }
 
             } catch (error) {
@@ -439,11 +441,11 @@
                 
                 let errorMsg = 'Maaf, terjadi error: ';
                 if (error.message.includes('Failed to fetch')) {
-                    errorMsg += 'Tidak bisa koneksi ke server. Cek internet atau API sedang down 😿';
+                    errorMsg += 'Tidak bisa koneksi ke server. Cek koneksi internet ✨';
                 } else if (error.message.includes('CORS')) {
-                    errorMsg += 'CORS error. API perlu enable CORS 😿';
+                    errorMsg += 'CORS error. API perlu enable CORS ✨';
                 } else {
-                    errorMsg += error.message + ' 😿';
+                    errorMsg += error.message + ' ✨';
                 }
                 
                 addMessage('assistant', errorMsg);
