@@ -70,7 +70,7 @@ module.exports = {
   name: "Gemini Image URL",
   desc: "Chat dengan AI Gemini menggunakan URL gambar | Support direct image URL",
   category: "AI",
-  params: ["prompt", "model", "_system_instruction", "_history", "image_url"],
+  params: ["prompt", "model", "_system_instruction", "_history", "_image_url"],
 
   async run(req, res) {
     const { prompt, model, system_instruction, history, image_url } = req.query;
