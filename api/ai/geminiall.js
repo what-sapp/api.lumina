@@ -1,7 +1,6 @@
+const axios = require('axios');
 const FormData = require('form-data');
-const fetch = require('node-fetch');
 const fs = require('fs');
-const path = require('path');
 
 async function geminiChat(options) {
   try {
@@ -23,22 +22,21 @@ async function geminiChat(options) {
       formData.append('media', fs.createReadStream(mediaPath));
     }
 
-    const response = await fetch('https://labs.shannzx.xyz/api/v1/gemmy/chat', {
-      method: 'POST',
-      body: formData,
-      headers: formData.getHeaders()
-    });
+    const response = await axios.post(
+      'https://labs.shannzx.xyz/api/v1/gemmy/chat',
+      formData,
+      {
+        headers: formData.getHeaders(),
+        timeout: 30000 // 30 detik timeout
+      }
+    );
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.json();
+    return response.data;
     
   } catch (e) {
     return { 
       success: false, 
-      error: e.message 
+      error: e.response?.data?.error || e.message 
     };
   }
 }
