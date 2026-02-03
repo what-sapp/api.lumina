@@ -89,7 +89,7 @@
 
             <!-- GitHub -->
             <div class="mt-6 pt-5 border-t border-gray-100">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link flex items-center gap-3 px-4 py-3.5 bg-gray-900 text-white font-medium text-[13px] rounded-lg transition-all group">
+                <a href="https://github.com/hiuraaaaa/api.lumina" target="_blank" class="github-link flex items-center gap-3 px-4 py-3.5 bg-gray-900 text-white font-medium text-[13px] rounded-lg transition-all group">
                     <div class="w-8 h-8 bg-white bg-opacity-10 group-hover:bg-opacity-20 rounded-lg flex items-center justify-center transition-all">
                         <i class="fab fa-github text-sm"></i>
                     </div>
@@ -395,7 +395,7 @@
 
                 console.log('Sending request to API...');
 
-                // ✅ GANTI ENDPOINT KE /api/gemini-image
+                // ✅ ENDPOINT: /api/ai/geminiall
                 const apiResponse = await fetch('/api/ai/geminiall', {
                     method: 'POST',
                     body: formData
@@ -413,17 +413,23 @@
                 // Remove typing
                 typingDiv.remove();
 
-                // ✅ UPDATE: Handle new response format
-                if (data.status && data.data && data.data.reply) {
-                    // Add AI response
-                    addMessage('assistant', data.data.reply);
-                    
-                    // Update history
-                    if (data.data.history) {
-                        chatHistory = data.data.history;
-                    }
+                // ✅ Smart response handler (support multiple formats)
+                let reply = null;
+                let newHistory = null;
 
-                    // Update message count
+                if (data.status) {
+                    // Try different response formats
+                    reply = data.data?.reply || data.reply || null;
+                    newHistory = data.data?.history || data.history || null;
+                }
+
+                if (reply) {
+                    addMessage('assistant', reply);
+                    
+                    if (newHistory) {
+                        chatHistory = newHistory;
+                    }
+                    
                     messageCount++;
                     messageCountEl.textContent = messageCount;
                 } else {
