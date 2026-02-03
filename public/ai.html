@@ -151,7 +151,7 @@
             </h1>
             
             <p class="text-[11px] md:text-[12px] text-gray-500 mb-4 leading-relaxed max-w-md">
-                Tanya apa aja ke Lumina! Support text dan gambar. Powered by Google Gemini.
+                Tanya apa aja ke Lumina!. Powered by Google Gemini.
             </p>
 
             <div class="flex flex-col gap-2">
@@ -397,12 +397,11 @@
 
                 // Send GET request to correct endpoint
                 const apiResponse = await fetch(`https://api.nefu.biz.id/ai/geminiall?${params.toString()}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-
+    method: 'GET',
+    headers: {
+        'Accept': 'application/json'
+    }
+});
                 console.log('Response status:', apiResponse.status);
 
                 if (!apiResponse.ok) {
