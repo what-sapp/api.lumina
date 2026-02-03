@@ -25,22 +25,15 @@
         .pulse-ring {
             animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
+        .pulse-ring.degraded { background: #f59e0b; }
+        .pulse-ring.offline  { background: #ef4444; }
         
         @keyframes pulse-ring {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.5;
-                transform: scale(1.1);
-            }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: 0.5; transform: scale(1.1); }
         }
 
-        .metric-card {
-            transition: all 0.3s ease;
-        }
-
+        .metric-card { transition: all 0.3s ease; }
         .metric-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
@@ -50,36 +43,47 @@
             border-left: 3px solid transparent;
             transition: all 0.2s ease;
         }
-
         .endpoint-test.success {
             border-left-color: #10b981;
             background: rgba(16, 185, 129, 0.05);
         }
-
         .endpoint-test.error {
             border-left-color: #ef4444;
             background: rgba(239, 68, 68, 0.05);
         }
-
         .endpoint-test.pending {
             border-left-color: #f59e0b;
             background: rgba(245, 158, 11, 0.05);
         }
 
-        .log-entry {
-            animation: slideIn 0.3s ease;
+        /* Error detail expand */
+        .error-detail {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.2s ease;
+        }
+        .error-detail.open {
+            max-height: 120px;
+            padding-top: 8px;
         }
 
+        .log-entry { animation: slideIn 0.3s ease; }
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(-10px); }
+            to   { opacity: 1; transform: translateX(0); }
         }
+
+        /* Counter flash */
+        @keyframes flashGreen {
+            0%, 100% { color: #111827; }
+            50%      { color: #10b981; }
+        }
+        @keyframes flashRed {
+            0%, 100% { color: #111827; }
+            50%      { color: #ef4444; }
+        }
+        .flash-green { animation: flashGreen 0.4s ease; }
+        .flash-red   { animation: flashRed 0.4s ease; }
     </style>
 </head>
 <body class="bg-white min-h-screen pt-[84px] pb-20">
@@ -119,10 +123,10 @@
             <div class="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <div class="relative">
-                        <div id="status-indicator" class="w-16 h-16 status-online rounded-full flex items-center justify-center">
-                            <span class="material-icons text-white text-3xl">check_circle</span>
+                        <div id="status-indicator" class="w-16 h-16 status-online rounded-full flex items-center justify-center z-10 relative">
+                            <span id="status-icon" class="material-icons text-white text-3xl">check_circle</span>
                         </div>
-                        <div class="absolute inset-0 w-16 h-16 bg-green-500 rounded-full pulse-ring"></div>
+                        <div id="pulse-ring" class="absolute inset-0 w-16 h-16 bg-green-500 rounded-full pulse-ring"></div>
                     </div>
                     <div>
                         <h2 id="status-text" class="text-2xl font-bold text-gray-900 mb-1">All Systems Operational</h2>
@@ -183,6 +187,25 @@
             </div>
         </div>
 
+        <!-- Live counter row (success / error) -->
+        <div class="flex gap-3 mb-4">
+            <div class="flex items-center gap-2 bg-green-50 border border-green-200 px-4 py-2">
+                <span class="material-icons text-green-600 text-sm">check_circle</span>
+                <span class="text-[11px] font-bold text-green-700">Success:</span>
+                <span id="live-success" class="text-[11px] font-bold text-green-700">0</span>
+            </div>
+            <div class="flex items-center gap-2 bg-red-50 border border-red-200 px-4 py-2">
+                <span class="material-icons text-red-600 text-sm">error</span>
+                <span class="text-[11px] font-bold text-red-700">Error:</span>
+                <span id="live-error" class="text-[11px] font-bold text-red-700">0</span>
+            </div>
+            <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 px-4 py-2 ml-auto">
+                <span class="material-icons text-gray-600 text-sm">pending</span>
+                <span class="text-[11px] font-bold text-gray-600">Pending:</span>
+                <span id="live-pending" class="text-[11px] font-bold text-gray-600">0</span>
+            </div>
+        </div>
+
         <!-- Endpoint Testing -->
         <div class="border-2 border-gray-200 bg-white mb-8">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
@@ -217,23 +240,25 @@
     </div>
 
     <script>
-        let endpoints = [];
+        let endpoints   = [];
         let testResults = [];
+        let successCount = 0;
+        let errorCount   = 0;
 
         // ─── Logger ───
         function log(message, type = 'info') {
             const logsContainer = document.getElementById('debug-logs');
-            const timestamp = new Date().toLocaleTimeString('id-ID');
+            const timestamp     = new Date().toLocaleTimeString('id-ID');
             const colors = {
-                info: 'text-blue-600',
+                info:    'text-blue-600',
                 success: 'text-green-600',
-                error: 'text-red-600',
+                error:   'text-red-600',
                 warning: 'text-yellow-600'
             };
 
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${colors[type] || colors.info}`;
-            entry.innerHTML = `[${timestamp}] ${message}`;
+            const entry       = document.createElement('div');
+            entry.className   = `log-entry ${colors[type] || colors.info}`;
+            entry.innerHTML   = `[${timestamp}] ${message}`;
             
             if (logsContainer.children[0]?.textContent === 'Waiting for activity...') {
                 logsContainer.innerHTML = '';
@@ -245,7 +270,7 @@
 
         // ─── Smart Defaults ───
         function getDefaultValue(paramName, endpointName) {
-            const paramLower = paramName.toLowerCase();
+            const paramLower    = paramName.replace(/^_/, '').toLowerCase(); // strip prefix underscore
             const endpointLower = endpointName.toLowerCase();
             
             const defaults = {
@@ -275,42 +300,63 @@
                 'lang': 'en',
                 'language': 'english',
                 'type': 'image',
-                'category': 'anime'
+                'category': 'anime',
+                'action': 'chat',
+                'aspectratio': '1:1'
             };
             
             for (const [key, value] of Object.entries(defaults)) {
                 if (paramLower.includes(key)) return value;
             }
             
-            if (endpointLower.includes('chat') || endpointLower.includes('ai')) return 'Hello, how are you?';
-            if (endpointLower.includes('search') || endpointLower.includes('google')) return 'artificial intelligence';
-            if (endpointLower.includes('translate')) return 'hello world';
-            if (endpointLower.includes('image') || endpointLower.includes('photo')) return 'cute anime girl';
+            if (endpointLower.includes('chat') || endpointLower.includes('ai'))         return 'Hello, how are you?';
+            if (endpointLower.includes('search') || endpointLower.includes('google'))   return 'artificial intelligence';
+            if (endpointLower.includes('translate'))                                    return 'hello world';
+            if (endpointLower.includes('image') || endpointLower.includes('photo'))     return 'cute anime girl';
             
             return 'test';
         }
 
-        // ─── Fetch Endpoints ───
+        // ─── Flash helper (kedip angka pas update) ───
+        function flash(el, cls) {
+            el.classList.add(cls);
+            setTimeout(() => el.classList.remove(cls), 400);
+        }
+
+        // ─── Update live counters ───
+        function updateLiveCounters() {
+            const elS = document.getElementById('live-success');
+            const elE = document.getElementById('live-error');
+            const elP = document.getElementById('live-pending');
+
+            elS.textContent = successCount;
+            elE.textContent = errorCount;
+            elP.textContent = endpoints.length - successCount - errorCount;
+        }
+
+        // ─── Fetch Endpoints (simpan path LENGKAP) ───
         async function fetchEndpoints() {
             try {
                 log('Fetching endpoints list...', 'info');
                 const response = await fetch('/endpoints');
-                const data = await response.json();
+                const data     = await response.json();
                 
                 endpoints = [];
                 data.endpoints.forEach(category => {
                     category.items.forEach(item => {
-                        const name = Object.keys(item)[0];
+                        const name     = Object.keys(item)[0];
                         const endpoint = item[name];
                         endpoints.push({
                             name,
-                            path: endpoint.path.split('?')[0],
+                            path:     endpoint.path.split('?')[0],   // buat display
+                            fullPath: endpoint.path,                  // lengkap, buat test
                             category: category.name
                         });
                     });
                 });
 
                 document.getElementById('total-endpoints').textContent = endpoints.length;
+                document.getElementById('live-pending').textContent     = endpoints.length;
                 log(`Found ${endpoints.length} endpoints`, 'success');
                 renderEndpointTests();
             } catch (error) {
@@ -324,10 +370,10 @@
             container.innerHTML = '';
 
             endpoints.forEach((endpoint, index) => {
-                const div = document.createElement('div');
-                div.className = 'endpoint-test px-6 py-4 hover:bg-gray-50 transition';
-                div.id = `endpoint-${index}`;
-                div.innerHTML = `
+                const div       = document.createElement('div');
+                div.className   = 'endpoint-test px-6 py-4 hover:bg-gray-50 transition';
+                div.id          = `endpoint-${index}`;
+                div.innerHTML   = `
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-1">
@@ -337,76 +383,127 @@
                             <code class="text-[10px] text-gray-500">${endpoint.path}</code>
                         </div>
                         <div class="flex items-center gap-3">
-                            <span class="status-badge text-[9px] font-bold uppercase px-2 py-1">Pending</span>
-                            <button onclick="testEndpoint(${index})" class="text-gray-400 hover:text-gray-900 transition">
+                            <span class="status-badge text-[9px] font-bold uppercase px-2 py-1 bg-gray-100 text-gray-600">Pending</span>
+                            <button class="test-single-btn text-gray-400 hover:text-gray-900 transition" data-index="${index}">
                                 <span class="material-icons text-sm">play_arrow</span>
                             </button>
                         </div>
                     </div>
+                    <!-- Error detail — muncul kalau ada error -->
+                    <div class="error-detail" id="error-detail-${index}">
+                        <div class="flex items-start gap-2 bg-red-50 border border-red-100 p-3 mt-1">
+                            <span class="material-icons text-red-500 text-sm mt-0.5">error_outline</span>
+                            <div class="flex-1 min-w-0">
+                                <span class="text-[10px] font-bold text-red-600 uppercase tracking-wider">Error Detail</span>
+                                <p class="error-message text-[10px] text-red-500 font-mono mt-0.5 break-all">-</p>
+                            </div>
+                        </div>
+                    </div>
                 `;
                 container.appendChild(div);
+            });
+
+            // single-test button — event delegation
+            container.addEventListener('click', (e) => {
+                const btn = e.target.closest('.test-single-btn');
+                if (btn) testEndpoint(Number(btn.dataset.index));
             });
         }
 
         // ─── Test Single Endpoint ───
         window.testEndpoint = async function(index) {
             const endpoint = endpoints[index];
-            const element = document.getElementById(`endpoint-${index}`);
-            const badge = element.querySelector('.status-badge');
+            const element  = document.getElementById(`endpoint-${index}`);
+            const badge    = element.querySelector('.status-badge');
+            const detail   = document.getElementById(`error-detail-${index}`);
+            const errMsg   = detail.querySelector('.error-message');
 
+            // Reset state
             element.classList.remove('success', 'error');
             element.classList.add('pending');
+            detail.classList.remove('open');
             badge.textContent = 'Testing...';
-            badge.className = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-yellow-100 text-yellow-700';
+            badge.className   = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-yellow-100 text-yellow-700';
 
-            let testUrl = endpoint.path;
-            
+            // ── Build URL dari fullPath + smart defaults ──
+            let testUrl = endpoint.fullPath;
+
             if (testUrl.includes('?')) {
                 const [base, params] = testUrl.split('?');
-                const paramsList = params.split('&');
-                const filledParams = [];
-                
-                paramsList.forEach(param => {
-                    const paramName = param.split('=')[0];
-                    const defaultValue = getDefaultValue(paramName, endpoint.name);
-                    filledParams.push(`${paramName}=${encodeURIComponent(defaultValue)}`);
+                const filledParams   = params.split('&').map(param => {
+                    const paramName   = param.split('=')[0];
+                    const defaultVal  = getDefaultValue(paramName, endpoint.name);
+                    return `${paramName}=${encodeURIComponent(defaultVal)}`;
                 });
-                
                 testUrl = `${base}?${filledParams.join('&')}`;
             }
 
             log(`Testing: ${testUrl}`, 'info');
 
             try {
-                const start = Date.now();
+                const start    = Date.now();
                 const response = await fetch(testUrl);
                 const duration = Date.now() - start;
 
-                if (response.ok) {
-                    element.classList.remove('pending');
-                    element.classList.add('success');
-                    badge.textContent = `${duration}ms`;
-                    badge.className = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-green-100 text-green-700';
-                    log(`✓ ${endpoint.name}: ${duration}ms`, 'success');
-                    testResults.push({ success: true, time: duration });
-                } else {
-                    throw new Error(`HTTP ${response.status}`);
+                // Cek response — kalau bukan ok, ambil body buat error detail
+                if (!response.ok) {
+                    let errorBody = `HTTP ${response.status}`;
+                    try {
+                        const ct   = response.headers.get('content-type') || '';
+                        const text = await response.text();
+                        if (ct.includes('application/json')) {
+                            const json = JSON.parse(text);
+                            errorBody  = json.error || json.message || text;
+                        } else {
+                            errorBody  = text || errorBody;
+                        }
+                    } catch (_) { /* biarin default */ }
+                    throw { status: response.status, detail: errorBody };
                 }
+
+                // ── Success ──
+                element.classList.remove('pending');
+                element.classList.add('success');
+                badge.textContent = `${duration}ms`;
+                badge.className   = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-green-100 text-green-700';
+                log(`✓ ${endpoint.name}: ${duration}ms`, 'success');
+                testResults.push({ success: true, time: duration });
+
+                successCount++;
+                flash(document.getElementById('live-success'), 'flash-green');
+
             } catch (error) {
+                // ── Error ──
+                const detail_text = error.detail || error.message || 'Unknown error';
+
                 element.classList.remove('pending');
                 element.classList.add('error');
-                badge.textContent = 'Failed';
-                badge.className = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-red-100 text-red-700';
-                log(`✗ ${endpoint.name}: ${error.message}`, 'error');
+                badge.textContent = `${error.status || 'Fail'}`;
+                badge.className   = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-red-100 text-red-700';
+
+                // Buka error detail langsung
+                errMsg.textContent = detail_text;
+                detail.classList.add('open');
+
+                log(`✗ ${endpoint.name}: ${detail_text}`, 'error');
                 testResults.push({ success: false, time: 0 });
+
+                errorCount++;
+                flash(document.getElementById('live-error'), 'flash-red');
             }
 
+            updateLiveCounters();
             updateMetrics();
         };
 
         // ─── Test All ───
         async function testAllEndpoints() {
-            testResults = [];
+            // Reset semua
+            testResults  = [];
+            successCount = 0;
+            errorCount   = 0;
+            updateLiveCounters();
+
             log('Starting full system test...', 'info');
             
             const testBtn = document.getElementById('test-all-btn');
@@ -416,11 +513,11 @@
             for (let i = 0; i < endpoints.length; i++) {
                 document.getElementById('test-progress').textContent = `Testing ${i + 1}/${endpoints.length}`;
                 await testEndpoint(i);
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(r => setTimeout(r, 150)); // slight throttle
             }
 
             document.getElementById('test-progress').textContent = 'Complete';
-            testBtn.disabled = false;
+            testBtn.disabled  = false;
             testBtn.innerHTML = '<span class="material-icons text-sm">play_arrow</span> Test All';
             log('System test completed', 'success');
         }
@@ -429,40 +526,46 @@
         function updateMetrics() {
             if (testResults.length === 0) return;
 
-            const successful = testResults.filter(r => r.success).length;
-            const total = testResults.length;
+            const successful  = testResults.filter(r => r.success).length;
+            const total       = testResults.length;
             const successRate = ((successful / total) * 100).toFixed(1);
-            const avgTime = successful > 0
-                ? testResults.filter(r => r.success).reduce((sum, r) => sum + r.time, 0) / successful
+            const avgTime     = successful > 0
+                ? testResults.filter(r => r.success).reduce((s, r) => s + r.time, 0) / successful
                 : 0;
 
-            document.getElementById('success-rate').innerHTML = `${successRate}<span class="text-lg text-gray-500">%</span>`;
-            document.getElementById('avg-response-time').innerHTML = `${Math.round(avgTime)}<span class="text-lg text-gray-500">ms</span>`;
-            document.getElementById('uptime').innerHTML = `99.9<span class="text-lg text-gray-500">%</span>`;
+            document.getElementById('success-rate').innerHTML        = `${successRate}<span class="text-lg text-gray-500">%</span>`;
+            document.getElementById('avg-response-time').innerHTML   = `${Math.round(avgTime)}<span class="text-lg text-gray-500">ms</span>`;
+            document.getElementById('uptime').innerHTML              = `99.9<span class="text-lg text-gray-500">%</span>`;
 
-            // Update overall status
+            // ── Overall status + pulse color ──
             const statusIndicator = document.getElementById('status-indicator');
-            const statusText = document.getElementById('status-text');
+            const statusIcon      = document.getElementById('status-icon');
+            const statusText      = document.getElementById('status-text');
+            const pulseRing       = document.getElementById('pulse-ring');
+
+            pulseRing.classList.remove('degraded', 'offline');
 
             if (successRate >= 95) {
-                statusIndicator.className = 'w-16 h-16 status-online rounded-full flex items-center justify-center';
-                statusText.textContent = 'All Systems Operational';
+                statusIndicator.className = 'w-16 h-16 status-online rounded-full flex items-center justify-center z-10 relative';
+                statusIcon.textContent    = 'check_circle';
+                statusText.textContent    = 'All Systems Operational';
+                pulseRing.style.background = '#22c55e';
             } else if (successRate >= 70) {
-                statusIndicator.className = 'w-16 h-16 status-degraded rounded-full flex items-center justify-center';
-                statusText.textContent = 'Degraded Performance';
+                statusIndicator.className = 'w-16 h-16 status-degraded rounded-full flex items-center justify-center z-10 relative';
+                statusIcon.textContent    = 'warning';
+                statusText.textContent    = 'Degraded Performance';
+                pulseRing.style.background = '#f59e0b';
             } else {
-                statusIndicator.className = 'w-16 h-16 status-offline rounded-full flex items-center justify-center';
-                statusText.textContent = 'Major Outage';
+                statusIndicator.className = 'w-16 h-16 status-offline rounded-full flex items-center justify-center z-10 relative';
+                statusIcon.textContent    = 'error';
+                statusText.textContent    = 'Major Outage';
+                pulseRing.style.background = '#ef4444';
             }
         }
 
         // ─── Event Listeners ───
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            window.location.reload();
-        });
-
+        document.getElementById('refresh-btn').addEventListener('click', () => window.location.reload());
         document.getElementById('test-all-btn').addEventListener('click', testAllEndpoints);
-
         document.getElementById('clear-logs-btn').addEventListener('click', () => {
             document.getElementById('debug-logs').innerHTML = '<div class="text-gray-500">Logs cleared</div>';
         });
