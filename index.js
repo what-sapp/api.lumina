@@ -225,10 +225,10 @@
             // Forward to Gemini API
             const startTime = Date.now();
             const response = await fetch('https://labs.shannzx.xyz/api/v1/gemmy/chat', {
-                method: 'POST',
-                body: formData,
-                headers: formData.getHeaders()
-            });
+    method: 'POST',
+    body: formData,
+    headers: formData.getHeaders()
+});
             
             const duration = Date.now() - startTime;
             
