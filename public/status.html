@@ -102,6 +102,91 @@
         }
         .flash-green { animation: flashGreen 0.4s ease; }
         .flash-red   { animation: flashRed 0.4s ease; }
+
+        /* ── Hamburger + Mobile Menu (sama persis docs.html) ── */
+        .mobile-menu {
+            position: fixed;
+            top: 64px;
+            right: -100%;
+            width: 320px;
+            height: calc(100vh - 64px);
+            background: white;
+            box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 40;
+            overflow-y: auto;
+        }
+        .mobile-menu.active { right: 0; }
+
+        .mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(3px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 39;
+        }
+        .mobile-overlay.active { opacity: 1; visibility: visible; }
+
+        .hamburger {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .hamburger:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); }
+        .hamburger::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .hamburger:hover::before { opacity: 1; }
+        .hamburger.active { background: rgba(239, 68, 68, 0.2); }
+
+        .hamburger-inner { width: 20px; height: 14px; position: relative; }
+        .hamburger-inner span {
+            display: block;
+            position: absolute;
+            height: 2px;
+            width: 100%;
+            background: white;
+            border-radius: 2px;
+            left: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .hamburger-inner span:nth-child(1) { top: 0; width: 100%; }
+        .hamburger-inner span:nth-child(2) { top: 6px; width: 75%; }
+        .hamburger-inner span:nth-child(3) { top: 12px; width: 100%; }
+
+        .hamburger.active .hamburger-inner span:nth-child(1) { top: 6px; transform: rotate(45deg); width: 100%; }
+        .hamburger.active .hamburger-inner span:nth-child(2) { opacity: 0; transform: translateX(-20px); }
+        .hamburger.active .hamburger-inner span:nth-child(3) { top: 6px; transform: rotate(-45deg); width: 100%; }
+
+        .menu-item { position: relative; overflow: hidden; }
+        .menu-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+        .menu-item:hover::before,
+        .menu-item.active::before { transform: scaleY(1); }
     </style>
 </head>
 <body class="bg-white min-h-screen pt-[84px] pb-20">
@@ -114,12 +199,91 @@
         <div class="text-white font-bold tracking-tighter uppercase text-sm">
             Lumina <span class="text-gray-400">API`s</span>
         </div>
-        <div class="flex gap-6">
-            <a href="/" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Home</a>
-            <a href="/docs" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Docs</a>
-            <a href="/status" class="text-white text-[11px] font-bold uppercase tracking-wider border-b-2 border-white pb-1">Status</a>
+        <div class="hamburger" id="hamburger">
+            <div class="hamburger-inner">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
         </div>
     </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobile-menu">
+        <div class="p-6">
+            <div class="flex items-center gap-3 mb-6 pb-4 border-b-2 border-gray-100">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                    <span class="material-icons text-white text-lg">apps</span>
+                </div>
+                <div>
+                    <span class="text-sm font-bold text-gray-900 uppercase tracking-tight block">Navigation</span>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-wider">Lumina API</span>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <a href="/" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
+                    <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm text-gray-600">home</span>
+                    </div>
+                    <span>Home</span>
+                </a>
+                <a href="/docs" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
+                    <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm text-gray-600">description</span>
+                    </div>
+                    <span>Documentation</span>
+                </a>
+                <a href="/contributors" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
+                    <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm text-purple-600">people</span>
+                    </div>
+                    <span>Contributors</span>
+                </a>
+                <!-- Status — active state -->
+                <a href="/status" class="menu-item active flex items-center gap-4 px-4 py-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white font-bold text-sm uppercase tracking-wide rounded-lg shadow-md transition-all hover:shadow-lg">
+                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm">bar_chart</span>
+                    </div>
+                    <span>API Status</span>
+                </a>
+            </nav>
+
+            <div class="mt-8 pt-6 border-t-2 border-gray-100">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center gap-4 px-4 py-4 bg-gray-900 text-white font-semibold text-sm rounded-lg hover:bg-black transition-all shadow-md hover:shadow-lg">
+                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm">code</span>
+                    </div>
+                    <div class="flex-1">
+                        <span class="block">View on GitHub</span>
+                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Open Source</span>
+                    </div>
+                    <span class="material-icons text-sm">arrow_forward</span>
+                </a>
+            </div>
+
+            <!-- Quick Stats widget -->
+            <div class="mt-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-gray-100">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-icons text-sm text-purple-600">info</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-700">Quick Stats</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <div class="bg-white p-2 rounded">
+                        <div id="menu-total-endpoints" class="text-lg font-bold text-gray-900">--</div>
+                        <div class="text-[9px] text-gray-500 uppercase">Endpoints</div>
+                    </div>
+                    <div class="bg-white p-2 rounded">
+                        <div id="menu-success-rate" class="text-lg font-bold text-gray-900">--</div>
+                        <div class="text-[9px] text-gray-500 uppercase">Success</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="px-10 md:px-5 max-w-6xl mx-auto">
         
@@ -396,6 +560,7 @@
                 });
 
                 document.getElementById('total-endpoints').textContent = endpoints.length;
+                document.getElementById('menu-total-endpoints').textContent = endpoints.length;
                 document.getElementById('live-pending').textContent     = endpoints.length;
                 log(`Found ${endpoints.length} endpoints`, 'success');
                 renderEndpointTests();
@@ -574,6 +739,7 @@
                 : 0;
 
             document.getElementById('success-rate').innerHTML        = `${successRate}<span class="text-lg text-gray-500">%</span>`;
+            document.getElementById('menu-success-rate').textContent  = `${successRate}%`;
             document.getElementById('avg-response-time').innerHTML   = `${Math.round(avgTime)}<span class="text-lg text-gray-500">ms</span>`;
             document.getElementById('uptime').innerHTML              = `99.9<span class="text-lg text-gray-500">%</span>`;
 
@@ -714,6 +880,31 @@
             lastSeenCount = 0;
             document.getElementById('live-activity').innerHTML =
                 '<div class="px-6 py-6 text-center text-[10px] text-gray-400 uppercase tracking-wider" id="activity-placeholder">Belum ada request dari docs — buka docs.html dan coba "Send Request"</div>';
+        });
+
+        // ─── Hamburger Menu ───
+        const hamburger     = document.getElementById('hamburger');
+        const mobileMenu    = document.getElementById('mobile-menu');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+
+        function toggleMenu() {
+            hamburger.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+            mobileOverlay.classList.toggle('active');
+            document.body.classList.toggle('noscroll');
+        }
+
+        hamburger.addEventListener('click', toggleMenu);
+        mobileOverlay.addEventListener('click', toggleMenu);
+
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (mobileMenu.classList.contains('active')) toggleMenu();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();
         });
 
         // ─── Init ───
