@@ -373,29 +373,42 @@
             // Show typing
             const typingDiv = addMessage('assistant', '', true);
 
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('model', modelSelector.value);
-            formData.append('prompt', message);
-            formData.append('system_instruction', 'Kamu neko si jago coding, di setiap pesan wajib ada nama kamunya');
-            
-            if (currentImage) {
-                // Convert base64 to blob
-                const blob = await fetch(currentImage).then(r => r.blob());
-                formData.append('media', blob, 'image.png');
-            }
-
-            if (chatHistory.length > 0) {
-                formData.append('history', JSON.stringify(chatHistory));
-            }
-
             try {
-                const response = await fetch('https://labs.shannzx.xyz/api/v1/gemmy/chat', {
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('model', modelSelector.value);
+                formData.append('prompt', message || 'apa ini?');
+                formData.append('system_instruction', 'Kamu neko si jago coding, di setiap pesan wajib ada nama kamunya');
+                
+                // Handle image
+                if (currentImage) {
+                    // Convert base64 to blob
+                    const response = await fetch(currentImage);
+                    const blob = await response.blob();
+                    formData.append('media', blob, 'image.png');
+                }
+
+                // Handle history
+                if (chatHistory.length > 0) {
+                    formData.append('history', JSON.stringify(chatHistory));
+                }
+
+                console.log('Sending request to API...');
+
+                // Send request to LOCAL proxy endpoint (bypasses CORS)
+                const apiResponse = await fetch('/api/chat', {
                     method: 'POST',
                     body: formData
                 });
 
-                const data = await response.json();
+                console.log('Response status:', apiResponse.status);
+
+                if (!apiResponse.ok) {
+                    throw new Error(`HTTP ${apiResponse.status}: ${apiResponse.statusText}`);
+                }
+
+                const data = await apiResponse.json();
+                console.log('Response data:', data);
 
                 // Remove typing
                 typingDiv.remove();
@@ -413,13 +426,24 @@
                     messageCount++;
                     messageCountEl.textContent = messageCount;
                 } else {
-                    addMessage('assistant', 'Maaf, terjadi error saat memproses pesanmu 😿');
+                    addMessage('assistant', 'Maaf, API tidak memberikan response yang valid 😿');
+                    console.error('Invalid API response:', data);
                 }
 
             } catch (error) {
                 typingDiv.remove();
-                addMessage('assistant', 'Maaf, koneksi ke server gagal 😿');
-                console.error('Error:', error);
+                console.error('Full error:', error);
+                
+                let errorMsg = 'Maaf, terjadi error: ';
+                if (error.message.includes('Failed to fetch')) {
+                    errorMsg += 'Tidak bisa koneksi ke server. Cek internet atau API sedang down 😿';
+                } else if (error.message.includes('CORS')) {
+                    errorMsg += 'CORS error. API perlu enable CORS 😿';
+                } else {
+                    errorMsg += error.message + ' 😿';
+                }
+                
+                addMessage('assistant', errorMsg);
             }
 
             // Reset input
