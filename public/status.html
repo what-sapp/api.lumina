@@ -67,6 +67,24 @@
             padding-top: 8px;
         }
 
+        /* Live Activity feed */
+        .activity-row {
+            animation: slideIn 0.3s ease;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .activity-row:last-child { border-bottom: none; }
+
+        .activity-row.ok    { border-left: 3px solid #10b981; }
+        .activity-row.fail  { border-left: 3px solid #ef4444; }
+
+        .activity-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .activity-dot.ok   { background: #10b981; box-shadow: 0 0 6px #10b98180; }
+        .activity-dot.fail { background: #ef4444; box-shadow: 0 0 6px #ef444480; }
+
         .log-entry { animation: slideIn 0.3s ease; }
         @keyframes slideIn {
             from { opacity: 0; transform: translateX(-10px); }
@@ -213,6 +231,28 @@
                 <span id="test-progress" class="text-[10px] font-bold text-gray-500"></span>
             </div>
             <div id="endpoint-tests" class="divide-y divide-gray-100 max-h-96 overflow-y-auto"></div>
+        </div>
+
+        <!-- Live Activity dari docs.html -->
+        <div class="border-2 border-gray-200 bg-white mb-8">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-800">Live Activity</h3>
+                    <!-- dot kedip kalau ada activity masuk -->
+                    <span id="live-dot" class="w-2 h-2 rounded-full bg-gray-300"></span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] text-gray-400 font-medium">dari docs.html</span>
+                    <button id="clear-activity-btn" class="text-[10px] font-bold uppercase text-gray-500 hover:text-gray-900 transition">
+                        Clear
+                    </button>
+                </div>
+            </div>
+            <div id="live-activity" class="max-h-64 overflow-y-auto">
+                <div class="px-6 py-6 text-center text-[10px] text-gray-400 uppercase tracking-wider" id="activity-placeholder">
+                    Belum ada request dari docs — buka docs.html dan coba "Send Request"
+                </div>
+            </div>
         </div>
 
         <!-- Debug Console -->
@@ -583,6 +623,98 @@
         setInterval(() => {
             document.getElementById('last-update').textContent = new Date().toLocaleTimeString('id-ID');
         }, 1000);
+
+        // ─── Live Activity (dari docs.html via localStorage) ───
+        const ACTIVITY_KEY = 'lumina_live_activity';
+        let lastSeenCount  = 0; // track jumlah entry yang udah di-render
+
+        function renderLiveActivity(logs) {
+            const container   = document.getElementById('live-activity');
+            const placeholder = document.getElementById('activity-placeholder');
+
+            if (!logs || logs.length === 0) {
+                placeholder.style.display = 'block';
+                return;
+            }
+            placeholder.style.display = 'none';
+
+            // Cuma render yang baru (dari lastSeenCount ke atas) — append, bukan re-render semua
+            const newEntries = logs.slice(lastSeenCount);
+            lastSeenCount    = logs.length;
+
+            newEntries.forEach(entry => {
+                const row      = document.createElement('div');
+                const isOk     = entry.ok;
+                const time     = new Date(entry.timestamp).toLocaleTimeString('id-ID');
+                // potong URL — cuma tampil path + query, bukan origin
+                let displayUrl = entry.endpoint;
+                try { displayUrl = new URL(entry.endpoint).pathname + new URL(entry.endpoint).search; } catch (_) {}
+
+                row.className = `activity-row ${isOk ? 'ok' : 'fail'} px-5 py-3 flex items-start gap-3`;
+                row.innerHTML = `
+                    <div class="activity-dot ${isOk ? 'ok' : 'fail'} mt-1"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[10px] font-bold ${isOk ? 'text-green-700' : 'text-red-700'} uppercase tracking-wider">
+                                ${isOk ? '✓ Success' : '✗ Error'}
+                            </span>
+                            <span class="text-[9px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5">${entry.status || 0}</span>
+                            <span class="text-[9px] text-gray-400">${entry.duration}ms</span>
+                            <span class="text-[9px] text-gray-400 ml-auto">${time}</span>
+                        </div>
+                        <code class="text-[10px] text-gray-500 block mt-0.5 truncate">${displayUrl}</code>
+                        ${!isOk && entry.error ? `<p class="text-[9px] text-red-500 mt-0.5 font-mono">${entry.error}</p>` : ''}
+                    </div>
+                `;
+
+                // Insert di atas (newest first)
+                container.insertBefore(row, container.firstChild);
+            });
+
+            // Log ke debug console juga
+            newEntries.forEach(entry => {
+                log(`[docs] ${entry.ok ? '✓' : '✗'} ${entry.endpoint} — ${entry.duration}ms`, entry.ok ? 'success' : 'error');
+            });
+        }
+
+        // Pulse dot sebentar pas ada activity baru
+        function pulseLiveDot() {
+            const dot = document.getElementById('live-dot');
+            dot.style.background = '#10b981';
+            dot.style.boxShadow  = '0 0 6px #10b98180';
+            setTimeout(() => {
+                dot.style.background  = '#d1d5db';
+                dot.style.boxShadow   = 'none';
+            }, 600);
+        }
+
+        // ── Listen perubahan localStorage dari tab lain ──
+        window.addEventListener('storage', (e) => {
+            if (e.key !== ACTIVITY_KEY) return;
+            try {
+                const logs = JSON.parse(e.newValue) || [];
+                if (logs.length > lastSeenCount) {
+                    pulseLiveDot();
+                    renderLiveActivity(logs);
+                }
+            } catch (_) {}
+        });
+
+        // ── On load — baca yang udah ada di localStorage ──
+        (function loadExistingActivity() {
+            try {
+                const logs = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
+                if (logs.length > 0) renderLiveActivity(logs);
+            } catch (_) {}
+        })();
+
+        // ── Clear activity ──
+        document.getElementById('clear-activity-btn').addEventListener('click', () => {
+            localStorage.removeItem(ACTIVITY_KEY);
+            lastSeenCount = 0;
+            document.getElementById('live-activity').innerHTML =
+                '<div class="px-6 py-6 text-center text-[10px] text-gray-400 uppercase tracking-wider" id="activity-placeholder">Belum ada request dari docs — buka docs.html dan coba "Send Request"</div>';
+        });
 
         // ─── Init ───
         fetchEndpoints();
