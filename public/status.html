@@ -146,7 +146,6 @@
 
         <!-- Metrics Grid -->
         <div class="grid md:grid-cols-4 gap-4 mb-8">
-            <!-- Total Endpoints -->
             <div class="metric-card border-2 border-gray-200 p-6 bg-white">
                 <div class="flex items-center justify-between mb-4">
                     <span class="material-icons text-blue-600 text-3xl">api</span>
@@ -156,7 +155,6 @@
                 <p class="text-[10px] text-gray-500 font-medium">Total Available</p>
             </div>
 
-            <!-- Response Time -->
             <div class="metric-card border-2 border-gray-200 p-6 bg-white">
                 <div class="flex items-center justify-between mb-4">
                     <span class="material-icons text-green-600 text-3xl">speed</span>
@@ -166,7 +164,6 @@
                 <p class="text-[10px] text-gray-500 font-medium">Avg Response Time</p>
             </div>
 
-            <!-- Success Rate -->
             <div class="metric-card border-2 border-gray-200 p-6 bg-white">
                 <div class="flex items-center justify-between mb-4">
                     <span class="material-icons text-purple-600 text-3xl">check_circle</span>
@@ -176,7 +173,6 @@
                 <p class="text-[10px] text-gray-500 font-medium">Success Rate</p>
             </div>
 
-            <!-- Uptime -->
             <div class="metric-card border-2 border-gray-200 p-6 bg-white">
                 <div class="flex items-center justify-between mb-4">
                     <span class="material-icons text-orange-600 text-3xl">cloud_done</span>
@@ -193,9 +189,7 @@
                 <h3 class="text-sm font-bold uppercase tracking-wide text-gray-800">Endpoint Health Check</h3>
                 <span id="test-progress" class="text-[10px] font-bold text-gray-500"></span>
             </div>
-            <div id="endpoint-tests" class="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-                <!-- Dynamic content -->
-            </div>
+            <div id="endpoint-tests" class="divide-y divide-gray-100 max-h-96 overflow-y-auto"></div>
         </div>
 
         <!-- Debug Console -->
@@ -226,7 +220,7 @@
         let endpoints = [];
         let testResults = [];
 
-        // Logger
+        // ─── Logger ───
         function log(message, type = 'info') {
             const logsContainer = document.getElementById('debug-logs');
             const timestamp = new Date().toLocaleTimeString('id-ID');
@@ -249,83 +243,54 @@
             logsContainer.scrollTop = logsContainer.scrollHeight;
         }
 
-        // Get default test values for parameters
+        // ─── Smart Defaults ───
         function getDefaultValue(paramName, endpointName) {
             const paramLower = paramName.toLowerCase();
             const endpointLower = endpointName.toLowerCase();
             
-            // Smart defaults based on parameter name
             const defaults = {
-                // Text/Prompt
                 'prompt': 'Hello',
                 'text': 'test',
                 'query': 'test',
                 'q': 'test',
                 'message': 'Hello',
                 'content': 'test content',
-                
-                // Search
                 'search': 'anime',
                 'keyword': 'cute',
                 'term': 'test',
-                
-                // User/Profile
                 'username': 'testuser',
                 'user': 'testuser',
                 'name': 'Test User',
-                
-                // URLs
                 'url': 'https://example.com',
                 'link': 'https://example.com',
-                
-                // Numbers
                 'count': '1',
                 'limit': '5',
                 'page': '1',
                 'amount': '10',
-                
-                // IDs
                 'id': '1',
                 'userid': '123',
-                
-                // Locations
                 'city': 'Jakarta',
                 'location': 'Jakarta',
                 'country': 'Indonesia',
-                
-                // Other
                 'lang': 'en',
                 'language': 'english',
                 'type': 'image',
                 'category': 'anime'
             };
             
-            // Check if parameter name matches any default
             for (const [key, value] of Object.entries(defaults)) {
-                if (paramLower.includes(key)) {
-                    return value;
-                }
+                if (paramLower.includes(key)) return value;
             }
             
-            // Endpoint-specific defaults
-            if (endpointLower.includes('chat') || endpointLower.includes('ai')) {
-                return 'Hello, how are you?';
-            }
-            if (endpointLower.includes('search') || endpointLower.includes('google')) {
-                return 'artificial intelligence';
-            }
-            if (endpointLower.includes('translate')) {
-                return 'hello world';
-            }
-            if (endpointLower.includes('image') || endpointLower.includes('photo')) {
-                return 'cute anime girl';
-            }
+            if (endpointLower.includes('chat') || endpointLower.includes('ai')) return 'Hello, how are you?';
+            if (endpointLower.includes('search') || endpointLower.includes('google')) return 'artificial intelligence';
+            if (endpointLower.includes('translate')) return 'hello world';
+            if (endpointLower.includes('image') || endpointLower.includes('photo')) return 'cute anime girl';
             
-            // Fallback
             return 'test';
         }
 
-        // Fetch endpoints
+        // ─── Fetch Endpoints ───
         async function fetchEndpoints() {
             try {
                 log('Fetching endpoints list...', 'info');
@@ -353,7 +318,7 @@
             }
         }
 
-        // Render endpoint test list
+        // ─── Render Endpoint Tests ───
         function renderEndpointTests() {
             const container = document.getElementById('endpoint-tests');
             container.innerHTML = '';
@@ -383,7 +348,7 @@
             });
         }
 
-        // Test single endpoint (with smart parameter handling)
+        // ─── Test Single Endpoint ───
         window.testEndpoint = async function(index) {
             const endpoint = endpoints[index];
             const element = document.getElementById(`endpoint-${index}`);
@@ -394,16 +359,13 @@
             badge.textContent = 'Testing...';
             badge.className = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-yellow-100 text-yellow-700';
 
-            // Smart parameter handling
             let testUrl = endpoint.path;
             
-            // Check if endpoint has parameters
             if (testUrl.includes('?')) {
                 const [base, params] = testUrl.split('?');
                 const paramsList = params.split('&');
                 const filledParams = [];
                 
-                // Auto-fill parameters with default test values
                 paramsList.forEach(param => {
                     const paramName = param.split('=')[0];
                     const defaultValue = getDefaultValue(paramName, endpoint.name);
@@ -442,7 +404,7 @@
             updateMetrics();
         };
 
-        // Test all endpoints
+        // ─── Test All ───
         async function testAllEndpoints() {
             testResults = [];
             log('Starting full system test...', 'info');
@@ -454,7 +416,7 @@
             for (let i = 0; i < endpoints.length; i++) {
                 document.getElementById('test-progress').textContent = `Testing ${i + 1}/${endpoints.length}`;
                 await testEndpoint(i);
-                await new Promise(resolve => setTimeout(resolve, 200)); // Throttle
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
 
             document.getElementById('test-progress').textContent = 'Complete';
@@ -463,16 +425,16 @@
             log('System test completed', 'success');
         }
 
-        // Update metrics
+        // ─── Update Metrics ───
         function updateMetrics() {
             if (testResults.length === 0) return;
 
             const successful = testResults.filter(r => r.success).length;
             const total = testResults.length;
             const successRate = ((successful / total) * 100).toFixed(1);
-            const avgTime = testResults
-                .filter(r => r.success)
-                .reduce((sum, r) => sum + r.time, 0) / successful;
+            const avgTime = successful > 0
+                ? testResults.filter(r => r.success).reduce((sum, r) => sum + r.time, 0) / successful
+                : 0;
 
             document.getElementById('success-rate').innerHTML = `${successRate}<span class="text-lg text-gray-500">%</span>`;
             document.getElementById('avg-response-time').innerHTML = `${Math.round(avgTime)}<span class="text-lg text-gray-500">ms</span>`;
@@ -494,6 +456,7 @@
             }
         }
 
+        // ─── Event Listeners ───
         document.getElementById('refresh-btn').addEventListener('click', () => {
             window.location.reload();
         });
@@ -504,6 +467,7 @@
             document.getElementById('debug-logs').innerHTML = '<div class="text-gray-500">Logs cleared</div>';
         });
 
+        // ─── Loader ───
         window.addEventListener('load', function() {
             const loader = document.getElementById('page-loader');
             setTimeout(() => {
@@ -512,79 +476,12 @@
             }, 300);
         });
 
+        // ─── Live Timestamp ───
         setInterval(() => {
-            const now = new Date();
-            document.getElementById('last-update').textContent = now.toLocaleTimeString('id-ID');
+            document.getElementById('last-update').textContent = new Date().toLocaleTimeString('id-ID');
         }, 1000);
 
-        // Hamburger Menu Toggle
-        const hamburger = document.getElementById('hamburger');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const mobileOverlay = document.getElementById('mobile-overlay');
-
-        function toggleMenu() {
-            hamburger.classList.toggle('active');
-            mobileMenu.classList.toggle('active');
-            mobileOverlay.classList.toggle('active');
-            document.body.classList.toggle('noscroll');
-        }
-
-        hamburger.addEventListener('click', toggleMenu);
-        mobileOverlay.addEventListener('click', toggleMenu);
-
-        const mobileLinks = mobileMenu.querySelectorAll('a');
-        mobileLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                if (mobileMenu.classList.contains('active')) {
-                    toggleMenu();
-                }
-            });
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
-                toggleMenu();
-            }
-        });
-
-        fetchEndpoints();
-    </script>
-</body>
-</html>Indicator.className = 'w-16 h-16 status-degraded rounded-full flex items-center justify-center';
-                statusText.textContent = 'Degraded Performance';
-            } else {
-                statusIndicator.className = 'w-16 h-16 status-offline rounded-full flex items-center justify-center';
-                statusText.textContent = 'Major Outage';
-            }
-        }
-
-        // Event listeners
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            window.location.reload();
-        });
-
-        document.getElementById('test-all-btn').addEventListener('click', testAllEndpoints);
-
-        document.getElementById('clear-logs-btn').addEventListener('click', () => {
-            document.getElementById('debug-logs').innerHTML = '<div class="text-gray-500">Logs cleared</div>';
-        });
-
-        // Loader
-        window.addEventListener('load', function() {
-            const loader = document.getElementById('page-loader');
-            setTimeout(() => {
-                loader.style.opacity = '0';
-                setTimeout(() => { loader.style.display = 'none'; }, 300);
-            }, 300);
-        });
-
-        // Update timestamp
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('last-update').textContent = now.toLocaleTimeString('id-ID');
-        }, 1000);
-
-        // Initialize
+        // ─── Init ───
         fetchEndpoints();
     </script>
 </body>
