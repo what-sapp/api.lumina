@@ -396,7 +396,7 @@
                 console.log('Sending request to API...');
 
                 // Send GET request to correct endpoint
-                const apiResponse = await fetch(`https://api.lumina.my.id/api/ai/geminiall?${params.toString()}`, {
+                const apiResponse = await fetch(`https://api.nefu.biz.id/ai/geminiall?${params.toString()}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json'
@@ -410,19 +410,20 @@
                     throw new Error(`HTTP ${apiResponse.status}: ${errorText}`);
                 }
 
-                const data = await apiResponse.json();
-                console.log('Response data:', data);
+                const result = await apiResponse.json();
+                console.log('Response data:', result);
 
                 // Remove typing
                 typingDiv.remove();
 
-                if (data.status && data.reply) {
+                // Cek struktur response yang baru (nested dalam data)
+                if (result.status && result.data && result.data.reply) {
                     // Add AI response
-                    addMessage('assistant', data.reply);
+                    addMessage('assistant', result.data.reply);
                     
-                    // Update history
-                    if (data.history) {
-                        chatHistory = data.history;
+                    // Update history dengan format yang benar dari API
+                    if (result.data.history) {
+                        chatHistory = result.data.history;
                     }
 
                     // Update message count
@@ -430,7 +431,7 @@
                     messageCountEl.textContent = messageCount;
                 } else {
                     addMessage('assistant', 'Maaf, API tidak memberikan response yang valid 😿');
-                    console.error('Invalid API response:', data);
+                    console.error('Invalid API response:', result);
                 }
 
             } catch (error) {
