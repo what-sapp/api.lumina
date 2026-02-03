@@ -6,6 +6,12 @@
     const set = require('./settings');
     const chalk = require('chalk');
     
+    // ✅ DEPENDENCIES UNTUK PROXY
+    const FormData = require('form-data');
+    const fetch = require('node-fetch');
+    const multer = require('multer');
+    const upload = multer({ storage: multer.memoryStorage() });
+    
     const app = express();
     const PORT = process.env.PORT || 4000;
     
@@ -23,8 +29,8 @@
     app.use(express.json());
     app.use(express.urlencoded({ extended: false }));
     app.use(cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     }));
     app.use('/', express.static(path.join(__dirname, 'docs')));
     
@@ -136,9 +142,33 @@
         return endpoints;
     }
     
+    // ========================================
+    // Routes - HTML Pages
+    // ========================================
+    
     app.get('/', (req, res) => {
         res.sendFile(path.join(__dirname, 'public', 'index.html'));
     });
+    
+    app.get('/docs', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'docs.html'));
+    });
+    
+    app.get('/contributors', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'contributors.html'));
+    });
+    
+    app.get('/status', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'status.html'));
+    });
+    
+    app.get('/ai', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'ai.html'));
+    });
+    
+    // ========================================
+    // API Routes
+    // ========================================
     
     logger.info('Loading API endpoints...');
     const allEndpoints = loadEndpointsFromDirectory('api');
@@ -163,6 +193,68 @@
         });
     });
     
+    // ========================================
+    // ✅ AI CHAT PROXY ENDPOINT
+    // ========================================
+    
+    app.post('/api/chat', upload.single('media'), async (req, res) => {
+        try {
+            logger.info(`AI Chat request - Model: ${req.body.model || 'default'}`);
+            
+            const formData = new FormData();
+            
+            // Add text fields
+            formData.append('model', req.body.model || 'gemini-2.5-flash-lite');
+            formData.append('prompt', req.body.prompt || '');
+            formData.append('system_instruction', req.body.system_instruction || 'Kamu neko si jago coding, di setiap pesan wajib ada nama kamunya');
+            
+            // Add history if exists
+            if (req.body.history) {
+                formData.append('history', req.body.history);
+            }
+            
+            // Add media if exists
+            if (req.file) {
+                logger.info(`Image attached: ${req.file.originalname} (${(req.file.size / 1024).toFixed(2)} KB)`);
+                formData.append('media', req.file.buffer, {
+                    filename: req.file.originalname,
+                    contentType: req.file.mimetype
+                });
+            }
+            
+            // Forward to Gemini API
+            const startTime = Date.now();
+            const response = await fetch('https://labs.shannzx.xyz/api/v1/gemmy/chat', {
+                method: 'POST',
+                body: formData,
+                headers: formData.getHeaders()
+            });
+            
+            const duration = Date.now() - startTime;
+            
+            if (!response.ok) {
+                throw new Error(`API returned ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            logger.ready(`AI Chat completed in ${duration}ms - Model: ${data.model_used || 'unknown'}`);
+            res.json(data);
+            
+        } catch (error) {
+            logger.error(`Chat proxy error: ${error.message}`);
+            res.status(500).json({ 
+                status: false, 
+                error: error.message,
+                details: 'Failed to connect to Gemini API'
+            });
+        }
+    });
+    
+    // ========================================
+    // Error Handlers
+    // ========================================
+    
     app.use((req, res, next) => {
         logger.info(`404: ${req.method} ${req.path}`);
         res.status(404).sendFile(process.cwd() + '/docs/err/404.html');
@@ -172,6 +264,10 @@
         logger.error(`500: ${err.message}`);
         res.status(500).sendFile(process.cwd() + '/docs/err/500.html');
     });
+    
+    // ========================================
+    // Server Start
+    // ========================================
     
     app.listen(PORT, () => {
         console.log('');
