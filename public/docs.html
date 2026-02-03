@@ -7,160 +7,13 @@
     <link id="api-icon" rel="icon" href="/image/icon.png" type="image/png">
     <title id="api-title">Lumina | Documentation</title>
     
-    <!-- Preconnect untuk speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- CDN yang diperlukan (dioptimasi) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/styles.css">
-    
-    <style>
-        /* Hamburger Menu Styles (sama dengan index.html) */
-        .mobile-menu {
-            position: fixed;
-            top: 64px;
-            right: -100%;
-            width: 320px;
-            height: calc(100vh - 64px);
-            background: white;
-            box-shadow: -4px 0 12px rgba(0,0,0,0.15);
-            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 40;
-            overflow-y: auto;
-        }
-
-        .mobile-menu.active {
-            right: 0;
-        }
-
-        .mobile-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(3px);
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            z-index: 39;
-        }
-
-        .mobile-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Modern Hamburger Icon */
-        .hamburger {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hamburger:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: scale(1.05);
-        }
-
-        .hamburger::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .hamburger:hover::before {
-            opacity: 1;
-        }
-
-        .hamburger-inner {
-            width: 20px;
-            height: 14px;
-            position: relative;
-        }
-
-        .hamburger-inner span {
-            display: block;
-            position: absolute;
-            height: 2px;
-            width: 100%;
-            background: white;
-            border-radius: 2px;
-            opacity: 1;
-            left: 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .hamburger-inner span:nth-child(1) {
-            top: 0;
-            width: 100%;
-        }
-
-        .hamburger-inner span:nth-child(2) {
-            top: 6px;
-            width: 75%;
-        }
-
-        .hamburger-inner span:nth-child(3) {
-            top: 12px;
-            width: 100%;
-        }
-
-        .hamburger.active .hamburger-inner span:nth-child(1) {
-            top: 6px;
-            transform: rotate(45deg);
-            width: 100%;
-        }
-
-        .hamburger.active .hamburger-inner span:nth-child(2) {
-            opacity: 0;
-            transform: translateX(-20px);
-        }
-
-        .hamburger.active .hamburger-inner span:nth-child(3) {
-            top: 6px;
-            transform: rotate(-45deg);
-            width: 100%;
-        }
-
-        .hamburger.active {
-            background: rgba(239, 68, 68, 0.2);
-        }
-
-        .menu-item {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .menu-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transform: scaleY(0);
-            transition: transform 0.3s ease;
-        }
-
-        .menu-item:hover::before,
-        .menu-item.active::before {
-            transform: scaleY(1);
-        }
-    </style>
 </head>
 <body class="bg-white min-h-screen pt-[84px] pb-10">
 
@@ -168,13 +21,11 @@
         <div class="loader"></div>
     </div>
 
-    <!-- Navbar with Hamburger Only -->
+    <!-- Navbar -->
     <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
         <div class="text-white font-bold tracking-tighter uppercase text-sm">
             Lumina <span class="text-gray-400">API`s</span>
         </div>
-
-        <!-- Modern Hamburger Icon -->
         <div class="hamburger" id="hamburger">
             <div class="hamburger-inner">
                 <span></span>
@@ -184,172 +35,217 @@
         </div>
     </nav>
 
-    <!-- Mobile Menu Overlay -->
+    <!-- Overlay -->
     <div class="mobile-overlay" id="mobile-overlay"></div>
 
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobile-menu">
         <div class="p-6">
-            <div class="flex items-center gap-3 mb-6 pb-4 border-b-2 border-gray-100">
-                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+            <!-- Header -->
+            <div class="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100">
+                <div class="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center relative">
                     <span class="material-icons text-white text-lg">apps</span>
+                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-purple-500 rounded-full border-2 border-white"></div>
                 </div>
                 <div>
                     <span class="text-sm font-bold text-gray-900 uppercase tracking-tight block">Navigation</span>
-                    <span class="text-[10px] text-gray-500 uppercase tracking-wider">Lumina API</span>
+                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Lumina API</span>
                 </div>
             </div>
             
-            <nav class="space-y-2">
-                <a href="/" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
-                    <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-gray-600">home</span>
+            <!-- Nav Links -->
+            <nav class="space-y-1">
+                <a href="/" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
+                    <div class="w-8 h-8 bg-gray-100 group-hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors">
+                        <span class="material-icons text-sm text-gray-500 group-hover:text-gray-700">home</span>
                     </div>
                     <span>Home</span>
                 </a>
-                <a href="/docs" class="menu-item active flex items-center gap-4 px-4 py-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white font-bold text-sm uppercase tracking-wide rounded-lg shadow-md transition-all hover:shadow-lg">
-                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm">description</span>
+
+                <a href="/docs" class="menu-item active flex items-center gap-4 px-4 py-3.5 bg-gray-900 text-white font-semibold text-[13px] rounded-lg shadow-md relative overflow-hidden">
+                    <div class="w-8 h-8 bg-white bg-opacity-10 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm text-white">description</span>
                     </div>
                     <span>Documentation</span>
+                    <span class="ml-auto text-[9px] bg-white bg-opacity-15 px-2 py-0.5 rounded-full uppercase tracking-wider">Current</span>
                 </a>
-                <a href="/contributors" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
-                    <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+
+                <a href="/contributors" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
+                    <div class="w-8 h-8 bg-purple-50 group-hover:bg-purple-100 rounded-lg flex items-center justify-center transition-colors">
                         <span class="material-icons text-sm text-purple-600">people</span>
                     </div>
                     <span>Contributors</span>
                 </a>
-                <a href="/status" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
-                    <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-green-600">bar_chart</span>
+
+                <a href="/status" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
+                    <div class="w-8 h-8 bg-emerald-50 group-hover:bg-emerald-100 rounded-lg flex items-center justify-center transition-colors">
+                        <span class="material-icons text-sm text-emerald-600">bar_chart</span>
                     </div>
                     <span>API Status</span>
+                    <!-- live dot -->
+                    <span class="ml-auto flex items-center gap-1.5">
+                        <span class="w-2 h-2 bg-emerald-400 rounded-full live-dot"></span>
+                        <span class="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">Live</span>
+                    </span>
                 </a>
             </nav>
 
-            <div class="mt-8 pt-6 border-t-2 border-gray-100">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center gap-4 px-4 py-4 bg-gray-900 text-white font-semibold text-sm rounded-lg hover:bg-black transition-all shadow-md hover:shadow-lg">
-                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+            <!-- GitHub -->
+            <div class="mt-6 pt-5 border-t border-gray-100">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link flex items-center gap-3 px-4 py-3.5 bg-gray-900 text-white font-medium text-[13px] rounded-lg transition-all group">
+                    <div class="w-8 h-8 bg-white bg-opacity-10 group-hover:bg-opacity-20 rounded-lg flex items-center justify-center transition-all">
                         <i class="fab fa-github text-sm"></i>
                     </div>
                     <div class="flex-1">
                         <span class="block">View on GitHub</span>
-                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Open Source</span>
+                        <span class="text-[9px] text-gray-400 uppercase tracking-wider">Open Source</span>
                     </div>
-                    <span class="material-icons text-sm">arrow_forward</span>
+                    <span class="material-icons text-sm text-gray-500 group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </a>
             </div>
 
-            <div class="mt-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-gray-100">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="material-icons text-sm text-purple-600">info</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-700">Quick Stats</span>
+            <!-- Quick Stats -->
+            <div class="mt-4 stats-card p-4 rounded-lg">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="material-icons text-sm text-purple-600">insights</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-600">Quick Stats</span>
                 </div>
-                <div class="grid grid-cols-2 gap-2 mt-3">
-                    <div class="bg-white p-2 rounded">
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="stats-item bg-white p-2.5 rounded-md border border-gray-100">
                         <div id="total-endpoints-widget" class="text-lg font-bold text-gray-900">--</div>
-                        <div class="text-[9px] text-gray-500 uppercase">Endpoints</div>
+                        <div class="text-[9px] text-gray-400 uppercase tracking-wider">Endpoints</div>
                     </div>
-                    <div class="bg-white p-2 rounded">
-                        <div class="text-lg font-bold text-gray-900">99.9%</div>
-                        <div class="text-[9px] text-gray-500 uppercase">Uptime</div>
+                    <div class="stats-item bg-white p-2.5 rounded-md border border-gray-100">
+                        <div class="text-lg font-bold text-emerald-600">99.9%</div>
+                        <div class="text-[9px] text-gray-400 uppercase tracking-wider">Uptime</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
+    <!-- Main Content -->
     <div class="px-10 md:px-5 max-w-3xl mx-auto">
         <div class="flex flex-row items-center mb-6 justify-between">
             <div class="flex flex-row gap-3">
                 <a id="api-info" target="_blank">
-                    <button class="bg-gray-50 p-2 lg:hidden focus:outline-none border border-gray-200">
+                    <button class="bg-gray-50 p-2 lg:hidden focus:outline-none border border-gray-200 hover:border-gray-400 transition-colors">
                         <span class="material-icons text-gray-600 align-middle">info</span>
                     </button>
                 </a>
             </div>
         </div>
 
+        <!-- Banner -->
         <div id="banner" class="industrial-banner p-7 py-10 w-full mb-7 bg-white">
             <div class="dot -top-1.5 -left-1.5"></div>
             <div class="dot -top-1.5 -right-1.5"></div>
             <div class="dot -bottom-1.5 -left-1.5"></div>
             <div class="dot -bottom-1.5 -right-1.5"></div>
+
+            <!-- Corner labels -->
+            <div class="corner-label top-1 left-2 text-[8px] text-gray-300 font-mono uppercase tracking-widest">SYS::DOC</div>
+            <div class="corner-label top-1 right-2 text-[8px] text-gray-300 font-mono uppercase tracking-widest">v1.0</div>
             
-            <div class="flex items-center gap-2 mb-2">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center text-gray-400 hover:text-gray-500 transition-colors" style="font-size: 11px;">
+            <div class="flex items-center gap-2 mb-3">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center text-gray-400 hover:text-gray-600 transition-colors" style="font-size: 11px;">
                     <i class="fab fa-github mr-2"></i>
                     <span class="font-medium">Lumina Api`s</span>
                 </a>
+                <!-- status badge -->
+                <span class="flex items-center gap-1 ml-2">
+                    <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full live-dot"></span>
+                    <span class="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">Active</span>
+                </span>
             </div>
             
-            <div class="flex flex-wrap items-center gap-2 mb-3">
-                <h2 id="api-name" class="text-3xl font-bold tracking-tight">Name</h2>
-                <div id="api-author" class="bg-gray-800 text-white text-[10px] font-bold px-2 py-1 tracking-widest uppercase shrink-0">by Who.</div>
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+                <h2 id="api-name" class="text-3xl font-bold tracking-tight text-gray-900">Name</h2>
+                <div id="api-author" class="author-badge bg-gray-800 text-white text-[10px] font-bold px-2.5 py-1 tracking-widest uppercase">by Who.</div>
             </div>
-            <p id="api-desc" class="text-[11px] text-gray-600 mb-4 leading-relaxed">Desc</p>
-            <div id="api-links" class="flex flex-col gap-1 text-[11px] text-gray-500"></div>
-            <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                <span id="api-copyright" class="text-[10px] text-gray-400 font-bold tracking-widest uppercase">© 2025 Rynxzyy • DevAPI</span>
+            <p id="api-desc" class="text-[12px] text-gray-500 mb-4 leading-relaxed max-w-xl">Desc</p>
+            <div id="api-links" class="flex flex-col gap-1 text-[11px] text-gray-400"></div>
+
+            <!-- Footer line -->
+            <div class="mt-5 pt-3 border-t border-dashed border-gray-200 flex justify-between items-center">
+                <span id="api-copyright" class="text-[9px] text-gray-300 font-bold tracking-widest uppercase">© 2025 Rynxzyy • DevAPI</span>
+                <span class="text-[9px] text-gray-300 font-mono">ID::LUM-001</span>
             </div>
         </div>
         
+        <!-- Search -->
         <div class="relative w-full mb-6">
             <input 
                 type="text" 
                 id="api-search" 
-                class="w-full px-4 py-4 text-sm text-gray-700 border-2 border-gray-100 focus:outline-none focus:border-gray-800 transition-all pl-12" 
+                class="search-input w-full px-4 py-4 text-sm text-gray-700 border-2 border-gray-100 focus:outline-none focus:border-gray-800 transition-all pl-12 bg-white" 
                 placeholder="Search API Endpoints...">
-            <span class="material-icons absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">search</span>
+            <span class="material-icons absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300">search</span>
         </div>
         
         <div class="tab-content" id="api-content"></div>
     </div>
     
+    <!-- Modal -->
     <div id="api-modal" class="fixed inset-0 z-50 hidden overflow-y-auto overflow-x-hidden flex items-center justify-center p-6 transition-opacity duration-200 ease-out opacity-0">
         <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm opacity-0 transition-opacity duration-200 ease-out"></div>
         <div class="relative z-10 bg-white border-2 border-gray-800 shadow-[8px_8px_0px_0px_rgba(31,41,55,1)] w-full max-w-lg mx-auto p-8 my-auto transform scale-95 opacity-0 transition-all duration-200 ease-out">
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center">
-                    <span id="api-method" class="px-2 py-1 text-[10px] font-bold bg-blue-600 text-white mr-2 tracking-widest">GET</span>
-                    <h3 class="text-xl font-bold tracking-tight" id="modal-title">API Request</h3>
+            
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center mb-5">
+                <div class="flex items-center gap-2">
+                    <span id="api-method" class="method-badge px-2.5 py-1 text-[10px] font-bold bg-blue-600 text-white tracking-widest">GET</span>
+                    <h3 class="text-lg font-bold tracking-tight text-gray-900" id="modal-title">API Request</h3>
                 </div>
-                <button id="close-modal" class="text-gray-400 hover:text-gray-900 transition-colors focus:outline-none">
-                    <span class="material-icons">close</span>
+                <button id="close-modal" class="text-gray-300 hover:text-gray-900 transition-colors focus:outline-none p-1 hover:bg-gray-100 rounded">
+                    <span class="material-icons text-lg">close</span>
                 </button>
+            </div>
+
+            <!-- Divider with dots -->
+            <div class="modal-divider flex items-center gap-1.5 mb-5">
+                <div class="flex-1 h-px bg-gray-100"></div>
+                <div class="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
+                <div class="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
+                <div class="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
+                <div class="flex-1 h-px bg-gray-100"></div>
             </div>
             
             <div class="mb-5">
-                <p id="api-description" class="text-xs font-medium text-gray-500 leading-relaxed mb-3">API description will appear here</p>
+                <p id="api-description" class="text-[12px] text-gray-500 leading-relaxed mb-3">API description will appear here</p>
                 
-                <!-- URL Endpoint Display -->
-                <div class="bg-gray-50 border border-gray-200 p-3 rounded">
-                    <code id="api-url" class="text-[10px] font-mono text-gray-700 break-all">https://api-lumina-ashy.vercel.app/endpoint</code>
+                <!-- URL -->
+                <div class="url-block bg-gray-50 border border-gray-200 p-3 rounded relative group">
+                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span class="text-[8px] text-gray-400 font-mono uppercase tracking-wider bg-white border border-gray-100 px-1.5 py-0.5 rounded">URL</span>
+                    </div>
+                    <code id="api-url" class="text-[11px] font-mono text-gray-600 break-all">https://api-lumina-ashy.vercel.app/endpoint</code>
                 </div>
             </div>
             
             <div id="params-container" class="mb-6"></div>
             
-            <button id="submit-api" class="w-full bg-gray-800 hover:bg-gray-900 text-white px-4 py-3 text-[11px] font-bold uppercase tracking-[0.2em] transition-all">
+            <button id="submit-api" class="btn-solid w-full bg-gray-800 hover:bg-gray-900 text-white px-4 py-3 text-[11px] font-bold uppercase tracking-[0.2em] transition-all">
                 Send Request
             </button>
             
-            <div id="response-container" class="mt-6 hidden border-t border-gray-100 pt-6">
+            <!-- Response -->
+            <div id="response-container" class="mt-6 hidden border-t border-gray-100 pt-5">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Response</h4>
-                    <div class="flex items-center">
-                        <span id="response-status" class="px-2 py-0.5 text-[10px] font-bold bg-green-100 text-green-700 mr-2 uppercase">200 OK</span>
-                        <span id="response-time" class="text-[10px] font-bold text-gray-400">200ms</span>
+                    <div class="flex items-center gap-2">
+                        <span id="response-status" class="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 rounded uppercase">200 OK</span>
+                        <span id="response-time" class="text-[10px] font-mono text-gray-400">200ms</span>
                     </div>
                 </div>
-                <pre id="response-data" class="bg-gray-50 p-4 text-[11px] font-mono text-gray-700 overflow-auto max-h-60 border border-gray-100"></pre>
+                <pre id="response-data" class="bg-gray-50 p-4 text-[11px] font-mono text-gray-600 overflow-auto max-h-60 border border-gray-100 rounded"></pre>
             </div>
         </div>
     </div>
 
     <script src="/script.js"></script>
     <script>
-        // Optimized loader
+        // Loader
         window.addEventListener('load', () => {
             const loader = document.getElementById('page-loader');
             setTimeout(() => {
@@ -358,26 +254,22 @@
             }, 300);
         });
 
-        // Fetch real endpoint count
+        // Endpoint count
         async function fetchEndpointCount() {
             try {
                 const response = await fetch('/endpoints');
                 const data = await response.json();
-                
                 if (data.status && data.count) {
                     const widget = document.getElementById('total-endpoints-widget');
-                    if (widget) {
-                        widget.textContent = data.count + '+';
-                    }
+                    if (widget) widget.textContent = data.count + '+';
                 }
-            } catch (error) {
+            } catch (e) {
                 console.log('Could not fetch endpoint count');
             }
         }
-
         fetchEndpointCount();
 
-        // Hamburger Menu Toggle
+        // Hamburger
         const hamburger = document.getElementById('hamburger');
         const mobileMenu = document.getElementById('mobile-menu');
         const mobileOverlay = document.getElementById('mobile-overlay');
@@ -392,21 +284,14 @@
         hamburger.addEventListener('click', toggleMenu);
         mobileOverlay.addEventListener('click', toggleMenu);
 
-        // Close menu on link click
-        const mobileLinks = mobileMenu.querySelectorAll('a');
-        mobileLinks.forEach(link => {
+        mobileMenu.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => {
-                if (mobileMenu.classList.contains('active')) {
-                    toggleMenu();
-                }
+                if (mobileMenu.classList.contains('active')) toggleMenu();
             });
         });
 
-        // Close menu on ESC key
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
-                toggleMenu();
-            }
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();
         });
     </script>
 </body>
