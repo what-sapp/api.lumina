@@ -21,25 +21,102 @@
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform;
         }
-
         .contributor-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
-        /* Avatar image */
-        .avatar {
-            transition: transform 0.2s ease;
-        }
+        .avatar { transition: transform 0.2s ease; }
+        .contributor-card:hover .avatar { transform: scale(1.05); }
 
-        .contributor-card:hover .avatar {
-            transform: scale(1.05);
-        }
-
-        /* Stat badge */
         .stat-badge {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+
+        /* ── Hamburger + Mobile Menu ── */
+        .mobile-menu {
+            position: fixed;
+            top: 64px;
+            right: -100%;
+            width: 320px;
+            height: calc(100vh - 64px);
+            background: white;
+            box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 40;
+            overflow-y: auto;
+        }
+        .mobile-menu.active { right: 0; }
+
+        .mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(3px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 39;
+        }
+        .mobile-overlay.active { opacity: 1; visibility: visible; }
+
+        .hamburger {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .hamburger:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); }
+        .hamburger::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .hamburger:hover::before { opacity: 1; }
+        .hamburger.active { background: rgba(239, 68, 68, 0.2); }
+
+        .hamburger-inner { width: 20px; height: 14px; position: relative; }
+        .hamburger-inner span {
+            display: block;
+            position: absolute;
+            height: 2px;
+            width: 100%;
+            background: white;
+            border-radius: 2px;
+            left: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .hamburger-inner span:nth-child(1) { top: 0; width: 100%; }
+        .hamburger-inner span:nth-child(2) { top: 6px; width: 75%; }
+        .hamburger-inner span:nth-child(3) { top: 12px; width: 100%; }
+
+        .hamburger.active .hamburger-inner span:nth-child(1) { top: 6px; transform: rotate(45deg); width: 100%; }
+        .hamburger.active .hamburger-inner span:nth-child(2) { opacity: 0; transform: translateX(-20px); }
+        .hamburger.active .hamburger-inner span:nth-child(3) { top: 6px; transform: rotate(-45deg); width: 100%; }
+
+        .menu-item { position: relative; overflow: hidden; }
+        .menu-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+        .menu-item:hover::before,
+        .menu-item.active::before { transform: scaleY(1); }
     </style>
 </head>
 <body class="bg-white min-h-screen pt-[84px] pb-20">
@@ -48,17 +125,97 @@
         <div class="loader"></div>
     </div>
 
+    <!-- Navbar -->
     <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
         <div class="text-white font-bold tracking-tighter uppercase text-sm">
             Lumina <span class="text-gray-400">API`s</span>
         </div>
-        <div class="flex gap-6">
-            <a href="/" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Home</a>
-            <a href="/docs" class="text-gray-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-colors">Docs</a>
-            <a href="/contributors" class="text-white text-[11px] font-bold uppercase tracking-wider border-b-2 border-white pb-1">Contributors</a>
+        <div class="hamburger" id="hamburger">
+            <div class="hamburger-inner">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
         </div>
     </nav>
 
+    <!-- Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobile-menu">
+        <div class="p-6">
+            <div class="flex items-center gap-3 mb-6 pb-4 border-b-2 border-gray-100">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                    <span class="material-icons text-white text-lg">apps</span>
+                </div>
+                <div>
+                    <span class="text-sm font-bold text-gray-900 uppercase tracking-tight block">Navigation</span>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-wider">Lumina API</span>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <a href="/" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
+                    <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm text-gray-600">home</span>
+                    </div>
+                    <span>Home</span>
+                </a>
+                <a href="/docs" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
+                    <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm text-gray-600">description</span>
+                    </div>
+                    <span>Documentation</span>
+                </a>
+                <!-- Contributors — active -->
+                <a href="/contributors" class="menu-item active flex items-center gap-4 px-4 py-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white font-bold text-sm uppercase tracking-wide rounded-lg shadow-md transition-all hover:shadow-lg">
+                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm">people</span>
+                    </div>
+                    <span>Contributors</span>
+                </a>
+                <a href="/status" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
+                    <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                        <span class="material-icons text-sm text-green-600">bar_chart</span>
+                    </div>
+                    <span>API Status</span>
+                </a>
+            </nav>
+
+            <div class="mt-8 pt-6 border-t-2 border-gray-100">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center gap-4 px-4 py-4 bg-gray-900 text-white font-semibold text-sm rounded-lg hover:bg-black transition-all shadow-md hover:shadow-lg">
+                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fab fa-github text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <span class="block">View on GitHub</span>
+                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Open Source</span>
+                    </div>
+                    <span class="material-icons text-sm">arrow_forward</span>
+                </a>
+            </div>
+
+            <div class="mt-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-gray-100">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-icons text-sm text-purple-600">info</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-700">Quick Stats</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <div class="bg-white p-2 rounded">
+                        <div id="menu-total-contributors" class="text-lg font-bold text-gray-900">--</div>
+                        <div class="text-[9px] text-gray-500 uppercase">Contributors</div>
+                    </div>
+                    <div class="bg-white p-2 rounded">
+                        <div id="menu-total-commits" class="text-lg font-bold text-gray-900">--</div>
+                        <div class="text-[9px] text-gray-500 uppercase">Commits</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Content -->
     <div class="px-10 md:px-5 max-w-3xl mx-auto">
         
         <!-- Header -->
@@ -143,46 +300,70 @@
     </div>
 
     <script>
-        // Loader
+        // ─── Loader ───
         window.addEventListener('load', function() {
             const loader = document.getElementById('page-loader');
             if (loader) {
                 setTimeout(() => {
                     loader.style.opacity = '0';
-                    setTimeout(() => {
-                        loader.style.display = 'none';
-                    }, 300);
+                    setTimeout(() => { loader.style.display = 'none'; }, 300);
                 }, 300);
             }
         });
 
-        // Fetch contributors dari GitHub API
+        // ─── Hamburger Menu ───
+        const hamburger     = document.getElementById('hamburger');
+        const mobileMenu    = document.getElementById('mobile-menu');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+
+        function toggleMenu() {
+            hamburger.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+            mobileOverlay.classList.toggle('active');
+            document.body.classList.toggle('noscroll');
+        }
+
+        hamburger.addEventListener('click', toggleMenu);
+        mobileOverlay.addEventListener('click', toggleMenu);
+
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (mobileMenu.classList.contains('active')) toggleMenu();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();
+        });
+
+        // ─── Fetch Contributors ───
         async function fetchContributors() {
-            const contributorsList = document.getElementById('contributors-list');
+            const contributorsList    = document.getElementById('contributors-list');
             const totalContributorsEl = document.getElementById('total-contributors');
-            const totalCommitsEl = document.getElementById('total-commits');
+            const totalCommitsEl      = document.getElementById('total-commits');
 
             try {
-                // Ganti dengan repo kamu
-                const response = await fetch('https://api.github.com/repos/rynxzyy/Hiuraa-API-Base/contributors');
+                const response     = await fetch('https://api.github.com/repos/rynxzyy/Hiuraa-API-Base/contributors');
                 const contributors = await response.json();
 
-                // Update total
-                totalContributorsEl.textContent = `${contributors.length} Contributors`;
-                
-                // Hitung total commits
                 const totalCommits = contributors.reduce((sum, c) => sum + c.contributions, 0);
-                totalCommitsEl.textContent = `${totalCommits} Commits`;
 
-                // Clear loading skeleton
+                // Update header stats
+                totalContributorsEl.textContent = `${contributors.length} Contributors`;
+                totalCommitsEl.textContent      = `${totalCommits} Commits`;
+
+                // Sync ke quick stats widget di mobile menu
+                document.getElementById('menu-total-contributors').textContent = contributors.length;
+                document.getElementById('menu-total-commits').textContent      = totalCommits;
+
+                // Clear skeleton
                 contributorsList.innerHTML = '';
 
-                // Render contributors
+                // Render cards
                 contributors.forEach((contributor, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'contributor-card border-2 border-gray-200 p-6 bg-white';
-                    
-                    card.innerHTML = `
+                    const card       = document.createElement('div');
+                    card.className   = 'contributor-card border-2 border-gray-200 p-6 bg-white';
+                    card.innerHTML   = `
                         <div class="flex items-center gap-4 mb-4">
                             <img src="${contributor.avatar_url}" 
                                  alt="${contributor.login}" 
@@ -212,14 +393,13 @@
                             </div>
                         </div>
                     `;
-                    
                     contributorsList.appendChild(card);
                 });
 
             } catch (error) {
                 console.error('Error fetching contributors:', error);
-                
-                // Fallback: Manual contributors (jika API gagal)
+
+                // Fallback
                 contributorsList.innerHTML = `
                     <div class="contributor-card border-2 border-gray-200 p-6 bg-white">
                         <div class="flex items-center gap-4 mb-4">
@@ -248,13 +428,14 @@
                         </div>
                     </div>
                 `;
-                
                 totalContributorsEl.textContent = '1 Contributor';
-                totalCommitsEl.textContent = 'Many Commits';
+                totalCommitsEl.textContent      = 'Many Commits';
+
+                document.getElementById('menu-total-contributors').textContent = '1';
+                document.getElementById('menu-total-commits').textContent      = '--';
             }
         }
 
-        // Load contributors
         fetchContributors();
     </script>
 </body>
