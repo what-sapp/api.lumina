@@ -209,7 +209,7 @@ module.exports = {
   name: "Gemmy AI",
   desc: "JSON Response | AI Chat & Image Generator",
   category: "AI",
-  params: ["action", "prompt", "imageUrl", "aspectRatio"],
+  params: ["action", "prompt", "_imageUrl", "_aspectRatio"],
   async run(req, res) {
     try {
       const action = req.query.action;
