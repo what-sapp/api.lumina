@@ -15,6 +15,9 @@
     "cheerio": "^1.0.0",
     "express": "^4.19.2",
     "yt-search": "^2.12.1", 
-    "cors": "^2.8.5"
+    "cors": "^2.8.5", 
+    "form-data": "^4.0.5",
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2"
   }
 }
