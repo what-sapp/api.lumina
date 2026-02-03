@@ -1,28 +1,34 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-/* --- Root & Base --- */
+/* ================================================
+   ROOT & VARIABLES
+   ================================================ */
 :root {
     --primary-dark: #1f2937;
-    --border-dashed: #6b7280;
-    /* CSS Variables untuk speed */
+    --border-dashed: #d1d5db;
+    --accent-purple: #7c3aed;
+    --accent-emerald: #10b981;
     --transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-brutal: 4px 4px 0px 0px var(--primary-dark);
+    --shadow-brutal-hover: 6px 6px 0px 0px var(--primary-dark);
 }
 
-/* Hardware acceleration untuk smooth render */
+/* ================================================
+   BASE
+   ================================================ */
 *, *::before, *::after {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    box-sizing: border-box;
 }
 
 body {
     font-family: 'Poppins', sans-serif;
     background-color: #ffffff;
-    /* Grid background dioptimasi dengan opacity */
-    background-image: radial-gradient(circle, rgba(229, 231, 235, 0.5) 1px, transparent 1px);
-    background-size: 30px 30px;
+    background-image: radial-gradient(circle, rgba(229, 231, 235, 0.45) 1px, transparent 1px);
+    background-size: 28px 28px;
     transition: opacity var(--transition-smooth);
-    /* Improve scrolling */
     overflow-x: hidden;
 }
 
@@ -30,45 +36,44 @@ body.noscroll {
     overflow: hidden;
 }
 
-/* --- Loader (GPU Accelerated) --- */
+/* ================================================
+   PAGE LOADER
+   ================================================ */
 .page-loader {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 100;
     transition: opacity var(--transition-smooth);
-    /* GPU boost */
     will-change: opacity;
     backface-visibility: hidden;
 }
 
 .loader {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #f3f3f3;
+    width: 36px;
+    height: 36px;
+    border: 3px solid #eee;
     border-radius: 50%;
-    border-top: 4px solid var(--primary-dark);
-    animation: spin 0.8s linear infinite;
-    /* GPU acceleration */
+    border-top: 3px solid var(--primary-dark);
+    animation: spin 0.7s linear infinite;
     will-change: transform;
     transform: translateZ(0);
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    to { transform: rotate(360deg); }
 }
 
-/* --- Industrial Decor (Keep original style) --- */
+/* ================================================
+   INDUSTRIAL BANNER
+   ================================================ */
 .industrial-banner {
     border: 2px dashed var(--border-dashed);
     position: relative;
     background: white;
+    border-radius: 2px;
 }
 
 .dot {
@@ -80,16 +85,28 @@ body.noscroll {
     z-index: 10;
 }
 
-/* --- Navbar (GPU Optimized) --- */
+/* Corner labels (absolute inside banner) */
+.corner-label {
+    position: absolute;
+    z-index: 5;
+}
+
+/* Author badge */
+.author-badge {
+    border-radius: 3px;
+    letter-spacing: 0.15em;
+}
+
+/* ================================================
+   NAVBAR
+   ================================================ */
 nav {
-    /* GPU acceleration untuk fixed navbar */
     will-change: transform;
     backface-visibility: hidden;
 }
 
 nav a {
     transition: all var(--transition-base);
-    /* Prevent repaint */
     will-change: color;
 }
 
@@ -97,15 +114,191 @@ nav a.active {
     border-bottom: 2px solid white;
 }
 
-/* --- Accordion (Optimized) --- */
+/* ================================================
+   HAMBURGER MENU
+   ================================================ */
+.hamburger {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    transition: all var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.hamburger:hover {
+    background: rgba(255, 255, 255, 0.14);
+    transform: scale(1.05);
+}
+
+.hamburger-inner {
+    width: 20px;
+    height: 14px;
+    position: relative;
+}
+
+.hamburger-inner span {
+    display: block;
+    position: absolute;
+    height: 2px;
+    background: white;
+    border-radius: 2px;
+    left: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hamburger-inner span:nth-child(1) { top: 0; width: 100%; }
+.hamburger-inner span:nth-child(2) { top: 6px; width: 72%; }
+.hamburger-inner span:nth-child(3) { top: 12px; width: 100%; }
+
+/* Hamburger → X */
+.hamburger.active .hamburger-inner span:nth-child(1) {
+    top: 6px;
+    transform: rotate(45deg);
+    width: 100%;
+}
+.hamburger.active .hamburger-inner span:nth-child(2) {
+    opacity: 0;
+    transform: translateX(-16px);
+}
+.hamburger.active .hamburger-inner span:nth-child(3) {
+    top: 6px;
+    transform: rotate(-45deg);
+    width: 100%;
+}
+.hamburger.active {
+    background: rgba(239, 68, 68, 0.18);
+}
+
+/* ================================================
+   MOBILE MENU + OVERLAY
+   ================================================ */
+.mobile-menu {
+    position: fixed;
+    top: 64px;
+    right: -100%;
+    width: 320px;
+    height: calc(100vh - 64px);
+    background: white;
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.1);
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 40;
+    overflow-y: auto;
+    /* subtle border on left edge */
+    border-left: 1px solid #f3f4f6;
+}
+
+.mobile-menu.active {
+    right: 0;
+}
+
+.mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-smooth);
+    z-index: 39;
+}
+
+.mobile-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Menu item left-border accent on hover / active */
+.menu-item {
+    position: relative;
+}
+
+.menu-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    background: var(--primary-dark);
+    border-radius: 0 3px 3px 0;
+    transform: scaleY(0);
+    transition: transform var(--transition-smooth);
+    transform-origin: center;
+}
+
+.menu-item:hover::before {
+    transform: scaleY(1);
+}
+
+.menu-item.active::before {
+    background: white;
+    transform: scaleY(1);
+}
+
+/* GitHub link hover */
+.github-link {
+    transition: background var(--transition-base), transform var(--transition-base);
+}
+.github-link:hover {
+    background: #111827;
+    transform: translateY(-1px);
+}
+
+/* Stats card */
+.stats-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+}
+
+.stats-item {
+    transition: box-shadow var(--transition-base);
+}
+.stats-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* ================================================
+   LIVE DOT ANIMATION
+   ================================================ */
+.live-dot {
+    animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+}
+
+/* ================================================
+   SEARCH INPUT
+   ================================================ */
+.search-input {
+    border-radius: 4px;
+    background-size: 200% 100%;
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.search-input:focus {
+    box-shadow: 0 0 0 3px rgba(31, 41, 55, 0.08);
+}
+
+/* ================================================
+   ACCORDION
+   ================================================ */
 .accordion-content {
     max-height: 0;
     overflow: hidden;
-    transition: 
+    transition:
         max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
         opacity var(--transition-smooth);
     opacity: 0;
-    /* GPU acceleration */
     will-change: max-height, opacity;
     transform: translateZ(0);
 }
@@ -117,7 +310,6 @@ nav a.active {
 
 .accordion-icon {
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    /* GPU boost for rotation */
     will-change: transform;
     backface-visibility: hidden;
 }
@@ -134,22 +326,24 @@ nav a.active {
 }
 
 .category-header:hover {
-    background-color: #f9fafb;
+    background-color: #fafafa;
 }
 
-/* --- Buttons (GPU Accelerated) --- */
+/* ================================================
+   BRUTAL BUTTONS
+   ================================================ */
 .btn-solid {
-    transition: all var(--transition-base);
-    box-shadow: 4px 4px 0px 0px var(--primary-dark);
-    /* GPU magic */
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+    box-shadow: var(--shadow-brutal);
     will-change: transform, box-shadow;
     backface-visibility: hidden;
     transform: translateZ(0);
+    border-radius: 3px;
 }
 
 .btn-solid:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px 0px var(--primary-dark);
+    box-shadow: var(--shadow-brutal-hover);
 }
 
 .btn-solid:active {
@@ -157,21 +351,44 @@ nav a.active {
     box-shadow: 0px 0px 0px 0px var(--primary-dark);
 }
 
-/* --- Response Data Scrollbar --- */
+/* ================================================
+   METHOD BADGE
+   ================================================ */
+.method-badge {
+    border-radius: 3px;
+    letter-spacing: 0.18em;
+}
+
+/* ================================================
+   MODAL EXTRAS
+   ================================================ */
+.url-block {
+    border-radius: 6px;
+    transition: border-color var(--transition-base);
+}
+.url-block:hover {
+    border-color: #d1d5db;
+}
+
+/* ================================================
+   RESPONSE PRE (hidden scrollbar)
+   ================================================ */
 #response-data {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    border-radius: 6px;
 }
 
 #response-data::-webkit-scrollbar {
     display: none !important;
 }
 
-/* --- API Items Animation (GPU Optimized) --- */
+/* ================================================
+   API ITEM SLIDE-IN ANIMATION
+   ================================================ */
 .accordion-content.active .row > div {
     animation: slideIn 0.3s ease-out forwards;
     opacity: 0;
-    /* GPU acceleration */
     will-change: opacity, transform;
     backface-visibility: hidden;
 }
@@ -179,8 +396,7 @@ nav a.active {
 @keyframes slideIn {
     from {
         opacity: 0;
-        /* Use translate3d for GPU */
-        transform: translate3d(0, -10px, 0);
+        transform: translate3d(0, -8px, 0);
     }
     to {
         opacity: 1;
@@ -189,27 +405,33 @@ nav a.active {
 }
 
 /* Staggered delays */
-.accordion-content.active .row > div:nth-child(1) { animation-delay: 0.05s; }
-.accordion-content.active .row > div:nth-child(2) { animation-delay: 0.1s; }
-.accordion-content.active .row > div:nth-child(3) { animation-delay: 0.15s; }
-.accordion-content.active .row > div:nth-child(4) { animation-delay: 0.2s; }
-.accordion-content.active .row > div:nth-child(5) { animation-delay: 0.25s; }
-.accordion-content.active .row > div:nth-child(6) { animation-delay: 0.3s; }
+.accordion-content.active .row > div:nth-child(1) { animation-delay: 0.04s; }
+.accordion-content.active .row > div:nth-child(2) { animation-delay: 0.08s; }
+.accordion-content.active .row > div:nth-child(3) { animation-delay: 0.12s; }
+.accordion-content.active .row > div:nth-child(4) { animation-delay: 0.16s; }
+.accordion-content.active .row > div:nth-child(5) { animation-delay: 0.20s; }
+.accordion-content.active .row > div:nth-child(6) { animation-delay: 0.24s; }
 
-/* --- Mobile Optimization --- */
+/* ================================================
+   MOBILE
+   ================================================ */
 @media (max-width: 768px) {
     body {
-        /* Lighter grid on mobile */
-        background-image: radial-gradient(circle, rgba(229, 231, 235, 0.3) 1px, transparent 1px);
+        background-image: radial-gradient(circle, rgba(229, 231, 235, 0.25) 1px, transparent 1px);
     }
-    
-    /* Faster animations on mobile */
+
     .accordion-content.active .row > div {
-        animation-duration: 0.2s;
+        animation-duration: 0.18s;
+    }
+
+    .mobile-menu {
+        width: 290px;
     }
 }
 
-/* --- Accessibility: Reduce Motion --- */
+/* ================================================
+   ACCESSIBILITY: REDUCE MOTION
+   ================================================ */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -218,5 +440,9 @@ nav a.active {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
+    }
+
+    .live-dot {
+        animation: none;
     }
 }
