@@ -1,6 +1,5 @@
 const axios = require('axios');
 const FormData = require('form-data');
-const fs = require('fs');
 const crypto = require('crypto');
 
 const CONFIG = {
@@ -78,7 +77,10 @@ const utils = {
 
     downloadImage: async (url) => {
         try {
-            const response = await axios.get(url, { responseType: 'arraybuffer' });
+            const response = await axios.get(url, { 
+                responseType: 'arraybuffer',
+                timeout: 30000 
+            });
             return Buffer.from(response.data);
         } catch (error) {
             console.error(`Download Error: ${error.message}`);
@@ -113,6 +115,11 @@ const utils = {
             console.error(`[Upload Cloud Error]: ${error.message}`);
             return null;
         }
+    },
+
+    // NEW: Convert buffer to base64 without filesystem
+    bufferToBase64: (buffer) => {
+        return buffer.toString('base64');
     }
 };
 
@@ -130,7 +137,7 @@ const handleLive3DGenerate = async (imageInput, options = {}) => {
     try {
         let imageBuffer;
         
-        // Handle input type
+        // Handle input type - NO FILESYSTEM ACCESS
         if (Buffer.isBuffer(imageInput)) {
             imageBuffer = imageInput;
         } else if (imageInput.startsWith('http')) {
@@ -139,31 +146,39 @@ const handleLive3DGenerate = async (imageInput, options = {}) => {
                 success: false, 
                 msg: 'Failed to download image from URL' 
             };
-        } else if (fs.existsSync(imageInput)) {
-            imageBuffer = fs.readFileSync(imageInput);
         } else {
+            // Jika input adalah path file, kita tidak bisa akses filesystem
+            // Alternatif: minta user upload file langsung atau pakai URL
             return { 
                 success: false, 
-                msg: 'Invalid image input. Provide URL, file path, or Buffer' 
+                msg: 'File path not supported in this environment. Please use URL or direct buffer.' 
             };
         }
 
-        // Save temp file for upload
-        const tempFilePath = `temp_${Date.now()}.jpg`;
-        fs.writeFileSync(tempFilePath, imageBuffer);
-
-        // Step 1: Upload image
+        // Step 1: Upload image langsung dari buffer
+        console.log(`[1/4] Preparing upload...`);
+        
         const form = new FormData();
-        form.append('file', fs.createReadStream(tempFilePath));
+        // Upload langsung dari buffer tanpa file system
+        form.append('file', imageBuffer, {
+            filename: `upload_${Date.now()}.jpg`,
+            contentType: 'image/jpeg'
+        });
         form.append('fn_name', 'cloth-change');
         form.append('request_from', request_from.toString());
         form.append('origin_from', originFrom);
 
-        const uploadHeaders = { ...utils.generateHeaders(), ...form.getHeaders() };
+        const uploadHeaders = { 
+            ...utils.generateHeaders(), 
+            ...form.getHeaders() 
+        };
         
+        console.log(`[2/4] Uploading image...`);
         const uploadRes = await axios.post(CONFIG.BASE_URL + CONFIG.ENDPOINTS.UPLOAD, form, { 
             headers: uploadHeaders,
-            timeout: 30000 
+            timeout: 60000,
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity
         });
         
         let serverPath = uploadRes.data?.data;
@@ -171,13 +186,13 @@ const handleLive3DGenerate = async (imageInput, options = {}) => {
             serverPath = serverPath.path;
         }
 
-        // Clean temp file
-        fs.unlinkSync(tempFilePath);
-
         if (!serverPath) {
+            console.log('Upload response:', uploadRes.data);
             return { success: false, msg: 'Failed to get server path after upload' };
         }
 
+        console.log(`[3/4] Starting generation...`);
+        
         // Step 2: Submit generation task
         const submitPayload = {
             "fn_name": "cloth-change",
@@ -203,11 +218,13 @@ const handleLive3DGenerate = async (imageInput, options = {}) => {
             return { success: false, msg: 'Failed to get Task ID' };
         }
 
+        console.log(`Task ID: ${taskId}`);
+
         // Step 3: Check status and wait for result
         let isCompleted = false;
         let attempts = 0;
         let resultUrl = null;
-        const maxAttempts = 50; // ~2.5 minutes max
+        const maxAttempts = 60; // ~3 minutes max
         let lastStatus = '';
 
         while (!isCompleted && attempts < maxAttempts) {
@@ -223,40 +240,49 @@ const handleLive3DGenerate = async (imageInput, options = {}) => {
                 "origin_from": originFrom
             };
 
-            const statusRes = await axios.post(CONFIG.BASE_URL + CONFIG.ENDPOINTS.STATUS, statusPayload, {
-                headers: { ...utils.generateHeaders(), 'Content-Type': 'application/json' },
-                timeout: 10000
-            });
+            try {
+                const statusRes = await axios.post(CONFIG.BASE_URL + CONFIG.ENDPOINTS.STATUS, statusPayload, {
+                    headers: { ...utils.generateHeaders(), 'Content-Type': 'application/json' },
+                    timeout: 10000
+                });
 
-            const data = statusRes.data?.data;
-            if (!data) continue;
+                const data = statusRes.data?.data;
+                if (!data) continue;
 
-            const status = data.status;
-            
-            if (status === 2) { // Success
-                resultUrl = data.result_image;
-                if (resultUrl && !resultUrl.startsWith('http')) {
-                    resultUrl = CONFIG.CDN_URL + resultUrl;
+                const status = data.status;
+                
+                if (status === 2) { // Success
+                    resultUrl = data.result_image;
+                    if (resultUrl && !resultUrl.startsWith('http')) {
+                        resultUrl = CONFIG.CDN_URL + resultUrl;
+                    }
+                    isCompleted = true;
+                    lastStatus = 'Success';
+                    console.log(`✓ Generation completed!`);
+                } else if (status === 1) { // Generating
+                    lastStatus = `Generating...`;
+                } else { // Queue
+                    lastStatus = `Queue (Rank ${data.rank || 'unknown'})`;
                 }
-                isCompleted = true;
-                lastStatus = 'Success';
-            } else if (status === 1) { // Generating
-                lastStatus = `Generating... (Attempt ${attempts}/${maxAttempts})`;
-            } else { // Queue
-                lastStatus = `Queue (Rank ${data.rank || 'unknown'})...`;
+                
+                // Update progress
+                process.stdout.write(`\r[4/4] Status: ${lastStatus} (${attempts}/${maxAttempts})`);
+            } catch (statusError) {
+                console.log(`\nStatus check error: ${statusError.message}`);
             }
-            
-            console.log(`[${taskId}] Status: ${lastStatus}`);
         }
+
+        console.log(''); // New line after progress
 
         if (!resultUrl) {
             return { 
                 success: false, 
-                msg: `Generation timeout after ${attempts} attempts. Last status: ${lastStatus}` 
+                msg: `Generation timeout after ${attempts} attempts` 
             };
         }
 
         // Step 4: Download and upload to cloud
+        console.log(`Downloading result...`);
         const resultBuffer = await utils.downloadImage(resultUrl);
         if (!resultBuffer) {
             return { 
@@ -265,6 +291,7 @@ const handleLive3DGenerate = async (imageInput, options = {}) => {
             };
         }
 
+        console.log(`Uploading to cloud...`);
         const cloudUrl = await utils.uploadToCloud(resultBuffer);
         if (!cloudUrl) {
             return { 
@@ -280,13 +307,14 @@ const handleLive3DGenerate = async (imageInput, options = {}) => {
             taskId: taskId,
             attempts: attempts,
             prompt: prompt,
-            cloth_type: cloth_type
+            cloth_type: cloth_type,
+            timestamp: new Date().toISOString()
         };
 
     } catch (error) {
-        console.error(`[Live3D Error]: ${error.message}`);
+        console.error(`\n[Live3D Error]: ${error.message}`);
         if (error.response?.data) {
-            console.error(`Server Response:`, error.response.data);
+            console.error(`Server Response:`, JSON.stringify(error.response.data, null, 2));
         }
         
         return { 
@@ -298,7 +326,7 @@ const handleLive3DGenerate = async (imageInput, options = {}) => {
 };
 
 module.exports = {
-    name: "Live3D AI",
+    name: "Live3D AI Fix",
     desc: "AI Cloth Remover Generator - Remove clothes from images",
     category: "Style Changer",
     params: ["image", "_prompt", "_cloth_type"],
@@ -312,7 +340,15 @@ module.exports = {
             if (!image) {
                 return res.status(400).json({
                     status: false,
-                    error: 'Parameter "image" diperlukan (URL atau path file)'
+                    error: 'Parameter "image" diperlukan (URL gambar)'
+                });
+            }
+
+            // ── Validasi input harus URL ──
+            if (!image.startsWith('http')) {
+                return res.status(400).json({
+                    status: false,
+                    error: 'Hanya URL gambar yang didukung di environment ini. Contoh: https://example.com/image.jpg'
                 });
             }
 
@@ -332,8 +368,7 @@ module.exports = {
                 });
             }
 
-            // ── Handle Generation ──
-            console.log(`Starting Live3D generation for: ${image}`);
+            console.log(`Starting Live3D generation for URL: ${image}`);
             
             const result = await handleLive3DGenerate(image, {
                 prompt: prompt,
@@ -359,6 +394,7 @@ module.exports = {
                     attempts: result.attempts,
                     prompt: result.prompt,
                     cloth_type: result.cloth_type,
+                    timestamp: result.timestamp,
                     note: "Result uploaded to cloud storage"
                 }
             });
