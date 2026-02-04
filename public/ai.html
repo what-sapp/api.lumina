@@ -1,528 +1,560 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumina | AI Chat</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/styles.css">
-</head>
-<body class="bg-white min-h-screen pt-[84px] pb-20">
+<html lang="en">    
+<head>    
+    <meta charset="UTF-8">    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    
+    <title>Lumina | AI Chat</title>  
+    <link rel="preconnect" href="https://fonts.googleapis.com">    
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>    
+    <script src="https://cdn.tailwindcss.com"></script>    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">    
+    <link rel="stylesheet" href="/styles.css">  
+</head>    
+<body class="bg-white min-h-screen pt-[84px] pb-20">  
+    <div id="page-loader" class="page-loader bg-white">    
+        <div class="loader"></div>    
+    </div>    
 
-    <div id="page-loader" class="page-loader bg-white">
-        <div class="loader"></div>
-    </div>
+    <!-- Navbar -->    
+    <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">    
+        <div class="text-white font-bold tracking-tighter uppercase text-sm">    
+            Lumina <span class="text-gray-400">AI Chat</span>    
+        </div>    
+        <div class="hamburger" id="hamburger">    
+            <div class="hamburger-inner">    
+                <span></span>    
+                <span></span>    
+                <span></span>    
+            </div>    
+        </div>    
+    </nav>    
 
-    <!-- Navbar -->
-    <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
-        <div class="text-white font-bold tracking-tighter uppercase text-sm">
-            Lumina <span class="text-gray-400">AI Chat</span>
-        </div>
-        <div class="hamburger" id="hamburger">
-            <div class="hamburger-inner">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-    </nav>
+    <!-- Overlay -->    
+    <div class="mobile-overlay" id="mobile-overlay"></div>    
 
-    <!-- Overlay -->
-    <div class="mobile-overlay" id="mobile-overlay"></div>
+    <!-- Mobile Menu -->    
+    <div class="mobile-menu" id="mobile-menu">    
+        <div class="p-6">    
+            <!-- Header -->    
+            <div class="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100">    
+                <div class="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center relative">    
+                    <span class="material-icons text-white text-lg">auto_awesome</span>    
+                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-purple-500 rounded-full border-2 border-white"></div>    
+                </div>    
+                <div>    
+                    <span class="text-sm font-bold text-gray-900 uppercase tracking-tight block">Navigation</span>    
+                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Lumina AI</span>    
+                </div>    
+            </div>    
 
-    <!-- Mobile Menu -->
-    <div class="mobile-menu" id="mobile-menu">
-        <div class="p-6">
-            <!-- Header -->
-            <div class="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100">
-                <div class="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center relative">
-                    <span class="material-icons text-white text-lg">auto_awesome</span>
-                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-purple-500 rounded-full border-2 border-white"></div>
-                </div>
-                <div>
-                    <span class="text-sm font-bold text-gray-900 uppercase tracking-tight block">Navigation</span>
-                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Lumina AI</span>
-                </div>
-            </div>
+            <!-- Nav Links -->    
+            <nav class="space-y-1">    
+                <a href="/" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">    
+                    <div class="w-8 h-8 bg-gray-50 group-hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors">    
+                        <span class="material-icons text-sm text-gray-600">home</span>    
+                    </div>    
+                    <span>Home</span>    
+                </a>    
 
-            <!-- Nav Links -->
-            <nav class="space-y-1">
-                <a href="/" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
-                    <div class="w-8 h-8 bg-gray-50 group-hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors">
-                        <span class="material-icons text-sm text-gray-600">home</span>
-                    </div>
-                    <span>Home</span>
-                </a>
+                <a href="/docs" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">    
+                    <div class="w-8 h-8 bg-blue-50 group-hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors">    
+                        <span class="material-icons text-sm text-blue-600">description</span>    
+                    </div>    
+                    <span>Documentation</span>    
+                </a>    
 
-                <a href="/docs" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
-                    <div class="w-8 h-8 bg-blue-50 group-hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors">
-                        <span class="material-icons text-sm text-blue-600">description</span>
-                    </div>
-                    <span>Documentation</span>
-                </a>
+                <a href="/ai" class="menu-item active flex items-center gap-4 px-4 py-3.5 bg-gray-900 text-white font-semibold text-[13px] rounded-lg shadow-md relative overflow-hidden">    
+                    <div class="w-8 h-8 bg-white bg-opacity-10 rounded-lg flex items-center justify-center">    
+                        <span class="material-icons text-sm text-white">auto_awesome</span>    
+                    </div>    
+                    <span>AI Chat</span>    
+                    <span class="ml-auto text-[9px] bg-white bg-opacity-15 px-2 py-0.5 rounded-full uppercase tracking-wider">Current</span>    
+                </a>    
 
-                <a href="/ai" class="menu-item active flex items-center gap-4 px-4 py-3.5 bg-gray-900 text-white font-semibold text-[13px] rounded-lg shadow-md relative overflow-hidden">
-                    <div class="w-8 h-8 bg-white bg-opacity-10 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-white">auto_awesome</span>
-                    </div>
-                    <span>AI Chat</span>
-                    <span class="ml-auto text-[9px] bg-white bg-opacity-15 px-2 py-0.5 rounded-full uppercase tracking-wider">Current</span>
-                </a>
+                <a href="/status" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">    
+                    <div class="w-8 h-8 bg-emerald-50 group-hover:bg-emerald-100 rounded-lg flex items-center justify-center transition-colors">    
+                        <span class="material-icons text-sm text-emerald-600">bar_chart</span>    
+                    </div>    
+                    <span>API Status</span>    
+                    <span class="ml-auto flex items-center gap-1.5">    
+                        <span class="w-2 h-2 bg-emerald-400 rounded-full live-dot"></span>    
+                        <span class="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">Live</span>    
+                    </span>    
+                </a>    
+            </nav>    
 
-                <a href="/status" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
-                    <div class="w-8 h-8 bg-emerald-50 group-hover:bg-emerald-100 rounded-lg flex items-center justify-center transition-colors">
-                        <span class="material-icons text-sm text-emerald-600">bar_chart</span>
-                    </div>
-                    <span>API Status</span>
-                    <span class="ml-auto flex items-center gap-1.5">
-                        <span class="w-2 h-2 bg-emerald-400 rounded-full live-dot"></span>
-                        <span class="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">Live</span>
-                    </span>
-                </a>
-            </nav>
+            <!-- GitHub -->    
+            <div class="mt-6 pt-5 border-t border-gray-100">    
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link flex items-center gap-3 px-4 py-3.5 bg-gray-900 text-white font-medium text-[13px] rounded-lg transition-all group">    
+                    <div class="w-8 h-8 bg-white bg-opacity-10 group-hover:bg-opacity-20 rounded-lg flex items-center justify-center transition-all">    
+                        <i class="fab fa-github text-sm"></i>    
+                    </div>    
+                    <div class="flex-1">    
+                        <span class="block">View on GitHub</span>    
+                        <span class="text-[9px] text-gray-400 uppercase tracking-wider">Open Source</span>    
+                    </div>    
+                    <span class="material-icons text-sm text-gray-500 group-hover:translate-x-1 transition-transform">arrow_forward</span>    
+                </a>    
+            </div>    
 
-            <!-- GitHub -->
-            <div class="mt-6 pt-5 border-t border-gray-100">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link flex items-center gap-3 px-4 py-3.5 bg-gray-900 text-white font-medium text-[13px] rounded-lg transition-all group">
-                    <div class="w-8 h-8 bg-white bg-opacity-10 group-hover:bg-opacity-20 rounded-lg flex items-center justify-center transition-all">
-                        <i class="fab fa-github text-sm"></i>
-                    </div>
-                    <div class="flex-1">
-                        <span class="block">View on GitHub</span>
-                        <span class="text-[9px] text-gray-400 uppercase tracking-wider">Open Source</span>
-                    </div>
-                    <span class="material-icons text-sm text-gray-500 group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                </a>
-            </div>
+            <!-- Quick Stats -->    
+            <div class="mt-4 stats-card p-4 rounded-lg">    
+                <div class="flex items-center gap-2 mb-3">    
+                    <span class="material-icons text-sm text-purple-600">insights</span>    
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-600">AI Stats</span>    
+                </div>    
+                <div class="grid grid-cols-2 gap-2">    
+                    <div class="stats-item bg-white p-2.5 rounded-md border border-gray-100">    
+                        <div id="message-count" class="text-lg font-bold text-gray-900">0</div>    
+                        <div class="text-[9px] text-gray-400 uppercase tracking-wider">Messages</div>    
+                    </div>    
+                    <div class="stats-item bg-white p-2.5 rounded-md border border-gray-100">    
+                        <div class="text-lg font-bold text-purple-600">2.5</div>    
+                        <div class="text-[9px] text-gray-400 uppercase tracking-wider">Model</div>    
+                    </div>    
+                </div>    
+            </div>    
+        </div>    
+    </div>    
 
-            <!-- Quick Stats -->
-            <div class="mt-4 stats-card p-4 rounded-lg">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="material-icons text-sm text-purple-600">insights</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-600">AI Stats</span>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="stats-item bg-white p-2.5 rounded-md border border-gray-100">
-                        <div id="message-count" class="text-lg font-bold text-gray-900">0</div>
-                        <div class="text-[9px] text-gray-400 uppercase tracking-wider">Messages</div>
-                    </div>
-                    <div class="stats-item bg-white p-2.5 rounded-md border border-gray-100">
-                        <div class="text-lg font-bold text-purple-600">2.5</div>
-                        <div class="text-[9px] text-gray-400 uppercase tracking-wider">Model</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Main Content -->    
+    <div class="px-10 md:px-5 max-w-4xl mx-auto">    
+        <!-- Hero Banner -->    
+        <div class="industrial-banner p-5 py-8 md:p-10 md:py-16 w-full mb-6">    
+            <div class="dot -top-1.5 -left-1.5"></div>    
+            <div class="dot -top-1.5 -right-1.5"></div>    
+            <div class="dot -bottom-1.5 -left-1.5"></div>    
+            <div class="dot -bottom-1.5 -right-1.5"></div>    
 
-    <!-- Main Content -->
-    <div class="px-10 md:px-5 max-w-4xl mx-auto">
+            <!-- Corner labels -->    
+            <div class="corner-label top-1 left-2 text-[8px] text-gray-300 font-mono uppercase tracking-widest">SYS::AI-CHAT</div>    
+            <div class="corner-label top-1 right-2 text-[8px] text-gray-300 font-mono uppercase tracking-widest">v1.0</div>    
 
-        <!-- Hero Banner -->
-        <div class="industrial-banner p-5 py-8 md:p-10 md:py-16 w-full mb-6">
-            <div class="dot -top-1.5 -left-1.5"></div>
-            <div class="dot -top-1.5 -right-1.5"></div>
-            <div class="dot -bottom-1.5 -left-1.5"></div>
-            <div class="dot -bottom-1.5 -right-1.5"></div>
+            <div class="flex items-center gap-2 mb-3">    
+                <span class="flex items-center text-gray-400" style="font-size: 11px;">    
+                    <span class="material-icons mr-2" style="font-size: 16px;">auto_awesome</span>    
+                    <span class="font-medium">Lumina AI Assistant</span>    
+                </span>    
+                <span class="flex items-center gap-1 ml-2">    
+                    <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full live-dot"></span>    
+                    <span class="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">Online</span>    
+                </span>    
+            </div>    
 
-            <!-- Corner labels -->
-            <div class="corner-label top-1 left-2 text-[8px] text-gray-300 font-mono uppercase tracking-widest">SYS::AI-CHAT</div>
-            <div class="corner-label top-1 right-2 text-[8px] text-gray-300 font-mono uppercase tracking-widest">v1.0</div>
+            <h1 class="text-2xl md:text-4xl font-bold text-gray-900 mb-3 md:mb-4 tracking-tight leading-tight">    
+                Lumina ✨<br>based on Gemini    
+            </h1>    
 
-            <div class="flex items-center gap-2 mb-3">
-                <span class="flex items-center text-gray-400" style="font-size: 11px;">
-                    <span class="material-icons mr-2" style="font-size: 16px;">auto_awesome</span>
-                    <span class="font-medium">Lumina AI Assistant</span>
-                </span>
-                <span class="flex items-center gap-1 ml-2">
-                    <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full live-dot"></span>
-                    <span class="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">Online</span>
-                </span>
-            </div>
-            
-            <h1 class="text-2xl md:text-4xl font-bold text-gray-900 mb-3 md:mb-4 tracking-tight leading-tight">
-                Chat dengan AI<br>Lumina si Asisten Pintar ✨
-            </h1>
-            
-            <p class="text-[11px] md:text-[12px] text-gray-500 mb-4 leading-relaxed max-w-md">
-                Tanya apa aja ke Lumina!. Powered by Google Gemini.
-            </p>
+            <p class="text-[11px] md:text-[12px] text-gray-500 mb-4 leading-relaxed max-w-md">    
+                Tanya apa aja ke Lumina!. Powered by Google Gemini.    
+            </p>    
 
-            <div class="flex flex-col gap-2">
-                <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Model:</span>
-                <select id="model-selector" class="w-full md:w-auto border-2 border-gray-200 px-3 py-2 text-[11px] font-bold text-gray-800 bg-white focus:border-gray-800 focus:outline-none transition cursor-pointer">
-                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
-                </select>
-            </div>
-        </div>
+            <div class="flex flex-col gap-2">    
+                <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Model:</span>    
+                <select id="model-selector" class="w-full md:w-auto border-2 border-gray-200 px-3 py-2 text-[11px] font-bold text-gray-800 bg-white focus:border-gray-800 focus:outline-none transition cursor-pointer">    
+                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>    
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>    
+                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>    
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>    
+                    <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>    
+                </select>    
+            </div>    
+        </div>    
 
-        <!-- Chat Container -->
-        <div class="border border-gray-200 p-3 md:p-5 bg-white mb-6">
-            <!-- Chat Header -->
-            <div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-emerald-400 rounded-full live-dot"></span>
-                    <span class="text-[10px] md:text-[11px] text-gray-600 font-bold uppercase tracking-wider">Chat Active</span>
-                </div>
-                <button id="clear-chat" class="text-[9px] md:text-[10px] text-gray-400 hover:text-red-600 font-bold uppercase tracking-wider transition flex items-center gap-1">
-                    <span class="material-icons" style="font-size:14px;">delete_outline</span>
-                    Clear
-                </button>
-            </div>
+        <!-- Chat Container -->    
+        <div class="border border-gray-200 p-3 md:p-5 bg-white mb-6">    
+            <!-- Chat Header -->    
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">    
+                <div class="flex items-center gap-2">    
+                    <span class="w-2 h-2 bg-emerald-400 rounded-full live-dot"></span>    
+                    <span class="text-[10px] md:text-[11px] text-gray-600 font-bold uppercase tracking-wider">Chat Active</span>    
+                </div>    
+                <button id="clear-chat" class="text-[9px] md:text-[10px] text-gray-400 hover:text-red-600 font-bold uppercase tracking-wider transition flex items-center gap-1">    
+                    <span class="material-icons" style="font-size:14px;">delete_outline</span>    
+                    Clear    
+                </button>    
+            </div>    
 
-            <!-- Messages Area -->
-            <div id="chat-messages" class="space-y-3 mb-4" style="max-height: 400px; overflow-y: auto;">
-                <!-- Welcome message -->
-                <div class="flex gap-2">
-                    <div class="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
-                        <span class="material-icons text-purple-600" style="font-size: 16px;">auto_awesome</span>
-                    </div>
-                    <div class="flex-1">
-                        <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Lumina AI</div>
-                        <div class="bg-gray-50 border border-gray-200 p-3 text-[12px] md:text-[13px] text-gray-700 leading-relaxed">
-                            Halo! Aku Lumina, asisten AI kamu ✨ Kirim pesan atau upload gambar untuk mulai chat!
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Messages Area (Full Height) -->    
+            <div id="chat-messages" class="space-y-3 mb-4 overflow-y-auto" style="min-height: 500px; max-height: 70vh;">    
+                <!-- Welcome message -->    
+                <div class="flex gap-2">    
+                    <div class="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">    
+                        <span class="material-icons text-purple-600" style="font-size: 16px;">auto_awesome</span>    
+                    </div>    
+                    <div class="flex-1">    
+                        <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Lumina AI</div>    
+                        <div class="bg-gray-50 border border-gray-200 p-3 text-[12px] md:text-[13px] text-gray-700 leading-relaxed">    
+                            Halo! Aku Lumina, asisten AI kamu ✨ Kirim pesan atau upload gambar untuk mulai chat!    
+                        </div>    
+                    </div>    
+                </div>    
+            </div>    
 
-            <!-- Image Preview -->
-            <div id="image-preview-container" class="mb-3 hidden">
-                <div class="border border-gray-200 p-2 bg-gray-50 inline-block relative">
-                    <img id="preview-image" src="" alt="Preview" style="max-width: 150px; max-height: 150px; display: block;">
-                    <button id="remove-image" class="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-700 transition">
-                        ✕
-                    </button>
-                </div>
-            </div>
+            <!-- Image Preview -->    
+            <div id="image-preview-container" class="mb-3 hidden">    
+                <div class="border border-gray-200 p-2 bg-gray-50 inline-block relative">    
+                    <img id="preview-image" src="" alt="Preview" style="max-width: 150px; max-height: 150px; display: block;">    
+                    <button id="remove-image" class="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-700 transition">    
+                        ✕    
+                    </button>    
+                </div>    
+            </div>    
 
-            <!-- Input Area -->
-            <div class="flex gap-2">
-                <input type="file" id="image-input" accept="image/*" class="hidden">
-                
-                <button id="upload-btn" class="w-9 h-9 md:w-10 md:h-10 border-2 border-gray-200 bg-white hover:border-gray-800 transition flex items-center justify-center flex-shrink-0">
-                    <span class="material-icons text-gray-600" style="font-size:16px;">image</span>
-                </button>
-                
-                <input 
-                    type="text" 
-                    id="message-input" 
-                    placeholder="Ketik pesan..." 
-                    class="flex-1 border-2 border-gray-200 px-3 py-2 text-[12px] md:text-[13px] focus:border-gray-800 focus:outline-none transition"
-                >
-                
-                <button id="send-btn" class="btn-solid bg-gray-800 text-white px-4 md:px-6 py-2 text-[10px] md:text-[11px] font-bold uppercase tracking-widest flex items-center gap-2">
-                    <span class="material-icons" style="font-size: 16px;">send</span>
-                    <span class="hidden md:inline">Send</span>
-                </button>
-            </div>
-        </div>
+            <!-- Input Area -->    
+            <div class="flex gap-2">    
+                <input type="file" id="image-input" accept="image/*" class="hidden">    
 
-        <!-- Footer -->
-        <div class="pt-6 mt-4 border-t border-gray-200 flex justify-between items-center">
-            <span class="text-[9px] text-gray-300 font-bold tracking-[0.4em] uppercase">
-                © 2025 Robin • All Rights Reserved
-            </span>
-            <span class="text-[9px] text-gray-300 font-mono">ID::LUM-AI</span>
-        </div>
-    </div>
+                <button id="upload-btn" class="w-9 h-9 md:w-10 md:h-10 border-2 border-gray-200 bg-white hover:border-gray-800 transition flex items-center justify-center flex-shrink-0">    
+                    <span class="material-icons text-gray-600" style="font-size:16px;">image</span>    
+                </button>    
 
-    <script>
-        // ── Loader ──
-        window.addEventListener('load', function() {
-            const loader = document.getElementById('page-loader');
-            if (loader) {
-                setTimeout(() => {
-                    loader.style.opacity = '0';
-                    setTimeout(() => { loader.style.display = 'none'; }, 300);
-                }, 300);
-            }
-        });
+                <input     
+                    type="text"     
+                    id="message-input"     
+                    placeholder="Ketik pesan..."     
+                    class="flex-1 border-2 border-gray-200 px-3 py-2 text-[12px] md:text-[13px] focus:border-gray-800 focus:outline-none transition"    
+                >    
 
-        // ── Chat Variables ──
-        let chatHistory = [];
-        let currentImage = null;
-        let messageCount = 0;
+                <button id="send-btn" class="btn-solid bg-gray-800 text-white px-4 md:px-6 py-2 text-[10px] md:text-[11px] font-bold uppercase tracking-widest flex items-center gap-2">    
+                    <span class="material-icons" style="font-size: 16px;">send</span>    
+                    <span class="hidden md:inline">Send</span>    
+                </button>    
+            </div>    
+        </div>    
 
-        const chatMessages = document.getElementById('chat-messages');
-        const messageInput = document.getElementById('message-input');
-        const sendBtn = document.getElementById('send-btn');
-        const uploadBtn = document.getElementById('upload-btn');
-        const imageInput = document.getElementById('image-input');
-        const previewContainer = document.getElementById('image-preview-container');
-        const previewImage = document.getElementById('preview-image');
-        const removeImageBtn = document.getElementById('remove-image');
-        const clearChatBtn = document.getElementById('clear-chat');
-        const modelSelector = document.getElementById('model-selector');
-        const messageCountEl = document.getElementById('message-count');
+        <!-- Footer -->    
+        <div class="pt-6 mt-4 border-t border-gray-200 flex justify-between items-center">    
+            <span class="text-[9px] text-gray-300 font-bold tracking-[0.4em] uppercase">    
+                © 2026 Robin • All Rights Reserved    
+            </span>    
+            <span class="text-[9px] text-gray-300 font-mono">ID::LUM-AI</span>    
+        </div>    
+    </div>    
 
-        // ── Upload Image ──
-        uploadBtn.addEventListener('click', () => imageInput.click());
+    <script>    
+    // ── Loader ──    
+    window.addEventListener('load', function() {    
+        const loader = document.getElementById('page-loader');    
+        if (loader) {    
+            setTimeout(() => {    
+                loader.style.opacity = '0';    
+                setTimeout(() => { loader.style.display = 'none'; }, 300);    
+            }, 300);    
+        }    
+    });    
 
-        imageInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    currentImage = e.target.result;
-                    previewImage.src = currentImage;
-                    previewContainer.classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+    // ── Chat Variables ──    
+    let chatHistory = [];    
+    let currentImage = null;    
+    let messageCount = 0;    
 
-        removeImageBtn.addEventListener('click', function() {
-            currentImage = null;
-            previewContainer.classList.add('hidden');
-            imageInput.value = '';
-        });
+    const chatMessages = document.getElementById('chat-messages');    
+    const messageInput = document.getElementById('message-input');    
+    const sendBtn = document.getElementById('send-btn');    
+    const uploadBtn = document.getElementById('upload-btn');    
+    const imageInput = document.getElementById('image-input');    
+    const previewContainer = document.getElementById('image-preview-container');    
+    const previewImage = document.getElementById('preview-image');    
+    const removeImageBtn = document.getElementById('remove-image');    
+    const clearChatBtn = document.getElementById('clear-chat');    
+    const modelSelector = document.getElementById('model-selector');    
+    const messageCountEl = document.getElementById('message-count');    
 
-        // ── Add Message to Chat ──
-        function addMessage(role, content, isTyping = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'flex gap-2';
+    // ── Upload Image ──    
+    uploadBtn.addEventListener('click', () => imageInput.click());    
 
-            if (role === 'user') {
-                messageDiv.innerHTML = `
-                    <div class="w-7 h-7 md:w-8 md:h-8 bg-gray-800 rounded flex items-center justify-center flex-shrink-0">
-                        <span class="material-icons text-white" style="font-size: 16px;">person</span>
-                    </div>
-                    <div class="flex-1">
-                        <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">You</div>
-                        <div class="bg-gray-800 text-white p-3 text-[12px] md:text-[13px] leading-relaxed">
-                            ${content}
-                        </div>
-                    </div>
-                `;
-            } else {
-                if (isTyping) {
-                    messageDiv.innerHTML = `
-                        <div class="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
-                            <span class="material-icons text-purple-600" style="font-size: 16px;">auto_awesome</span>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Lumina AI</div>
-                            <div class="bg-gray-50 border border-gray-200 p-3">
-                                <div class="flex gap-1">
-                                    <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                                    <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s;"></span>
-                                    <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.4s;"></span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    messageDiv.innerHTML = `
-                        <div class="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
-                            <span class="material-icons text-purple-600" style="font-size: 16px;">auto_awesome</span>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Lumina AI</div>
-                            <div class="bg-gray-50 border border-gray-200 p-3 text-[12px] md:text-[13px] text-gray-700 leading-relaxed">
-                                ${formatMessage(content)}
-                            </div>
-                        </div>
-                    `;
-                }
-            }
+    imageInput.addEventListener('change', function(e) {    
+        const file = e.target.files[0];    
+        if (file && file.type.startsWith('image/')) {    
+            const reader = new FileReader();    
+            reader.onload = function(e) {    
+                currentImage = e.target.result;    
+                previewImage.src = currentImage;    
+                previewContainer.classList.remove('hidden');    
+            };    
+            reader.readAsDataURL(file);    
+        }    
+    });    
 
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            return messageDiv;
+    removeImageBtn.addEventListener('click', function() {    
+        currentImage = null;    
+        previewContainer.classList.add('hidden');    
+        imageInput.value = '';    
+    });    
+
+    // ── Add Message to Chat ──    
+    function addMessage(role, content, isTyping = false) {    
+        const messageDiv = document.createElement('div');    
+
+        if (role === 'user') {    
+            // USER: Profil di KANAN    
+            messageDiv.className = 'flex gap-2 justify-end';    
+            messageDiv.innerHTML = `    
+                <div class="flex-1 max-w-[80%]">    
+                    <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold text-right">You</div>    
+                    <div class="bg-gray-800 text-white p-3 text-[12px] md:text-[13px] leading-relaxed rounded-lg">    
+                        ${content}    
+                    </div>    
+                </div>    
+                <div class="w-7 h-7 md:w-8 md:h-8 bg-gray-800 rounded flex items-center justify-center flex-shrink-0">    
+                    <span class="material-icons text-white" style="font-size: 16px;">person</span>    
+                </div>    
+            `;    
+        } else {    
+            // LUMINA: Profil di KIRI    
+            messageDiv.className = 'flex gap-2';    
+            if (isTyping) {    
+                messageDiv.innerHTML = `    
+                    <div class="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">    
+                        <span class="material-icons text-purple-600" style="font-size: 16px;">auto_awesome</span>    
+                    </div>    
+                    <div class="flex-1 max-w-[80%]">    
+                        <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Lumina AI</div>    
+                        <div class="bg-gray-50 border border-gray-200 p-3 rounded-lg">    
+                            <div class="flex gap-1">    
+                                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>    
+                                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s;"></span>    
+                                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.4s;"></span>    
+                            </div>    
+                        </div>    
+                    </div>    
+                `;    
+            } else {    
+                messageDiv.innerHTML = `    
+                    <div class="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">    
+                        <span class="material-icons text-purple-600" style="font-size: 16px;">auto_awesome</span>    
+                    </div>    
+                    <div class="flex-1 max-w-[80%]">    
+                        <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Lumina AI</div>    
+                        <div class="bg-gray-50 border border-gray-200 p-3 text-[12px] md:text-[13px] text-gray-700 leading-relaxed rounded-lg">    
+                            ${formatMessage(content)}    
+                        </div>    
+                    </div>    
+                `;    
+            }    
+        }    
+
+        chatMessages.appendChild(messageDiv);    
+        chatMessages.scrollTop = chatMessages.scrollHeight;    
+        return messageDiv;    
+    }    
+
+    // ── Format Message (markdown-like) ──    
+    function formatMessage(text) {    
+        // Bold    
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');    
+        // Italic    
+        text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');    
+        // Line breaks    
+        text = text.replace(/\n/g, '<br>');    
+        // Lists    
+        text = text.replace(/^- (.+)$/gm, '<li>$1</li>');    
+        if (text.includes('<li>')) {    
+            text = '<ul class="list-disc pl-5">' + text + '</ul>';    
+        }    
+        return text;    
+    }    
+
+    // ── Convert Base64 to Blob ──
+    function dataURLtoBlob(dataURL) {
+        const arr = dataURL.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
         }
+        return new Blob([u8arr], { type: mime });
+    }
 
-        // ── Format Message (markdown-like) ──
-        function formatMessage(text) {
-            // Bold
-            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            // Italic
-            text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
-            // Line breaks
-            text = text.replace(/\n/g, '<br>');
-            // Lists
-            text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
-            if (text.includes('<li>')) {
-                text = '<ul class="list-disc pl-5">' + text + '</ul>';
-            }
-            return text;
-        }
+    // ── Send Message ──    
+    async function sendMessage() {    
+        const message = messageInput.value.trim();    
+        if (!message && !currentImage) return;    
 
-        // ── Send Message ──
-        async function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message && !currentImage) return;
+        // Disable input    
+        messageInput.disabled = true;    
+        sendBtn.disabled = true;    
 
-            // Disable input
-            messageInput.disabled = true;
-            sendBtn.disabled = true;
+        // Add user message    
+        addMessage('user', message || '(gambar dikirim)');    
 
-            // Add user message
-            addMessage('user', message || '(gambar dikirim)');
+        // Show typing    
+        const typingDiv = addMessage('assistant', '', true);    
 
-            // Show typing
-            const typingDiv = addMessage('assistant', '', true);
+        try {    
+            let apiResponse;    
+            let result;    
 
-            try {
-                // Build request body
-                const requestBody = {
-                    model: modelSelector.value,
-                    prompt: message || 'apa ini?',
-                    system_instruction: 'Kamu adalah Lumina, asisten AI yang pintar dan membantu'
-                };
+            // KASUS 1: JIKA ADA GAMBAR -> Gunakan POST dengan FormData    
+            if (currentImage) {    
+                console.log('Mengirim dengan gambar (POST FormData)...');    
 
-                // Add image if exists
-                if (currentImage) {
-                    const base64Data = currentImage.split(',')[1];
-                    requestBody.media = base64Data;
-                }
+                const formData = new FormData();    
+                formData.append('model', modelSelector.value);    
+                formData.append('prompt', message || 'apa ini?');    
+                formData.append('system_instruction', 'Kamu adalah Lumina, asisten AI yang pintar dan membantu');    
 
-                // Add history if exists
-                if (chatHistory.length > 0) {
-                    requestBody.history = chatHistory;
-                }
+                // Konversi base64 ke blob    
+                const blob = dataURLtoBlob(currentImage);
+                formData.append('media', blob, 'image.png');    
 
-                console.log('Sending request to API...');
+                // Tambahkan history jika ada    
+                if (chatHistory.length > 0) {    
+                    formData.append('history', JSON.stringify(chatHistory));    
+                }    
 
-                // Send POST request
-                const apiResponse = await fetch('https://api.nefu.biz.id/ai/geminiall', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
+                apiResponse = await fetch('https://api.nefu.biz.id/ai/geminiall', {    
+                    method: 'POST',    
+                    body: formData    
+                    // JANGAN set Content-Type header    
+                });    
 
-                console.log('Response status:', apiResponse.status);
+            }     
+            // KASUS 2: TANPA GAMBAR -> Gunakan GET dengan query parameters    
+            else {    
+                console.log('Mengirim tanpa gambar (GET)...');    
 
-                if (!apiResponse.ok) {
-                    const errorText = await apiResponse.text();
-                    throw new Error(`HTTP ${apiResponse.status}: ${errorText}`);
-                }
+                const params = new URLSearchParams({    
+                    prompt: message,    
+                    model: modelSelector.value,    
+                    system_instruction: 'Kamu adalah Lumina, asisten AI yang pintar dan membantu'    
+                });    
 
-                const result = await apiResponse.json();
-                console.log('Response data:', result);
+                // Tambahkan history jika ada    
+                if (chatHistory.length > 0) {    
+                    params.append('history', JSON.stringify(chatHistory));    
+                }    
 
-                // Remove typing indicator
-                typingDiv.remove();
+                apiResponse = await fetch(`https://api.nefu.biz.id/ai/geminiall?${params.toString()}`, {    
+                    method: 'GET',    
+                    headers: {    
+                        'Accept': 'application/json'    
+                    }    
+                });    
+            }    
 
-                // Handle response sesuai struktur API
-                if (result.status && result.data && result.data.reply) {
-                    // Add AI response
-                    addMessage('assistant', result.data.reply);
-                    
-                    // Update history dengan format dari API
-                    if (result.data.history) {
-                        chatHistory = result.data.history;
-                    }
+            console.log('Response status:', apiResponse.status);    
 
-                    // Update message count
-                    messageCount++;
-                    messageCountEl.textContent = messageCount;
-                } else {
-                    addMessage('assistant', 'Maaf, response dari API tidak valid ✨');
-                    console.error('Unexpected response:', result);
-                }
+            if (!apiResponse.ok) {    
+                const errorText = await apiResponse.text();    
+                throw new Error(`HTTP ${apiResponse.status}: ${errorText}`);    
+            }    
 
-            } catch (error) {
-                typingDiv.remove();
-                console.error('Full error:', error);
-                
-                let errorMsg = 'Maaf, terjadi error: ';
-                if (error.message.includes('Failed to fetch')) {
-                    errorMsg += 'Tidak bisa koneksi ke server. Cek koneksi internet ✨';
-                } else if (error.message.includes('CORS')) {
-                    errorMsg += 'CORS error. API perlu enable CORS ✨';
-                } else {
-                    errorMsg += error.message + ' ✨';
-                }
-                
-                addMessage('assistant', errorMsg);
-            }
+            result = await apiResponse.json();    
+            console.log('Response data:', result);    
 
-            // Reset input
-            messageInput.value = '';
-            messageInput.disabled = false;
-            sendBtn.disabled = false;
-            
-            // Remove image preview
-            if (currentImage) {
-                currentImage = null;
-                previewContainer.classList.add('hidden');
-                imageInput.value = '';
-            }
+            // Remove typing indicator    
+            typingDiv.remove();    
 
-            messageInput.focus();
-        }
+            // Handle response    
+            if (result.status && result.data && result.data.reply) {    
+                addMessage('assistant', result.data.reply);    
 
-        // ── Event Listeners ──
-        sendBtn.addEventListener('click', sendMessage);
+                if (result.data.history) {    
+                    chatHistory = result.data.history;    
+                }    
 
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
+                messageCount++;    
+                messageCountEl.textContent = messageCount;    
+            } else {    
+                addMessage('assistant', 'Maaf, response dari API tidak valid ✨');    
+                console.error('Unexpected response:', result);    
+            }    
 
-        clearChatBtn.addEventListener('click', function() {
-            if (confirm('Hapus semua chat history?')) {
-                chatHistory = [];
-                messageCount = 0;
-                messageCountEl.textContent = '0';
-                
-                // Clear messages except welcome
-                chatMessages.innerHTML = `
-                    <div class="flex gap-2">
-                        <div class="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
-                            <span class="material-icons text-purple-600" style="font-size: 16px;">auto_awesome</span>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Lumina AI</div>
-                            <div class="bg-gray-50 border border-gray-200 p-3 text-[12px] md:text-[13px] text-gray-700 leading-relaxed">
-                                Halo! Aku Lumina, asisten AI kamu ✨ Kirim pesan atau upload gambar untuk mulai chat!
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        });
+        } catch (error) {    
+            typingDiv.remove();    
+            console.error('Full error:', error);    
 
-        // ── Hamburger Menu ──
-        const hamburger = document.getElementById('hamburger');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const mobileOverlay = document.getElementById('mobile-overlay');
+            let errorMsg = 'Maaf, terjadi error: ';    
+            if (error.message.includes('Failed to fetch')) {    
+                errorMsg += 'Tidak bisa koneksi ke server. Cek koneksi internet ✨';    
+            } else if (error.message.includes('CORS')) {    
+                errorMsg += 'CORS error ✨';    
+            } else if (error.message.includes('400')) {    
+                errorMsg += 'Format request salah ✨';    
+            } else {    
+                errorMsg += error.message + ' ✨';    
+            }    
 
-        function toggleMenu() {
-            hamburger.classList.toggle('active');
-            mobileMenu.classList.toggle('active');
-            mobileOverlay.classList.toggle('active');
-            document.body.classList.toggle('noscroll');
-        }
+            addMessage('assistant', errorMsg);    
+        }    
 
-        hamburger.addEventListener('click', toggleMenu);
-        mobileOverlay.addEventListener('click', toggleMenu);
+        // Reset input    
+        messageInput.value = '';    
+        messageInput.disabled = false;    
+        sendBtn.disabled = false;    
 
-        mobileMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (mobileMenu.classList.contains('active')) toggleMenu();
-            });
-        });
+        // Remove image preview    
+        if (currentImage) {    
+            currentImage = null;    
+            previewContainer.classList.add('hidden');    
+            imageInput.value = '';    
+        }    
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();
-        });
-    </script>
-</body>
+        messageInput.focus();    
+    }    
+
+    // ── Event Listeners ──    
+    sendBtn.addEventListener('click', sendMessage);    
+
+    messageInput.addEventListener('keypress', function(e) {    
+        if (e.key === 'Enter' && !e.shiftKey) {    
+            e.preventDefault();    
+            sendMessage();    
+        }    
+    });    
+
+    clearChatBtn.addEventListener('click', function() {    
+        if (confirm('Hapus semua chat history?')) {    
+            chatHistory = [];    
+            messageCount = 0;    
+            messageCountEl.textContent = '0';    
+
+            // Clear messages except welcome    
+            chatMessages.innerHTML = `    
+                <div class="flex gap-2">    
+                    <div class="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">    
+                        <span class="material-icons text-purple-600" style="font-size: 16px;">auto_awesome</span>    
+                    </div>    
+                    <div class="flex-1">    
+                        <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Lumina AI</div>    
+                        <div class="bg-gray-50 border border-gray-200 p-3 text-[12px] md:text-[13px] text-gray-700 leading-relaxed">    
+                            Halo! Aku Lumina, asisten AI kamu ✨ Kirim pesan atau upload gambar untuk mulai chat!    
+                        </div>    
+                    </div>    
+                </div>    
+            `;    
+        }    
+    });    
+
+    // ── Hamburger Menu ──    
+    const hamburger = document.getElementById('hamburger');    
+    const mobileMenu = document.getElementById('mobile-menu');    
+    const mobileOverlay = document.getElementById('mobile-overlay');    
+
+    function toggleMenu() {    
+        hamburger.classList.toggle('active');    
+        mobileMenu.classList.toggle('active');    
+        mobileOverlay.classList.toggle('active');    
+        document.body.classList.toggle('noscroll');    
+    }    
+
+    hamburger.addEventListener('click', toggleMenu);    
+    mobileOverlay.addEventListener('click', toggleMenu);    
+
+    mobileMenu.querySelectorAll('a').forEach(link => {    
+        link.addEventListener('click', () => {    
+            if (mobileMenu.classList.contains('active')) toggleMenu();    
+        });    
+    });    
+
+    document.addEventListener('keydown', (e) => {    
+        if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();    
+    });    
+    </script>  
+</body>    
 </html>
