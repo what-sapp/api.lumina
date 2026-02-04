@@ -67,7 +67,7 @@ async function geminiChatWithImageUrl(options) {
 }
 
 module.exports = {
-  name: "Gemini Image URL",
+  name: "Gemini",
   desc: "Chat dengan AI Gemini menggunakan URL gambar | Support direct image URL",
   category: "AI",
   params: ["prompt", "model", "_system_instruction", "_history", "_image_url"],
