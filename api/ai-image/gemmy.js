@@ -42,7 +42,6 @@ const uploadToCloud = async (buffer) => {
   }
 };
 
-// ─── Main Image Generation Function ────────────────────
 const handleImageGen = async (prompt, aspectRatio) => {
   const payload = {
     instances: [{ prompt }],
@@ -74,18 +73,46 @@ const handleImageGen = async (prompt, aspectRatio) => {
   return { success: true, url, safetyAttributes: prediction.safetyAttributes };
 };
 
-// ─── Module Export ─────────────────────────────────────
+// ✅ MODULE EXPORT DENGAN PARAMSCHEMA
 module.exports = {
   name: "Gemmy AI Image Generator",
-  desc: "JSON Response | AI Image Generator",
+  desc: "Generate AI images with custom aspect ratio using Gemmy AI",
   category: "AI-IMAGE",
-  params: ["prompt", "_aspectRatio"],
+  method: "GET",
+  
+  // ✅ PARAMETER SCHEMA (auto-generate form)
+  paramsSchema: [
+    {
+      name: "prompt",
+      type: "textarea",
+      required: true,
+      placeholder: "Describe the image you want to generate...",
+      rows: 4,
+      maxLength: 1000,
+      description: "Describe the image in detail (e.g., 'a cat wearing a wizard hat in a magical forest')"
+    },
+    {
+      name: "_aspectRatio",
+      type: "select",
+      required: false,
+      default: "1:1",
+      options: [
+        { value: "1:1", label: "Square (1:1)" },
+        { value: "16:9", label: "Landscape (16:9)" },
+        { value: "9:16", label: "Portrait (9:16)" },
+        { value: "4:3", label: "Classic Landscape (4:3)" },
+        { value: "3:4", label: "Classic Portrait (3:4)" }
+      ],
+      description: "Choose image aspect ratio (default: Square 1:1)"
+    }
+  ],
+  
   async run(req, res) {
     try {
       const prompt = req.query.prompt;
       const aspectRatio = req.query.aspectRatio || "1:1";
 
-      // ── Validasi ──
+      // ── Validasi Required ──
       if (!prompt) {
         return res.status(400).json({
           status: false,
@@ -93,26 +120,40 @@ module.exports = {
         });
       }
 
-      if (!["1:1", "16:9", "9:16", "4:3", "3:4"].includes(aspectRatio)) {
+      // ── Validasi Optional Dropdown ──
+      const allowedRatios = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+      if (!allowedRatios.includes(aspectRatio)) {
         return res.status(400).json({
           status: false,
-          error: 'AspectRatio tidak valid. Pilih: "1:1", "16:9", "9:16", "4:3", "3:4"',
+          error: `AspectRatio tidak valid. Pilih: ${allowedRatios.join(", ")}`,
         });
       }
+
+      console.log(`🎨 Generating image: "${prompt.substring(0, 50)}..." (${aspectRatio})`);
 
       // ── Handle Image Generation ──
       const result = await handleImageGen(prompt, aspectRatio);
 
       if (!result.success) {
-        return res.status(500).json({ status: false, error: result.msg });
+        return res.status(500).json({ 
+          status: false, 
+          error: result.msg 
+        });
       }
 
       // ── Return ──
       res.status(200).json({
         status: true,
-        data: result,
+        data: {
+          url: result.url,
+          aspect_ratio: aspectRatio,
+          prompt: prompt,
+          safety: result.safetyAttributes
+        }
       });
+      
     } catch (error) {
+      console.error(`❌ Gemmy AI Error: ${error.message}`);
       res.status(500).json({
         status: false,
         statusCode: 500,
