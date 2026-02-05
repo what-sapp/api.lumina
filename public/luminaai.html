@@ -39,12 +39,12 @@
             <!-- Header -->    
             <div class="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100">    
                 <div class="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center relative">    
-                    <span class="material-icons text-white text-lg">auto_awesome</span>    
+                    <span class="material-icons text-white text-lg">apps</span>    
                     <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-purple-500 rounded-full border-2 border-white"></div>    
                 </div>    
                 <div>    
                     <span class="text-sm font-bold text-gray-900 uppercase tracking-tight block">Navigation</span>    
-                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Lumina AI</span>    
+                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Lumina API</span>    
                 </div>    
             </div>    
 
@@ -64,11 +64,18 @@
                     <span>Documentation</span>    
                 </a>    
 
-                <a href="/ai" class="menu-item active flex items-center gap-4 px-4 py-3.5 bg-gray-900 text-white font-semibold text-[13px] rounded-lg shadow-md relative overflow-hidden">    
+                <a href="/contributors" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
+                    <div class="w-8 h-8 bg-purple-50 group-hover:bg-purple-100 rounded-lg flex items-center justify-center transition-colors">
+                        <span class="material-icons text-sm text-purple-600">people</span>
+                    </div>
+                    <span>Contributors</span>
+                </a>
+
+                <a href="/luminaai" class="menu-item active flex items-center gap-4 px-4 py-3.5 bg-gray-900 text-white font-semibold text-[13px] rounded-lg shadow-md relative overflow-hidden">    
                     <div class="w-8 h-8 bg-white bg-opacity-10 rounded-lg flex items-center justify-center">    
                         <span class="material-icons text-sm text-white">auto_awesome</span>    
                     </div>    
-                    <span>AI Chat</span>    
+                    <span>Lumina AI</span>    
                     <span class="ml-auto text-[9px] bg-white bg-opacity-15 px-2 py-0.5 rounded-full uppercase tracking-wider">Current</span>    
                 </a>    
 
@@ -147,7 +154,7 @@
             </h1>    
 
             <p class="text-[11px] md:text-[12px] text-gray-500 mb-4 leading-relaxed max-w-md">    
-                Tanya apa aja ke Lumina!. Powered by Google Gemini.    
+                Lumina! Crafted by Robin.    
             </p>    
 
             <div class="flex flex-col gap-2">    
@@ -396,7 +403,8 @@
                 const formData = new FormData();    
                 formData.append('model', modelSelector.value);    
                 formData.append('prompt', message || 'apa ini?');    
-                formData.append('system_instruction', 'Kamu adalah Lumina, asisten AI yang pintar dan membantu');    
+                formData.append('system_instruction', 'Kamu adalah Lumina, asisten AI yang pintar, ramah, dan membantu. Lumina dirancang untuk memberikan jawaban yang jelas, akurat, dan relevan dengan gaya yang natural dan mudah dipahami.
+Lumina API adalah layanan AI yang dikembangkan oleh Robin, dirancang untuk kebutuhan chatbot, automasi, dan integrasi AI modern. Lumina mengutamakan kecepatan, fleksibilitas, dan kemudahan integrasi bagi developer.');    
 
                 // Konversi base64 ke blob    
                 const blob = dataURLtoBlob(currentImage);
@@ -421,7 +429,8 @@
                 const params = new URLSearchParams({    
                     prompt: message,    
                     model: modelSelector.value,    
-                    system_instruction: 'Kamu adalah Lumina, asisten AI yang pintar dan membantu'    
+                    system_instruction: 'Kamu adalah Lumina, asisten AI yang pintar, ramah, dan membantu. Lumina dirancang untuk memberikan jawaban yang jelas, akurat, dan relevan dengan gaya yang natural dan mudah dipahami.
+Lumina API adalah layanan AI yang dikembangkan oleh Robin, dirancang untuk kebutuhan chatbot, automasi, dan integrasi AI modern. Lumina mengutamakan kecepatan, fleksibilitas, dan kemudahan integrasi bagi developer.'    
                 });    
 
                 // Tambahkan history jika ada    
@@ -523,7 +532,7 @@
                     <div class="flex-1">    
                         <div class="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-wider mb-1 font-bold">Lumina AI</div>    
                         <div class="bg-gray-50 border border-gray-200 p-3 text-[12px] md:text-[13px] text-gray-700 leading-relaxed">    
-                            Halo! Aku Lumina, asisten AI kamu ✨ Kirim pesan atau upload gambar untuk mulai chat!    
+                            Halo! Aku Lumina, asisten AI kamu ✨ Kirim pesan untuk mulai chat!    
                         </div>    
                     </div>    
                 </div>    
