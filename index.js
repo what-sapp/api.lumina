@@ -23,8 +23,8 @@
     app.use(express.json());
     app.use(express.urlencoded({ extended: false }));
     app.use(cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     }));
     app.use('/', express.static(path.join(__dirname, 'docs')));
     
@@ -100,10 +100,9 @@
                         
                         app.all(endpointPath, module.run);
                         
-                        let fullPathWithParams = endpointPath;
-                        if (module.params && module.params.length > 0) {
-                            fullPathWithParams += '?' + module.params.map(param => `${param}=`).join('&');
-                        }
+                        // ✅ PERBAIKAN: Jangan tambahin query params di path
+                        // Biar frontend yang handle berdasarkan params object
+                        const fullPathWithParams = endpointPath;
                         
                         const category = module.category || 'Other';
                         const categoryIndex = endpoints.findIndex(endpoint => endpoint.name === category);
@@ -120,7 +119,9 @@
                         const endpointObj = {};
                         endpointObj[module.name || endpointName] = {
                             desc: module.desc || 'No description provided',
-                            path: fullPathWithParams
+                            path: fullPathWithParams,
+                            method: module.method || 'GET',     // ✅ TAMBAHAN: Kirim method
+                            params: module.params || []         // ✅ TAMBAHAN: Kirim params lengkap
                         };
                         
                         categoryObj.items.push(endpointObj);
