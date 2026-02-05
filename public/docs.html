@@ -182,16 +182,9 @@
         <div class="relative z-10 bg-white border-2 border-gray-800 shadow-[8px_8px_0px_0px_rgba(31,41,55,1)] w-full max-w-lg mx-auto p-8 my-auto transform scale-95 opacity-0 transition-all duration-200 ease-out">
             
             <!-- Modal Header -->
-            <div class="flex justify-between items-start mb-5">
-                <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-2">
-                        <!-- ✅ Method Badge (Lebih prominent) -->
-                        <span id="method-badge" class="px-3 py-1 text-[10px] font-bold bg-blue-500 text-white tracking-widest rounded shadow-sm">GET</span>
-                        <h3 class="text-lg font-bold tracking-tight text-gray-900" id="modal-title">API Request</h3>
-                    </div>
-                    <p id="api-description" class="text-[11px] text-gray-500 leading-relaxed">API description will appear here</p>
-                </div>
-                <button id="close-modal" class="text-gray-300 hover:text-gray-900 transition-colors focus:outline-none p-1 hover:bg-gray-100 rounded ml-4">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold tracking-tight text-gray-900" id="modal-title">API Request</h3>
+                <button id="close-modal" class="text-gray-300 hover:text-gray-900 transition-colors focus:outline-none p-1 hover:bg-gray-100 rounded">
                     <span class="material-icons text-lg">close</span>
                 </button>
             </div>
@@ -205,40 +198,31 @@
                 <div class="flex-1 h-px bg-gray-100"></div>
             </div>
             
-            <!-- URL Section -->
             <div class="mb-5">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Endpoint URL</span>
-                    <div class="flex-1 h-px bg-gray-100"></div>
-                </div>
+                <p id="api-description" class="text-[12px] text-gray-500 leading-relaxed mb-3">API description will appear here</p>
+                
+                <!-- URL -->
                 <div class="url-block bg-gray-50 border border-gray-200 p-3 rounded relative group">
                     <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span class="text-[8px] text-gray-400 font-mono uppercase tracking-wider bg-white border border-gray-100 px-1.5 py-0.5 rounded">COPY</span>
+                        <span class="text-[8px] text-gray-400 font-mono uppercase tracking-wider bg-white border border-gray-100 px-1.5 py-0.5 rounded">URL</span>
                     </div>
                     <code id="api-url" class="text-[11px] font-mono text-gray-600 break-all">https://api-lumina-ashy.vercel.app/endpoint</code>
                 </div>
             </div>
             
-            <!-- Parameters Section -->
-            <div class="mb-6">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Parameters</span>
-                    <div class="flex-1 h-px bg-gray-100"></div>
-                </div>
-                <div id="params-container"></div>
-            </div>
+            <div id="params-container" class="mb-6"></div>
             
             <button id="submit-api" class="btn-solid w-full bg-gray-800 hover:bg-gray-900 text-white px-4 py-3 text-[11px] font-bold uppercase tracking-[0.2em] transition-all">
                 Send Request
             </button>
             
-            <!-- Response Section -->
+            <!-- Response -->
             <div id="response-container" class="mt-6 hidden border-t border-gray-100 pt-5">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Response</h4>
                     <div class="flex items-center gap-2">
-                        <span id="response-status" class="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 rounded uppercase">200</span>
-                        <span id="response-time" class="text-[10px] font-mono text-gray-400">0ms</span>
+                        <span id="response-status" class="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 rounded uppercase">200 OK</span>
+                        <span id="response-time" class="text-[10px] font-mono text-gray-400">200ms</span>
                     </div>
                 </div>
                 <pre id="response-data" class="bg-gray-50 p-4 text-[11px] font-mono text-gray-600 overflow-auto max-h-60 border border-gray-100 rounded"></pre>
@@ -262,13 +246,9 @@
             try {
                 const response = await fetch('/endpoints');
                 const data = await response.json();
-                if (data.endpoints) {
-                    let count = 0;
-                    data.endpoints.forEach(cat => {
-                        count += cat.items.length;
-                    });
+                if (data.status && data.count) {
                     const widget = document.getElementById('total-endpoints-widget');
-                    if (widget) widget.textContent = count + '+';
+                    if (widget) widget.textContent = data.count + '+';
                 }
             } catch (e) {
                 console.log('Could not fetch endpoint count');
