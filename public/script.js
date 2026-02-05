@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// script.js  —  Lumina Docs (docs.html)
+// script.js  —  Lumina Docs (Full Featured + Auto-Discovery)
 // ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -77,16 +77,23 @@ document.addEventListener('DOMContentLoaded', async function () {
                 itemEl.dataset.name = itemName.toLowerCase();
                 itemEl.dataset.desc = (item.desc || '').toLowerCase();
 
+                // Badge untuk method
+                const methodBadge = item.method === 'POST' 
+                    ? '<span class="text-[8px] bg-green-500 text-white px-2 py-1 rounded font-bold ml-2">POST</span>'
+                    : '<span class="text-[8px] bg-blue-500 text-white px-2 py-1 rounded font-bold ml-2">GET</span>';
+
                 itemEl.innerHTML = `
                     <div class="flex items-center justify-between p-4 px-6 bg-gray-50 border border-gray-200 shadow-sm transition-all hover:border-gray-800">
                         <div class="flex-grow mr-4 overflow-hidden">
-                            <h5 class="text-[13px] font-bold text-gray-800 truncate uppercase tracking-tight">${itemName}</h5>
-                            <p class="text-[11px] font-medium text-gray-500 truncate">${item.desc || 'No description available'}</p>
+                            <div class="flex items-center">
+                                <h5 class="text-[13px] font-bold text-gray-800 truncate uppercase tracking-tight">${itemName}</h5>
+                                ${methodBadge}
+                            </div>
+                            <p class="text-[11px] font-medium text-gray-500 truncate mt-1">${item.desc || 'No description available'}</p>
                         </div>
                         <button class="try-btn bg-gray-800 text-white px-5 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-colors"
-                                data-path='${item.path || ""}' 
-                                data-name="${itemName}" 
-                                data-desc="${item.desc || ""}">TRY</button>
+                                data-endpoint='${JSON.stringify(item)}' 
+                                data-name="${itemName}">TRY</button>
                     </div>
                 `;
                 row.appendChild(itemEl);
@@ -97,24 +104,34 @@ document.addEventListener('DOMContentLoaded', async function () {
         apiContent.addEventListener('click', (e) => {
             if (e.target.classList.contains('try-btn')) {
                 const btn = e.target;
-                openApiModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc);
+                const endpoint = JSON.parse(btn.dataset.endpoint);
+                openApiModal(btn.dataset.name, endpoint);
             }
         });
     }
 
     // --- 4. MODAL & PARAMETER LOGIC ---
-    function openApiModal(name, endpoint, description) {
+    function openApiModal(name, endpoint) {
         const modal            = document.getElementById('api-modal');
         const modalContent     = modal.querySelector('.relative.z-10');
         const paramsContainer  = document.getElementById('params-container');
         const responseContainer = document.getElementById('response-container');
         const responseData     = document.getElementById('response-data');
         
+        // Display method badge
+        const methodBadge = document.getElementById('method-badge');
+        if (methodBadge) {
+            methodBadge.textContent = endpoint.method || 'GET';
+            methodBadge.className = `text-[10px] px-3 py-1 rounded font-bold ${
+                endpoint.method === 'POST' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
+            }`;
+        }
+        
         // Display URL endpoint
         const apiUrlElement = document.getElementById('api-url');
         if (apiUrlElement) {
-            const baseUrl      = window.location.origin;
-            const cleanEndpoint = endpoint.split('?')[0];
+            const baseUrl = window.location.origin;
+            const cleanEndpoint = endpoint.path.split('?')[0];
             apiUrlElement.textContent = `${baseUrl}${cleanEndpoint}`;
         }
         
@@ -122,23 +139,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         paramsContainer.innerHTML = '';
         responseData.innerHTML   = '';
         document.getElementById('modal-title').textContent      = name;
-        document.getElementById('api-description').textContent  = description;
+        document.getElementById('api-description').textContent  = endpoint.desc;
         document.getElementById('submit-api').classList.remove('hidden');
         paramsContainer.classList.remove('hidden');
 
-        // Deteksi Parameter dari endpoint
-        const params = [];
-        const pathMatches = endpoint.match(/{([^}]+)}/g);
-        if (pathMatches) pathMatches.forEach(m => params.push(m.replace(/{|}/g, '')));
-        
-        if (endpoint.includes('?')) {
-            endpoint.split('?')[1].split('&').forEach(p => {
-                const pName = p.split('=')[0];
-                if (pName && !params.includes(pName)) params.push(pName);
-            });
+        // Generate parameter inputs dari paramsSchema
+        if (endpoint.paramsSchema && endpoint.paramsSchema.length > 0) {
+            endpoint.paramsSchema.forEach(param => createParamInput(param, paramsContainer));
+        } else {
+            paramsContainer.innerHTML = '<p class="text-gray-500 text-sm italic">No parameters required</p>';
         }
-
-        params.forEach(p => createParamInput(p, paramsContainer));
 
         modal.classList.remove('hidden');
         document.body.classList.add('noscroll');
@@ -151,20 +161,159 @@ document.addEventListener('DOMContentLoaded', async function () {
         document.getElementById('submit-api').onclick = () => handleApiRequest(endpoint, paramsContainer);
     }
 
-    function createParamInput(name, container) {
-        const isOptional = name.startsWith('_');
-        const cleanName  = isOptional ? name.substring(1) : name;
-        const div        = document.createElement('div');
-        div.className    = 'mb-3';
-        div.innerHTML    = `
-            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1 block">${cleanName} ${isOptional ? '(Optional)' : '*'}</label>
-            <input type="text" id="param-${name}" class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none" placeholder="Enter ${cleanName}...">
-            <p id="error-${name}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
+    // --- 5. CREATE PARAMETER INPUT (SUPPORT ALL TYPES) ---
+    function createParamInput(param, container) {
+        const isOptional = param.name.startsWith('_');
+        const cleanName = isOptional ? param.name.substring(1) : param.name;
+        const div = document.createElement('div');
+        div.className = 'mb-4';
+
+        let inputHTML = '';
+        const labelHTML = `
+            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1 flex items-center gap-2">
+                <span>${cleanName}</span>
+                ${isOptional 
+                    ? '<span class="text-[8px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded">OPTIONAL</span>' 
+                    : '<span class="text-[8px] bg-red-500 text-white px-2 py-0.5 rounded">REQUIRED</span>'}
+            </label>
+            ${param.description ? `<p class="text-[9px] text-gray-400 mb-2">${param.description}</p>` : ''}
         `;
+
+        // ✅ FILE INPUT
+        if (param.type === 'file') {
+            inputHTML = `
+                ${labelHTML}
+                <input type="file" 
+                       id="param-${param.name}" 
+                       accept="${param.accept || '*/*'}"
+                       class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-black">
+                ${param.maxSize ? `<p class="text-[9px] text-gray-400 mt-1">Max size: ${param.maxSize}</p>` : ''}
+                <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">File wajib diupload!</p>
+                <div id="preview-${param.name}" class="mt-3 hidden">
+                    <p class="text-[9px] text-gray-500 mb-2">Preview:</p>
+                    <img src="" alt="Preview" class="max-w-xs max-h-48 border-2 border-gray-200 shadow-sm rounded">
+                </div>
+            `;
+        }
+        // ✅ DROPDOWN/SELECT
+        else if (param.type === 'select') {
+            const options = param.options.map(opt => 
+                `<option value="${opt.value}">${opt.label}</option>`
+            ).join('');
+            
+            inputHTML = `
+                ${labelHTML}
+                <select id="param-${param.name}" 
+                        class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none bg-white">
+                    ${isOptional ? `<option value="">-- Select (Optional) --</option>` : `<option value="" disabled selected>-- Select --</option>`}
+                    ${options}
+                </select>
+                <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">Pilih salah satu!</p>
+            `;
+        }
+        // ✅ TEXTAREA
+        else if (param.type === 'textarea') {
+            inputHTML = `
+                ${labelHTML}
+                <textarea id="param-${param.name}" 
+                          rows="${param.rows || 3}"
+                          maxlength="${param.maxLength || ''}"
+                          placeholder="${param.placeholder || ''}"
+                          class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none resize-none"></textarea>
+                ${param.maxLength ? `<p class="text-[9px] text-gray-400 mt-1">Max ${param.maxLength} characters</p>` : ''}
+                <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
+            `;
+        }
+        // ✅ RANGE SLIDER
+        else if (param.type === 'range') {
+            const defaultVal = param.default !== undefined ? param.default : (param.min || 0);
+            inputHTML = `
+                ${labelHTML}
+                <div class="flex items-center gap-3">
+                    <input type="range" 
+                           id="param-${param.name}" 
+                           min="${param.min || 0}" 
+                           max="${param.max || 100}" 
+                           step="${param.step || 1}"
+                           value="${defaultVal}"
+                           class="flex-1">
+                    <span id="value-${param.name}" class="text-sm font-bold text-gray-700 min-w-[60px] text-center bg-gray-100 px-3 py-1 rounded">${defaultVal}</span>
+                </div>
+            `;
+        }
+        // ✅ TEXT INPUT (default)
+        else {
+            inputHTML = `
+                ${labelHTML}
+                <input type="text" 
+                       id="param-${param.name}" 
+                       placeholder="${param.placeholder || `Enter ${cleanName}...`}"
+                       maxlength="${param.maxLength || ''}"
+                       class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none">
+                <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
+            `;
+        }
+
+        div.innerHTML = inputHTML;
         container.appendChild(div);
+
+        // ✅ FILE PREVIEW
+        if (param.type === 'file') {
+            const input = div.querySelector('input[type="file"]');
+            const preview = div.querySelector(`#preview-${param.name}`);
+            const img = preview.querySelector('img');
+            
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    // Validate file size
+                    if (param.maxSize) {
+                        const maxBytes = parseSize(param.maxSize);
+                        if (file.size > maxBytes) {
+                            alert(`File terlalu besar! Max ${param.maxSize}`);
+                            input.value = '';
+                            preview.classList.add('hidden');
+                            return;
+                        }
+                    }
+                    
+                    // Preview image
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            img.src = event.target.result;
+                            preview.classList.remove('hidden');
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        preview.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        // ✅ RANGE VALUE DISPLAY
+        if (param.type === 'range') {
+            const input = div.querySelector('input[type="range"]');
+            const display = div.querySelector(`#value-${param.name}`);
+            
+            input.addEventListener('input', (e) => {
+                display.textContent = e.target.value;
+            });
+        }
     }
 
-    // ─── 5. LIVE ACTIVITY LOGGER (ke localStorage, dibaca oleh status.html) ───
+    // Helper: Parse size string (e.g., "10MB" -> bytes)
+    function parseSize(sizeStr) {
+        const units = { KB: 1024, MB: 1024 * 1024, GB: 1024 * 1024 * 1024 };
+        const match = sizeStr.match(/^(\d+)(KB|MB|GB)$/i);
+        if (match) {
+            return parseInt(match[1]) * units[match[2].toUpperCase()];
+        }
+        return 0;
+    }
+
+    // ─── 6. LIVE ACTIVITY LOGGER ───
     function logActivity(entry) {
         try {
             const KEY  = 'lumina_live_activity';
@@ -173,67 +322,121 @@ document.addEventListener('DOMContentLoaded', async function () {
             try { logs = JSON.parse(localStorage.getItem(KEY)) || []; } catch (_) {}
 
             logs.push(entry);
-            if (logs.length > MAX) logs = logs.slice(-MAX); // FIFO — buang yang lama
+            if (logs.length > MAX) logs = logs.slice(-MAX);
 
             localStorage.setItem(KEY, JSON.stringify(logs));
-        } catch (_) {
-            // localStorage mungkin blocked — silent fail
-        }
+        } catch (_) {}
     }
 
-    // --- 6. REQUEST HANDLER ---
+    // --- 7. REQUEST HANDLER (SUPPORT GET & POST) ---
     async function handleApiRequest(endpoint, paramsContainer) {
         const submitBtn         = document.getElementById('submit-api');
         const responseContainer = document.getElementById('response-container');
         const responseData      = document.getElementById('response-data');
         
         let isValid = true;
-        let baseUrl = endpoint.split('?')[0];
-        let queryParams = new URLSearchParams();
+        const method = endpoint.method || 'GET';
+        
+        // Detect if has file upload
+        const hasFile = Array.from(paramsContainer.querySelectorAll('input')).some(
+            input => input.type === 'file' && input.files.length > 0
+        );
 
-        const inputs = paramsContainer.querySelectorAll('input');
-        inputs.forEach(input => {
-            const pName = input.id.replace('param-', '');
-            const val   = input.value.trim();
-            const error = document.getElementById(`error-${pName}`);
-
-            if (!pName.startsWith('_') && !val) {
-                isValid = false;
-                error?.classList.remove('hidden');
-                input.classList.add('border-red-500');
-            } else {
-                error?.classList.add('hidden');
-                input.classList.remove('border-red-500');
-                if (val) {
-                    if (baseUrl.includes(`{${pName}}`)) {
-                        baseUrl = baseUrl.replace(`{${pName}}`, encodeURIComponent(val));
+        let requestData;
+        let finalUrl = endpoint.path.split('?')[0];
+        
+        if (method === 'POST' || hasFile) {
+            // ✅ POST REQUEST dengan FormData
+            requestData = new FormData();
+            
+            const inputs = paramsContainer.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                const pName = input.id.replace('param-', '');
+                const isOptional = pName.startsWith('_');
+                const error = document.getElementById(`error-${pName}`);
+                
+                if (input.type === 'file') {
+                    const file = input.files[0];
+                    if (!isOptional && !file) {
+                        isValid = false;
+                        error?.classList.remove('hidden');
+                        input.classList.add('border-red-500');
                     } else {
-                        queryParams.append(pName, val);
+                        error?.classList.add('hidden');
+                        input.classList.remove('border-red-500');
+                        if (file) requestData.append(pName, file);
+                    }
+                } else {
+                    const val = input.value.trim();
+                    if (!isOptional && !val) {
+                        isValid = false;
+                        error?.classList.remove('hidden');
+                        input.classList.add('border-red-500');
+                    } else {
+                        error?.classList.add('hidden');
+                        input.classList.remove('border-red-500');
+                        if (val) requestData.append(pName, val);
                     }
                 }
-            }
-        });
+            });
+        } else {
+            // ✅ GET REQUEST dengan Query Params
+            let queryParams = new URLSearchParams();
+            
+            const inputs = paramsContainer.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                const pName = input.id.replace('param-', '');
+                const isOptional = pName.startsWith('_');
+                const val = input.value.trim();
+                const error = document.getElementById(`error-${pName}`);
+
+                if (!isOptional && !val) {
+                    isValid = false;
+                    error?.classList.remove('hidden');
+                    input.classList.add('border-red-500');
+                } else {
+                    error?.classList.add('hidden');
+                    input.classList.remove('border-red-500');
+                    if (val) queryParams.append(pName, val);
+                }
+            });
+            
+            requestData = queryParams.toString() ? `${finalUrl}?${queryParams.toString()}` : finalUrl;
+        }
 
         if (!isValid) return;
 
-        const finalUrl = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl;
-        
         submitBtn.classList.add('hidden');
         responseContainer.classList.remove('hidden');
-        responseData.innerHTML = '<div class="text-[10px] font-bold animate-pulse uppercase">Processing Request...</div>';
+        responseData.innerHTML = `
+            <div class="flex items-center gap-3 text-[10px] font-bold animate-pulse uppercase">
+                <div class="w-2 h-2 bg-gray-800 rounded-full animate-bounce"></div>
+                <span>Processing Request...</span>
+            </div>
+        `;
         
         const start = Date.now();
         try {
-            const res      = await fetch(finalUrl);
+            const fetchOptions = {
+                method: method
+            };
+            
+            if (method === 'POST' || hasFile) {
+                fetchOptions.body = requestData;
+            }
+            
+            const targetUrl = (method === 'POST' || hasFile) ? finalUrl : requestData;
+            const res      = await fetch(targetUrl, fetchOptions);
             const duration = Date.now() - start;
             const contentType = res.headers.get('content-type');
             
             document.getElementById('response-status').textContent = res.status;
             document.getElementById('response-time').textContent   = `${duration}ms`;
 
-            // ── Log ke localStorage ──
+            // Log activity
             logActivity({
-                endpoint:  finalUrl,
+                endpoint:  targetUrl,
+                method:    method,
                 status:    res.status,
                 ok:        res.ok,
                 duration:  duration,
@@ -241,30 +444,37 @@ document.addEventListener('DOMContentLoaded', async function () {
                 timestamp: Date.now()
             });
 
-            // ── Render response ──
+            // Render response
             if (contentType && contentType.includes('image/')) {
                 const blob   = await res.blob();
                 const imgUrl = URL.createObjectURL(blob);
                 responseData.innerHTML = `
-                    <div class="flex flex-col items-center">
-                        <img src="${imgUrl}" class="max-w-full h-auto border border-gray-200 shadow-sm mb-3" />
-                        <a href="${imgUrl}" download="result.jpg" class="bg-gray-800 text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all">Download Image</a>
+                    <div class="flex flex-col items-center gap-3">
+                        <img src="${imgUrl}" class="max-w-full h-auto border-2 border-gray-200 shadow-md rounded" />
+                        <a href="${imgUrl}" download="result.jpg" class="bg-gray-800 text-white px-5 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all rounded">
+                            Download Image
+                        </a>
                     </div>
                 `;
             } else if (contentType && contentType.includes('application/json')) {
                 const json = await res.json();
-                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700">${JSON.stringify(json, null, 2)}</pre>`;
+                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700 bg-gray-50 p-4 rounded border border-gray-200 overflow-x-auto">${JSON.stringify(json, null, 2)}</pre>`;
             } else {
                 const text = await res.text();
-                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700">${text}</pre>`;
+                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700 bg-gray-50 p-4 rounded border border-gray-200">${text}</pre>`;
             }
         } catch (err) {
             const duration = Date.now() - start;
-            responseData.innerHTML = `<span class="text-red-500 font-bold uppercase text-[10px]">Error: ${err.message}</span>`;
+            responseData.innerHTML = `
+                <div class="bg-red-50 border-2 border-red-200 p-4 rounded">
+                    <p class="text-red-600 font-bold uppercase text-[10px] mb-2">❌ REQUEST FAILED</p>
+                    <p class="text-red-500 text-[11px]">${err.message}</p>
+                </div>
+            `;
 
-            // ── Log error ke localStorage juga ──
             logActivity({
                 endpoint:  finalUrl,
+                method:    method,
                 status:    0,
                 ok:        false,
                 duration:  duration,
@@ -274,7 +484,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 
-    // --- 7. UTILS ---
+    // --- 8. UTILS ---
     function setupAccordion() {
         document.querySelectorAll('.category-header').forEach(header => {
             header.addEventListener('click', () => {
@@ -282,7 +492,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const isOpen    = accordion.classList.toggle('active');
                 header.querySelector('.accordion-icon').classList.toggle('rotate');
 
-                // swap folder icon: folder ↔ folder_open
                 const folderIcon = header.querySelector('.material-icons.text-gray-500');
                 if (folderIcon) folderIcon.textContent = isOpen ? 'folder_open' : 'folder';
             });
