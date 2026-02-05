@@ -152,47 +152,46 @@ const handleChat = async (prompt, imageSource, isFile = false) => {
 
 // ─── Module Export ─────────────────────────────────────
 module.exports = {
-  name: "Gemmy AI Chat New",
+  name: "Gemmy AI Chat",
   desc: "AI Chat with optional image support (upload or URL)",
   category: "AI",
   method: "POST",
-  path: "/gemmy-chat",
   
-  paramsSchema: [
-    {
-      name: "prompt",
-      type: "textarea",
+  // ✅ Params array (cara lama)
+  params: ["prompt", "_image", "_imageUrl"],
+  
+  // ✅ Config tambahan untuk upload & dropdown
+  paramConfig: {
+    "prompt": {
       description: "Your question or message to AI",
-      placeholder: "Ask me anything...",
-      rows: 4,
-      maxLength: 2000
+      placeholder: "Ask me anything..."
     },
-    {
-      name: "_image",
+    "_image": {
       type: "file",
       description: "Upload an image (optional)",
       accept: "image/jpeg,image/jpg,image/png,image/webp,image/gif",
       maxSize: "10MB"
     },
-    {
-      name: "_imageUrl",
-      type: "url",
+    "_imageUrl": {
       description: "Or provide image URL (optional)",
       placeholder: "https://example.com/image.jpg"
     }
-  ],
+  },
 
   async run(req, res) {
     try {
-      const prompt = req.body.prompt;
-      const imageFile = req.files?.image;
-      const imageUrl = req.body.imageUrl;
+      // ✅ Support both GET & POST
+      const prompt = req.body.prompt || req.query.prompt;
+      const imageUrl = req.body.imageUrl || req.query.imageUrl;
+      
+      // ✅ File upload dari multer (hanya untuk POST)
+      const imageFile = req.files?.find(f => f.fieldname === 'image');
 
       // ── Validasi ──
-      if (!prompt) {
+      if (!prompt || prompt.trim() === '') {
         return res.status(400).json({
           status: false,
-          error: 'Parameter "prompt" is required',
+          error: 'Parameter "prompt" is required'
         });
       }
 
@@ -203,7 +202,7 @@ module.exports = {
       if (imageFile) {
         imageSource = imageFile;
         isFile = true;
-      } else if (imageUrl) {
+      } else if (imageUrl && imageUrl.trim() !== '') {
         imageSource = imageUrl;
         isFile = false;
       }
@@ -226,13 +225,15 @@ module.exports = {
           usage: result.usage,
           hasImage: !!imageSource,
           imageType: isFile ? "uploaded" : imageUrl ? "url" : "none"
-        },
+        }
       });
     } catch (error) {
       res.status(500).json({
         status: false,
-        error: error.message,
+        statusCode: 500,
+        creator: "robin",
+        error: error.message
       });
     }
-  },
+  }
 };
