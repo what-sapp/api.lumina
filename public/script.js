@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// script.js  —  Lumina Docs (Support Upload & Dropdown)
+// script.js  —  Lumina Docs (docs.html) — ENHANCED VERSION
 // ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -77,22 +77,32 @@ document.addEventListener('DOMContentLoaded', async function () {
                 itemEl.dataset.name = itemName.toLowerCase();
                 itemEl.dataset.desc = (item.desc || '').toLowerCase();
 
-                const methodBadge = item.method === 'POST' 
-                    ? '<span class="text-[8px] bg-green-500 text-white px-2 py-1 rounded font-bold ml-2">POST</span>'
-                    : '<span class="text-[8px] bg-blue-500 text-white px-2 py-1 rounded font-bold ml-2">GET</span>';
+                // HTTP Method Badge
+                const method = item.method || 'GET';
+                const methodColors = {
+                    'GET': 'bg-blue-600',
+                    'POST': 'bg-green-600',
+                    'PUT': 'bg-yellow-600',
+                    'DELETE': 'bg-red-600',
+                    'PATCH': 'bg-purple-600'
+                };
+                const methodColor = methodColors[method] || 'bg-gray-600';
 
                 itemEl.innerHTML = `
                     <div class="flex items-center justify-between p-4 px-6 bg-gray-50 border border-gray-200 shadow-sm transition-all hover:border-gray-800">
                         <div class="flex-grow mr-4 overflow-hidden">
-                            <div class="flex items-center">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="${methodColor} text-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded">${method}</span>
                                 <h5 class="text-[13px] font-bold text-gray-800 truncate uppercase tracking-tight">${itemName}</h5>
-                                ${methodBadge}
                             </div>
-                            <p class="text-[11px] font-medium text-gray-500 truncate mt-1">${item.desc || 'No description available'}</p>
+                            <p class="text-[11px] font-medium text-gray-500 truncate">${item.desc || 'No description available'}</p>
                         </div>
                         <button class="try-btn bg-gray-800 text-white px-5 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-colors"
-                                data-endpoint='${JSON.stringify(item)}' 
-                                data-name="${itemName}">TRY</button>
+                                data-path='${item.path || ""}' 
+                                data-name="${itemName}" 
+                                data-desc="${item.desc || ""}"
+                                data-method="${method}"
+                                data-params='${JSON.stringify(item.params || [])}'>TRY</button>
                     </div>
                 `;
                 row.appendChild(itemEl);
@@ -103,50 +113,52 @@ document.addEventListener('DOMContentLoaded', async function () {
         apiContent.addEventListener('click', (e) => {
             if (e.target.classList.contains('try-btn')) {
                 const btn = e.target;
-                const endpoint = JSON.parse(btn.dataset.endpoint);
-                openApiModal(btn.dataset.name, endpoint);
+                openApiModal(
+                    btn.dataset.name, 
+                    btn.dataset.path, 
+                    btn.dataset.desc,
+                    btn.dataset.method,
+                    JSON.parse(btn.dataset.params || '[]')
+                );
             }
         });
     }
 
-    // --- 4. MODAL & PARAMETER LOGIC ---
-    function openApiModal(name, endpoint) {
+    // --- 4. MODAL & PARAMETER LOGIC (ENHANCED) ---
+    function openApiModal(name, endpoint, description, method = 'GET', params = []) {
         const modal            = document.getElementById('api-modal');
         const modalContent     = modal.querySelector('.relative.z-10');
         const paramsContainer  = document.getElementById('params-container');
         const responseContainer = document.getElementById('response-container');
         const responseData     = document.getElementById('response-data');
         
-        const methodBadge = document.getElementById('method-badge');
-        if (methodBadge) {
-            methodBadge.textContent = endpoint.method || 'GET';
-            methodBadge.className = `text-[10px] px-3 py-1 rounded font-bold ${
-                endpoint.method === 'POST' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
-            }`;
-        }
-        
+        // Display URL endpoint with method
         const apiUrlElement = document.getElementById('api-url');
         if (apiUrlElement) {
-            const baseUrl = window.location.origin;
-            const cleanEndpoint = endpoint.path.split('?')[0];
-            apiUrlElement.textContent = `${baseUrl}${cleanEndpoint}`;
+            const baseUrl      = window.location.origin;
+            const cleanEndpoint = endpoint.split('?')[0];
+            const methodColors = {
+                'GET': 'text-blue-600',
+                'POST': 'text-green-600',
+                'PUT': 'text-yellow-600',
+                'DELETE': 'text-red-600'
+            };
+            const methodColor = methodColors[method] || 'text-gray-600';
+            apiUrlElement.innerHTML = `<span class="${methodColor} font-bold">${method}</span> ${baseUrl}${cleanEndpoint}`;
         }
         
         responseContainer.classList.add('hidden');
         paramsContainer.innerHTML = '';
         responseData.innerHTML   = '';
         document.getElementById('modal-title').textContent      = name;
-        document.getElementById('api-description').textContent  = endpoint.desc;
+        document.getElementById('api-description').textContent  = description;
         document.getElementById('submit-api').classList.remove('hidden');
         paramsContainer.classList.remove('hidden');
 
-        if (endpoint.params && endpoint.params.length > 0) {
-            endpoint.params.forEach(param => {
-                createParamInput(param, paramsContainer, endpoint.paramConfig);
-            });
-        } else {
-            paramsContainer.innerHTML = '<p class="text-gray-500 text-sm italic">No parameters required</p>';
-        }
+        // Normalize params (support both old & new format)
+        const normalizedParams = normalizeParams(params, endpoint);
+        
+        normalizedParams.forEach(param => createParamInput(param, paramsContainer));
 
         modal.classList.remove('hidden');
         document.body.classList.add('noscroll');
@@ -156,216 +168,309 @@ document.addEventListener('DOMContentLoaded', async function () {
             modalContent.classList.add('scale-100', 'opacity-100');
         }, 10);
 
-        document.getElementById('submit-api').onclick = () => handleApiRequest(endpoint, paramsContainer);
+        document.getElementById('submit-api').onclick = () => handleApiRequest(endpoint, paramsContainer, method);
     }
 
-    // --- 5. CREATE PARAMETER INPUT (SUPPORT TEXT, FILE, DROPDOWN) ---
-    function createParamInput(param, container, paramConfig = {}) {
-        const isOptional = param.startsWith('_');
-        const cleanName = isOptional ? param.substring(1) : param;
-        const config = paramConfig?.[param] || {};
-        
-        const div = document.createElement('div');
-        div.className = 'mb-4';
+    // --- NORMALIZE PARAMS (Backward Compatible) ---
+    function normalizeParams(params, endpoint) {
+        const normalized = [];
 
-        const labelHTML = `
-            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1 flex items-center gap-2">
-                <span>${cleanName}</span>
-                ${isOptional 
-                    ? '<span class="text-[8px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded">OPTIONAL</span>' 
-                    : '<span class="text-[8px] bg-red-500 text-white px-2 py-0.5 rounded">REQUIRED</span>'}
-            </label>
-            ${config.description ? `<p class="text-[9px] text-gray-400 mb-2">${config.description}</p>` : ''}
-        `;
+        // Jika params adalah array string (format lama)
+        if (params.length > 0 && typeof params[0] === 'string') {
+            params.forEach(p => {
+                const isOptional = p.startsWith('_');
+                normalized.push({
+                    name: p,
+                    type: 'text',
+                    required: !isOptional,
+                    placeholder: `Enter ${p.replace('_', '')}...`
+                });
+            });
+        } 
+        // Jika params adalah array object (format baru)
+        else if (params.length > 0 && typeof params[0] === 'object') {
+            normalized.push(...params);
+        }
+        // Fallback: deteksi dari endpoint URL
+        else {
+            const pathMatches = endpoint.match(/{([^}]+)}/g);
+            if (pathMatches) {
+                pathMatches.forEach(m => {
+                    const pName = m.replace(/{|}/g, '');
+                    normalized.push({
+                        name: pName,
+                        type: 'text',
+                        required: !pName.startsWith('_'),
+                        placeholder: `Enter ${pName.replace('_', '')}...`
+                    });
+                });
+            }
+            
+            if (endpoint.includes('?')) {
+                endpoint.split('?')[1].split('&').forEach(p => {
+                    const pName = p.split('=')[0];
+                    if (pName && !normalized.find(n => n.name === pName)) {
+                        normalized.push({
+                            name: pName,
+                            type: 'text',
+                            required: !pName.startsWith('_'),
+                            placeholder: `Enter ${pName.replace('_', '')}...`
+                        });
+                    }
+                });
+            }
+        }
+
+        return normalized;
+    }
+
+    // --- CREATE PARAM INPUT (ENHANCED) ---
+    function createParamInput(param, container) {
+        const isOptional = param.required === false || param.name.startsWith('_');
+        const cleanName  = param.name.replace(/^_/, '');
+        const div        = document.createElement('div');
+        div.className    = 'mb-3';
 
         let inputHTML = '';
+        const inputId = `param-${param.name}`;
 
-        // ✅ DROPDOWN/SELECT
-        if (config.type === 'select' && config.options) {
-            const options = config.options.map(opt => 
-                `<option value="${opt.value}">${opt.label}</option>`
-            ).join('');
-            
-            inputHTML = `
-                ${labelHTML}
-                <select id="param-${param}" 
-                        class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none bg-white">
-                    ${isOptional ? '<option value="">-- Select (Optional) --</option>' : '<option value="" disabled selected>-- Select --</option>'}
-                    ${options}
-                </select>
-                <p id="error-${param}" class="text-red-500 text-[10px] mt-1 hidden">Pilih salah satu!</p>
-            `;
-        }
-        // ✅ FILE UPLOAD
-        else if (config.type === 'file') {
-            inputHTML = `
-                ${labelHTML}
-                <input type="file" 
-                       id="param-${param}" 
-                       accept="${config.accept || '*/*'}"
-                       class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-black">
-                ${config.maxSize ? `<p class="text-[9px] text-gray-400 mt-1">Max size: ${config.maxSize}</p>` : ''}
-                <p id="error-${param}" class="text-red-500 text-[10px] mt-1 hidden">File wajib diupload!</p>
-                <div id="preview-${param}" class="mt-3 hidden">
-                    <p class="text-[9px] text-gray-500 mb-2">Preview:</p>
-                    <img src="" alt="Preview" class="max-w-xs max-h-48 border-2 border-gray-200 shadow-sm rounded">
-                </div>
-            `;
-        }
-        // ✅ TEXT INPUT (default)
-        else {
-            inputHTML = `
-                ${labelHTML}
-                <input type="text" 
-                       id="param-${param}" 
-                       placeholder="${config.placeholder || `Enter ${cleanName}...`}"
-                       class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none">
-                <p id="error-${param}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
-            `;
+        // Label
+        let labelHTML = `
+            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1 block">
+                ${cleanName} ${isOptional ? '(Optional)' : '*'}
+            </label>
+        `;
+
+        if (param.description) {
+            labelHTML += `<p class="text-[9px] text-gray-500 mb-1">${param.description}</p>`;
         }
 
-        div.innerHTML = inputHTML;
+        // Input based on type
+        switch (param.type) {
+            case 'dropdown':
+            case 'select':
+                const options = param.options || [];
+                const defaultVal = param.default || '';
+                inputHTML = `
+                    <select id="${inputId}" 
+                            class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none bg-white">
+                        ${isOptional ? '<option value="">-- Select --</option>' : ''}
+                        ${options.map(opt => `<option value="${opt}" ${opt === defaultVal ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>
+                `;
+                break;
+
+            case 'file':
+                const accept = param.accept || '*/*';
+                const maxSize = param.maxSize || 10485760; // 10MB default
+                inputHTML = `
+                    <input type="file" 
+                           id="${inputId}" 
+                           accept="${accept}"
+                           data-max-size="${maxSize}"
+                           class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none">
+                    <div id="preview-${param.name}" class="mt-2 hidden">
+                        <img id="img-preview-${param.name}" class="max-w-full h-auto max-h-48 border border-gray-200 rounded" />
+                        <p id="file-info-${param.name}" class="text-[9px] text-gray-600 mt-1"></p>
+                    </div>
+                `;
+                break;
+
+            case 'number':
+                const min = param.min !== undefined ? `min="${param.min}"` : '';
+                const max = param.max !== undefined ? `max="${param.max}"` : '';
+                const defaultNum = param.default || '';
+                inputHTML = `
+                    <input type="number" 
+                           id="${inputId}" 
+                           ${min} ${max}
+                           value="${defaultNum}"
+                           class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none" 
+                           placeholder="${param.placeholder || `Enter ${cleanName}...`}">
+                `;
+                break;
+
+            case 'textarea':
+                const rows = param.rows || 4;
+                inputHTML = `
+                    <textarea id="${inputId}" 
+                              rows="${rows}"
+                              class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none resize-none" 
+                              placeholder="${param.placeholder || `Enter ${cleanName}...`}"></textarea>
+                `;
+                break;
+
+            default: // text
+                inputHTML = `
+                    <input type="text" 
+                           id="${inputId}" 
+                           class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none" 
+                           placeholder="${param.placeholder || `Enter ${cleanName}...`}">
+                `;
+        }
+
+        div.innerHTML = `
+            ${labelHTML}
+            ${inputHTML}
+            <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">This field is required!</p>
+        `;
+
         container.appendChild(div);
 
-        // ✅ FILE PREVIEW
-        if (config.type === 'file') {
-            const input = div.querySelector('input[type="file"]');
-            const preview = div.querySelector(`#preview-${param}`);
-            const img = preview?.querySelector('img');
-            
-            input?.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file && img) {
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            img.src = event.target.result;
-                            preview.classList.remove('hidden');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                }
-            });
+        // File preview handler
+        if (param.type === 'file') {
+            const fileInput = div.querySelector(`#${inputId}`);
+            fileInput.addEventListener('change', (e) => handleFilePreview(e, param.name, param.maxSize || 10485760));
         }
     }
 
-    // ─── 6. LIVE ACTIVITY LOGGER ───
+    // --- FILE PREVIEW HANDLER ---
+    function handleFilePreview(event, paramName, maxSize) {
+        const file = event.target.files[0];
+        const previewDiv = document.getElementById(`preview-${paramName}`);
+        const imgPreview = document.getElementById(`img-preview-${paramName}`);
+        const fileInfo = document.getElementById(`file-info-${paramName}`);
+        const errorEl = document.getElementById(`error-${paramName}`);
+
+        if (!file) {
+            previewDiv.classList.add('hidden');
+            return;
+        }
+
+        // Validate file size
+        if (file.size > maxSize) {
+            errorEl.textContent = `File too large! Max size: ${(maxSize / 1048576).toFixed(2)}MB`;
+            errorEl.classList.remove('hidden');
+            event.target.value = '';
+            previewDiv.classList.add('hidden');
+            return;
+        }
+
+        errorEl.classList.add('hidden');
+
+        // Show preview for images
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imgPreview.src = e.target.result;
+                imgPreview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imgPreview.classList.add('hidden');
+        }
+
+        // Show file info
+        fileInfo.textContent = `${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+        previewDiv.classList.remove('hidden');
+    }
+
+    // ─── 5. LIVE ACTIVITY LOGGER ───
     function logActivity(entry) {
         try {
             const KEY  = 'lumina_live_activity';
             const MAX  = 50;
             let logs   = [];
             try { logs = JSON.parse(localStorage.getItem(KEY)) || []; } catch (_) {}
+
             logs.push(entry);
             if (logs.length > MAX) logs = logs.slice(-MAX);
+
             localStorage.setItem(KEY, JSON.stringify(logs));
-        } catch (_) {}
+        } catch (_) {
+            // localStorage blocked — silent fail
+        }
     }
 
-    // --- 7. REQUEST HANDLER ---
-    async function handleApiRequest(endpoint, paramsContainer) {
+    // --- 6. REQUEST HANDLER (ENHANCED) ---
+    async function handleApiRequest(endpoint, paramsContainer, method = 'GET') {
         const submitBtn         = document.getElementById('submit-api');
         const responseContainer = document.getElementById('response-container');
         const responseData      = document.getElementById('response-data');
         
         let isValid = true;
-        const method = endpoint.method || 'GET';
-        
-        const hasFile = Array.from(paramsContainer.querySelectorAll('input')).some(
-            input => input.type === 'file' && input.files.length > 0
-        );
+        let baseUrl = endpoint.split('?')[0];
+        let queryParams = new URLSearchParams();
+        const formData = new FormData();
+        let hasFiles = false;
 
-        let requestData;
-        let finalUrl = endpoint.path.split('?')[0];
-        
-        if (method === 'POST' || hasFile) {
-            requestData = new FormData();
-            
-            const inputs = paramsContainer.querySelectorAll('input, select, textarea');
-            inputs.forEach(input => {
-                const pName = input.id.replace('param-', '');
-                const isOptional = pName.startsWith('_');
-                const cleanName = isOptional ? pName.substring(1) : pName;
-                const error = document.getElementById(`error-${pName}`);
-                
-                if (input.type === 'file') {
-                    const file = input.files[0];
-                    if (!isOptional && !file) {
-                        isValid = false;
-                        error?.classList.remove('hidden');
-                        input.classList.add('border-red-500');
-                    } else {
-                        error?.classList.add('hidden');
-                        input.classList.remove('border-red-500');
-                        if (file) requestData.append(cleanName, file);
-                    }
-                } else {
-                    const val = input.value.trim();
-                    if (!isOptional && !val) {
-                        isValid = false;
-                        error?.classList.remove('hidden');
-                        input.classList.add('border-red-500');
-                    } else {
-                        error?.classList.add('hidden');
-                        input.classList.remove('border-red-500');
-                        if (val) requestData.append(cleanName, val);
-                    }
-                }
-            });
-        } else {
-            let queryParams = new URLSearchParams();
-            
-            const inputs = paramsContainer.querySelectorAll('input, select, textarea');
-            inputs.forEach(input => {
-                const pName = input.id.replace('param-', '');
-                const isOptional = pName.startsWith('_');
-                const cleanName = isOptional ? pName.substring(1) : pName;
-                const val = input.value.trim();
-                const error = document.getElementById(`error-${pName}`);
+        const inputs = paramsContainer.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            const pName = input.id.replace('param-', '');
+            const isRequired = !pName.startsWith('_');
+            const error = document.getElementById(`error-${pName}`);
 
-                if (!isOptional && !val) {
+            let val = '';
+
+            // Handle file input
+            if (input.type === 'file') {
+                const file = input.files[0];
+                if (file) {
+                    formData.append(pName, file);
+                    hasFiles = true;
+                } else if (isRequired) {
                     isValid = false;
                     error?.classList.remove('hidden');
                     input.classList.add('border-red-500');
-                } else {
-                    error?.classList.add('hidden');
-                    input.classList.remove('border-red-500');
-                    if (val) queryParams.append(cleanName, val);
+                    return;
                 }
-            });
-            
-            requestData = queryParams.toString() ? `${finalUrl}?${queryParams.toString()}` : finalUrl;
-        }
+            } else {
+                val = input.value.trim();
+
+                if (isRequired && !val) {
+                    isValid = false;
+                    error?.classList.remove('hidden');
+                    input.classList.add('border-red-500');
+                    return;
+                }
+
+                error?.classList.add('hidden');
+                input.classList.remove('border-red-500');
+
+                if (val) {
+                    if (hasFiles) {
+                        formData.append(pName, val);
+                    } else {
+                        if (baseUrl.includes(`{${pName}}`)) {
+                            baseUrl = baseUrl.replace(`{${pName}}`, encodeURIComponent(val));
+                        } else {
+                            queryParams.append(pName, val);
+                        }
+                    }
+                }
+            }
+        });
 
         if (!isValid) return;
 
+        const finalUrl = queryParams.toString() && !hasFiles ? `${baseUrl}?${queryParams.toString()}` : baseUrl;
+        
         submitBtn.classList.add('hidden');
         responseContainer.classList.remove('hidden');
-        responseData.innerHTML = `
-            <div class="flex items-center gap-3 text-[10px] font-bold animate-pulse uppercase">
-                <div class="w-2 h-2 bg-gray-800 rounded-full animate-bounce"></div>
-                <span>Processing Request...</span>
-            </div>
-        `;
+        responseData.innerHTML = '<div class="text-[10px] font-bold animate-pulse uppercase">Processing Request...</div>';
         
         const start = Date.now();
         try {
-            const fetchOptions = { method: method };
-            
-            if (method === 'POST' || hasFile) {
-                fetchOptions.body = requestData;
+            let fetchOptions = { method };
+
+            if (hasFiles) {
+                fetchOptions.body = formData;
+                // Don't set Content-Type — browser will set it with boundary
+            } else if (method !== 'GET' && queryParams.toString()) {
+                fetchOptions.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+                fetchOptions.body = queryParams.toString();
             }
-            
-            const targetUrl = (method === 'POST' || hasFile) ? finalUrl : requestData;
-            const res      = await fetch(targetUrl, fetchOptions);
+
+            const res = await fetch(finalUrl, fetchOptions);
             const duration = Date.now() - start;
             const contentType = res.headers.get('content-type');
             
             document.getElementById('response-status').textContent = res.status;
             document.getElementById('response-time').textContent   = `${duration}ms`;
 
+            // ── Log activity ──
             logActivity({
-                endpoint:  targetUrl,
+                endpoint:  finalUrl,
                 method:    method,
                 status:    res.status,
                 ok:        res.ok,
@@ -374,32 +479,26 @@ document.addEventListener('DOMContentLoaded', async function () {
                 timestamp: Date.now()
             });
 
+            // ── Render response ──
             if (contentType && contentType.includes('image/')) {
                 const blob   = await res.blob();
                 const imgUrl = URL.createObjectURL(blob);
                 responseData.innerHTML = `
-                    <div class="flex flex-col items-center gap-3">
-                        <img src="${imgUrl}" class="max-w-full h-auto border-2 border-gray-200 shadow-md rounded" />
-                        <a href="${imgUrl}" download="result.jpg" class="bg-gray-800 text-white px-5 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all rounded">
-                            Download Image
-                        </a>
+                    <div class="flex flex-col items-center">
+                        <img src="${imgUrl}" class="max-w-full h-auto border border-gray-200 shadow-sm mb-3" />
+                        <a href="${imgUrl}" download="result.jpg" class="bg-gray-800 text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all">Download Image</a>
                     </div>
                 `;
             } else if (contentType && contentType.includes('application/json')) {
                 const json = await res.json();
-                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700 bg-gray-50 p-4 rounded border border-gray-200 overflow-x-auto">${JSON.stringify(json, null, 2)}</pre>`;
+                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700">${JSON.stringify(json, null, 2)}</pre>`;
             } else {
                 const text = await res.text();
-                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700 bg-gray-50 p-4 rounded border border-gray-200">${text}</pre>`;
+                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700">${text}</pre>`;
             }
         } catch (err) {
             const duration = Date.now() - start;
-            responseData.innerHTML = `
-                <div class="bg-red-50 border-2 border-red-200 p-4 rounded">
-                    <p class="text-red-600 font-bold uppercase text-[10px] mb-2">❌ REQUEST FAILED</p>
-                    <p class="text-red-500 text-[11px]">${err.message}</p>
-                </div>
-            `;
+            responseData.innerHTML = `<span class="text-red-500 font-bold uppercase text-[10px]">Error: ${err.message}</span>`;
 
             logActivity({
                 endpoint:  finalUrl,
@@ -413,7 +512,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 
-    // --- 8. UTILS ---
+    // --- 7. UTILS ---
     function setupAccordion() {
         document.querySelectorAll('.category-header').forEach(header => {
             header.addEventListener('click', () => {
