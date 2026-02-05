@@ -72,13 +72,18 @@ const toBase64 = async (url) => {
   }
 };
 
-const getMimeType = (url) => {
-  const ext = url.split(".").pop().toLowerCase();
+const fileToBase64 = (file) => {
+  return file.buffer.toString("base64");
+};
+
+const getMimeType = (filename) => {
+  const ext = filename.split(".").pop().toLowerCase();
   const mimes = {
     jpg: "image/jpeg",
     jpeg: "image/jpeg",
     png: "image/png",
     webp: "image/webp",
+    gif: "image/gif",
   };
   return mimes[ext] || "application/octet-stream";
 };
@@ -109,13 +114,24 @@ const executeGeminiRequest = async (contents) => {
 };
 
 // ─── Main Chat Function ────────────────────────────────
-const handleChat = async (prompt, imageUrl) => {
+const handleChat = async (prompt, imageSource, isFile = false) => {
   let parts = [];
 
-  if (imageUrl) {
-    const base64 = await toBase64(imageUrl);
+  if (imageSource) {
+    let base64, mimeType;
+    
+    if (isFile) {
+      // Dari file upload
+      base64 = fileToBase64(imageSource);
+      mimeType = imageSource.mimetype;
+    } else {
+      // Dari URL
+      base64 = await toBase64(imageSource);
+      mimeType = getMimeType(imageSource);
+    }
+    
     if (base64) {
-      parts.push({ inlineData: { mimeType: getMimeType(imageUrl), data: base64 } });
+      parts.push({ inlineData: { mimeType, data: base64 } });
     }
   }
 
@@ -136,40 +152,85 @@ const handleChat = async (prompt, imageUrl) => {
 
 // ─── Module Export ─────────────────────────────────────
 module.exports = {
-  name: "Gemmy AI Chat",
-  desc: "JSON Response | AI Chat with Image Support",
+  name: "Gemmy AI Chat New",
+  desc: "AI Chat with optional image support (upload or URL)",
   category: "AI",
-  params: ["prompt", "_imageUrl"],
+  method: "POST",
+  path: "/gemmy-chat",
+  
+  paramsSchema: [
+    {
+      name: "prompt",
+      type: "textarea",
+      description: "Your question or message to AI",
+      placeholder: "Ask me anything...",
+      rows: 4,
+      maxLength: 2000
+    },
+    {
+      name: "_image",
+      type: "file",
+      description: "Upload an image (optional)",
+      accept: "image/jpeg,image/jpg,image/png,image/webp,image/gif",
+      maxSize: "10MB"
+    },
+    {
+      name: "_imageUrl",
+      type: "url",
+      description: "Or provide image URL (optional)",
+      placeholder: "https://example.com/image.jpg"
+    }
+  ],
+
   async run(req, res) {
     try {
-      const prompt = req.query.prompt;
-      const imageUrl = req.query.imageUrl;
+      const prompt = req.body.prompt;
+      const imageFile = req.files?.image;
+      const imageUrl = req.body.imageUrl;
 
       // ── Validasi ──
       if (!prompt) {
         return res.status(400).json({
           status: false,
-          error: 'Parameter "prompt" diperlukan',
+          error: 'Parameter "prompt" is required',
         });
       }
 
+      // ── Determine image source ──
+      let imageSource = null;
+      let isFile = false;
+
+      if (imageFile) {
+        imageSource = imageFile;
+        isFile = true;
+      } else if (imageUrl) {
+        imageSource = imageUrl;
+        isFile = false;
+      }
+
       // ── Handle Chat ──
-      const result = await handleChat(prompt, imageUrl);
+      const result = await handleChat(prompt, imageSource, isFile);
 
       if (!result.success) {
-        return res.status(500).json({ status: false, error: result.msg });
+        return res.status(500).json({ 
+          status: false, 
+          error: result.msg 
+        });
       }
 
       // ── Return ──
       res.status(200).json({
         status: true,
-        data: result,
+        data: {
+          reply: result.reply,
+          usage: result.usage,
+          hasImage: !!imageSource,
+          imageType: isFile ? "uploaded" : imageUrl ? "url" : "none"
+        },
       });
     } catch (error) {
       res.status(500).json({
         status: false,
-        statusCode: 500,
-        creator: "robin",
         error: error.message,
       });
     }
