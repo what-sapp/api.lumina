@@ -146,7 +146,41 @@ module.exports = {
     name: "Deepseek AI",
     desc: "Deepseek AI Chat & Vision - Support text, history, reasoning, dan image analysis",
     category: "AI",
-    params: ["prompt", "_image", "_model", "_history"],
+    method: "GET",
+    params: [
+        {
+            name: 'prompt',
+            type: 'textarea',
+            required: true,
+            rows: 3,
+            placeholder: 'Enter your question or prompt...',
+            description: 'Your message or question to Deepseek AI'
+        },
+        {
+            name: '_image',
+            type: 'file',
+            required: false,
+            accept: 'image/png,image/jpeg,image/jpg,image/webp',
+            maxSize: 10485760, // 10MB
+            description: 'Optional image for vision analysis (auto-switch to gpt-4o-mini)'
+        },
+        {
+            name: '_model',
+            type: 'dropdown',
+            required: false,
+            options: ['deepseek-chat', 'deepseek-reasoner', 'gpt-4o-mini'],
+            default: 'deepseek-chat',
+            description: 'AI model to use (ignored if image is provided)'
+        },
+        {
+            name: '_history',
+            type: 'textarea',
+            required: false,
+            rows: 2,
+            placeholder: '[{"role":"user","content":"Hi"},{"role":"assistant","content":"Hello!"}]',
+            description: 'Optional conversation history in JSON array format'
+        }
+    ],
     async run(req, res) {
         try {
             const prompt = req.query.prompt;
