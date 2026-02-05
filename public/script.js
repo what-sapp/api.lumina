@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// script.js  —  Lumina Docs (docs.html) — ENHANCED VERSION
+// script.js  —  Lumina Docs (docs.html)
 // ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -77,32 +77,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                 itemEl.dataset.name = itemName.toLowerCase();
                 itemEl.dataset.desc = (item.desc || '').toLowerCase();
 
-                // HTTP Method Badge
-                const method = item.method || 'GET';
-                const methodColors = {
-                    'GET': 'bg-blue-600',
-                    'POST': 'bg-green-600',
-                    'PUT': 'bg-yellow-600',
-                    'DELETE': 'bg-red-600',
-                    'PATCH': 'bg-purple-600'
-                };
-                const methodColor = methodColors[method] || 'bg-gray-600';
-
                 itemEl.innerHTML = `
                     <div class="flex items-center justify-between p-4 px-6 bg-gray-50 border border-gray-200 shadow-sm transition-all hover:border-gray-800">
                         <div class="flex-grow mr-4 overflow-hidden">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="${methodColor} text-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded">${method}</span>
-                                <h5 class="text-[13px] font-bold text-gray-800 truncate uppercase tracking-tight">${itemName}</h5>
-                            </div>
+                            <h5 class="text-[13px] font-bold text-gray-800 truncate uppercase tracking-tight">${itemName}</h5>
                             <p class="text-[11px] font-medium text-gray-500 truncate">${item.desc || 'No description available'}</p>
                         </div>
                         <button class="try-btn bg-gray-800 text-white px-5 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-colors"
                                 data-path='${item.path || ""}' 
                                 data-name="${itemName}" 
-                                data-desc="${item.desc || ""}"
-                                data-method="${method}"
-                                data-params='${JSON.stringify(item.params || [])}'>TRY</button>
+                                data-desc="${item.desc || ""}">TRY</button>
                     </div>
                 `;
                 row.appendChild(itemEl);
@@ -113,38 +97,25 @@ document.addEventListener('DOMContentLoaded', async function () {
         apiContent.addEventListener('click', (e) => {
             if (e.target.classList.contains('try-btn')) {
                 const btn = e.target;
-                openApiModal(
-                    btn.dataset.name, 
-                    btn.dataset.path, 
-                    btn.dataset.desc,
-                    btn.dataset.method,
-                    JSON.parse(btn.dataset.params || '[]')
-                );
+                openApiModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc);
             }
         });
     }
 
-    // --- 4. MODAL & PARAMETER LOGIC (ENHANCED) ---
-    function openApiModal(name, endpoint, description, method = 'GET', params = []) {
+    // --- 4. MODAL & PARAMETER LOGIC ---
+    function openApiModal(name, endpoint, description) {
         const modal            = document.getElementById('api-modal');
         const modalContent     = modal.querySelector('.relative.z-10');
         const paramsContainer  = document.getElementById('params-container');
         const responseContainer = document.getElementById('response-container');
         const responseData     = document.getElementById('response-data');
         
-        // Display URL endpoint with method
+        // Display URL endpoint
         const apiUrlElement = document.getElementById('api-url');
         if (apiUrlElement) {
             const baseUrl      = window.location.origin;
             const cleanEndpoint = endpoint.split('?')[0];
-            const methodColors = {
-                'GET': 'text-blue-600',
-                'POST': 'text-green-600',
-                'PUT': 'text-yellow-600',
-                'DELETE': 'text-red-600'
-            };
-            const methodColor = methodColors[method] || 'text-gray-600';
-            apiUrlElement.innerHTML = `<span class="${methodColor} font-bold">${method}</span> ${baseUrl}${cleanEndpoint}`;
+            apiUrlElement.textContent = `${baseUrl}${cleanEndpoint}`;
         }
         
         responseContainer.classList.add('hidden');
@@ -155,10 +126,19 @@ document.addEventListener('DOMContentLoaded', async function () {
         document.getElementById('submit-api').classList.remove('hidden');
         paramsContainer.classList.remove('hidden');
 
-        // Normalize params (support both old & new format)
-        const normalizedParams = normalizeParams(params, endpoint);
+        // Deteksi Parameter dari endpoint
+        const params = [];
+        const pathMatches = endpoint.match(/{([^}]+)}/g);
+        if (pathMatches) pathMatches.forEach(m => params.push(m.replace(/{|}/g, '')));
         
-        normalizedParams.forEach(param => createParamInput(param, paramsContainer));
+        if (endpoint.includes('?')) {
+            endpoint.split('?')[1].split('&').forEach(p => {
+                const pName = p.split('=')[0];
+                if (pName && !params.includes(pName)) params.push(pName);
+            });
+        }
+
+        params.forEach(p => createParamInput(p, paramsContainer));
 
         modal.classList.remove('hidden');
         document.body.classList.add('noscroll');
@@ -168,204 +148,23 @@ document.addEventListener('DOMContentLoaded', async function () {
             modalContent.classList.add('scale-100', 'opacity-100');
         }, 10);
 
-        document.getElementById('submit-api').onclick = () => handleApiRequest(endpoint, paramsContainer, method);
+        document.getElementById('submit-api').onclick = () => handleApiRequest(endpoint, paramsContainer);
     }
 
-    // --- NORMALIZE PARAMS (Backward Compatible) ---
-    function normalizeParams(params, endpoint) {
-        const normalized = [];
-
-        // Jika params adalah array string (format lama)
-        if (params.length > 0 && typeof params[0] === 'string') {
-            params.forEach(p => {
-                const isOptional = p.startsWith('_');
-                normalized.push({
-                    name: p,
-                    type: 'text',
-                    required: !isOptional,
-                    placeholder: `Enter ${p.replace('_', '')}...`
-                });
-            });
-        } 
-        // Jika params adalah array object (format baru)
-        else if (params.length > 0 && typeof params[0] === 'object') {
-            normalized.push(...params);
-        }
-        // Fallback: deteksi dari endpoint URL
-        else {
-            const pathMatches = endpoint.match(/{([^}]+)}/g);
-            if (pathMatches) {
-                pathMatches.forEach(m => {
-                    const pName = m.replace(/{|}/g, '');
-                    normalized.push({
-                        name: pName,
-                        type: 'text',
-                        required: !pName.startsWith('_'),
-                        placeholder: `Enter ${pName.replace('_', '')}...`
-                    });
-                });
-            }
-            
-            if (endpoint.includes('?')) {
-                endpoint.split('?')[1].split('&').forEach(p => {
-                    const pName = p.split('=')[0];
-                    if (pName && !normalized.find(n => n.name === pName)) {
-                        normalized.push({
-                            name: pName,
-                            type: 'text',
-                            required: !pName.startsWith('_'),
-                            placeholder: `Enter ${pName.replace('_', '')}...`
-                        });
-                    }
-                });
-            }
-        }
-
-        return normalized;
-    }
-
-    // --- CREATE PARAM INPUT (ENHANCED) ---
-    function createParamInput(param, container) {
-        const isOptional = param.required === false || param.name.startsWith('_');
-        const cleanName  = param.name.replace(/^_/, '');
+    function createParamInput(name, container) {
+        const isOptional = name.startsWith('_');
+        const cleanName  = isOptional ? name.substring(1) : name;
         const div        = document.createElement('div');
         div.className    = 'mb-3';
-
-        let inputHTML = '';
-        const inputId = `param-${param.name}`;
-
-        // Label
-        let labelHTML = `
-            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1 block">
-                ${cleanName} ${isOptional ? '(Optional)' : '*'}
-            </label>
+        div.innerHTML    = `
+            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1 block">${cleanName} ${isOptional ? '(Optional)' : '*'}</label>
+            <input type="text" id="param-${name}" class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none" placeholder="Enter ${cleanName}...">
+            <p id="error-${name}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
         `;
-
-        if (param.description) {
-            labelHTML += `<p class="text-[9px] text-gray-500 mb-1">${param.description}</p>`;
-        }
-
-        // Input based on type
-        switch (param.type) {
-            case 'dropdown':
-            case 'select':
-                const options = param.options || [];
-                const defaultVal = param.default || '';
-                inputHTML = `
-                    <select id="${inputId}" 
-                            class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none bg-white">
-                        ${isOptional ? '<option value="">-- Select --</option>' : ''}
-                        ${options.map(opt => `<option value="${opt}" ${opt === defaultVal ? 'selected' : ''}>${opt}</option>`).join('')}
-                    </select>
-                `;
-                break;
-
-            case 'file':
-                const accept = param.accept || '*/*';
-                const maxSize = param.maxSize || 10485760; // 10MB default
-                inputHTML = `
-                    <input type="file" 
-                           id="${inputId}" 
-                           accept="${accept}"
-                           data-max-size="${maxSize}"
-                           class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none">
-                    <div id="preview-${param.name}" class="mt-2 hidden">
-                        <img id="img-preview-${param.name}" class="max-w-full h-auto max-h-48 border border-gray-200 rounded" />
-                        <p id="file-info-${param.name}" class="text-[9px] text-gray-600 mt-1"></p>
-                    </div>
-                `;
-                break;
-
-            case 'number':
-                const min = param.min !== undefined ? `min="${param.min}"` : '';
-                const max = param.max !== undefined ? `max="${param.max}"` : '';
-                const defaultNum = param.default || '';
-                inputHTML = `
-                    <input type="number" 
-                           id="${inputId}" 
-                           ${min} ${max}
-                           value="${defaultNum}"
-                           class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none" 
-                           placeholder="${param.placeholder || `Enter ${cleanName}...`}">
-                `;
-                break;
-
-            case 'textarea':
-                const rows = param.rows || 4;
-                inputHTML = `
-                    <textarea id="${inputId}" 
-                              rows="${rows}"
-                              class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none resize-none" 
-                              placeholder="${param.placeholder || `Enter ${cleanName}...`}"></textarea>
-                `;
-                break;
-
-            default: // text
-                inputHTML = `
-                    <input type="text" 
-                           id="${inputId}" 
-                           class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none" 
-                           placeholder="${param.placeholder || `Enter ${cleanName}...`}">
-                `;
-        }
-
-        div.innerHTML = `
-            ${labelHTML}
-            ${inputHTML}
-            <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">This field is required!</p>
-        `;
-
         container.appendChild(div);
-
-        // File preview handler
-        if (param.type === 'file') {
-            const fileInput = div.querySelector(`#${inputId}`);
-            fileInput.addEventListener('change', (e) => handleFilePreview(e, param.name, param.maxSize || 10485760));
-        }
     }
 
-    // --- FILE PREVIEW HANDLER ---
-    function handleFilePreview(event, paramName, maxSize) {
-        const file = event.target.files[0];
-        const previewDiv = document.getElementById(`preview-${paramName}`);
-        const imgPreview = document.getElementById(`img-preview-${paramName}`);
-        const fileInfo = document.getElementById(`file-info-${paramName}`);
-        const errorEl = document.getElementById(`error-${paramName}`);
-
-        if (!file) {
-            previewDiv.classList.add('hidden');
-            return;
-        }
-
-        // Validate file size
-        if (file.size > maxSize) {
-            errorEl.textContent = `File too large! Max size: ${(maxSize / 1048576).toFixed(2)}MB`;
-            errorEl.classList.remove('hidden');
-            event.target.value = '';
-            previewDiv.classList.add('hidden');
-            return;
-        }
-
-        errorEl.classList.add('hidden');
-
-        // Show preview for images
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                imgPreview.src = e.target.result;
-                imgPreview.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        } else {
-            imgPreview.classList.add('hidden');
-        }
-
-        // Show file info
-        fileInfo.textContent = `${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
-        previewDiv.classList.remove('hidden');
-    }
-
-    // ─── 5. LIVE ACTIVITY LOGGER ───
+    // ─── 5. LIVE ACTIVITY LOGGER (ke localStorage, dibaca oleh status.html) ───
     function logActivity(entry) {
         try {
             const KEY  = 'lumina_live_activity';
@@ -374,16 +173,16 @@ document.addEventListener('DOMContentLoaded', async function () {
             try { logs = JSON.parse(localStorage.getItem(KEY)) || []; } catch (_) {}
 
             logs.push(entry);
-            if (logs.length > MAX) logs = logs.slice(-MAX);
+            if (logs.length > MAX) logs = logs.slice(-MAX); // FIFO — buang yang lama
 
             localStorage.setItem(KEY, JSON.stringify(logs));
         } catch (_) {
-            // localStorage blocked — silent fail
+            // localStorage mungkin blocked — silent fail
         }
     }
 
-    // --- 6. REQUEST HANDLER (ENHANCED) ---
-    async function handleApiRequest(endpoint, paramsContainer, method = 'GET') {
+    // --- 6. REQUEST HANDLER ---
+    async function handleApiRequest(endpoint, paramsContainer) {
         const submitBtn         = document.getElementById('submit-api');
         const responseContainer = document.getElementById('response-container');
         const responseData      = document.getElementById('response-data');
@@ -391,51 +190,25 @@ document.addEventListener('DOMContentLoaded', async function () {
         let isValid = true;
         let baseUrl = endpoint.split('?')[0];
         let queryParams = new URLSearchParams();
-        const formData = new FormData();
-        let hasFiles = false;
 
-        const inputs = paramsContainer.querySelectorAll('input, select, textarea');
+        const inputs = paramsContainer.querySelectorAll('input');
         inputs.forEach(input => {
             const pName = input.id.replace('param-', '');
-            const isRequired = !pName.startsWith('_');
+            const val   = input.value.trim();
             const error = document.getElementById(`error-${pName}`);
 
-            let val = '';
-
-            // Handle file input
-            if (input.type === 'file') {
-                const file = input.files[0];
-                if (file) {
-                    formData.append(pName, file);
-                    hasFiles = true;
-                } else if (isRequired) {
-                    isValid = false;
-                    error?.classList.remove('hidden');
-                    input.classList.add('border-red-500');
-                    return;
-                }
+            if (!pName.startsWith('_') && !val) {
+                isValid = false;
+                error?.classList.remove('hidden');
+                input.classList.add('border-red-500');
             } else {
-                val = input.value.trim();
-
-                if (isRequired && !val) {
-                    isValid = false;
-                    error?.classList.remove('hidden');
-                    input.classList.add('border-red-500');
-                    return;
-                }
-
                 error?.classList.add('hidden');
                 input.classList.remove('border-red-500');
-
                 if (val) {
-                    if (hasFiles) {
-                        formData.append(pName, val);
+                    if (baseUrl.includes(`{${pName}}`)) {
+                        baseUrl = baseUrl.replace(`{${pName}}`, encodeURIComponent(val));
                     } else {
-                        if (baseUrl.includes(`{${pName}}`)) {
-                            baseUrl = baseUrl.replace(`{${pName}}`, encodeURIComponent(val));
-                        } else {
-                            queryParams.append(pName, val);
-                        }
+                        queryParams.append(pName, val);
                     }
                 }
             }
@@ -443,7 +216,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         if (!isValid) return;
 
-        const finalUrl = queryParams.toString() && !hasFiles ? `${baseUrl}?${queryParams.toString()}` : baseUrl;
+        const finalUrl = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl;
         
         submitBtn.classList.add('hidden');
         responseContainer.classList.remove('hidden');
@@ -451,27 +224,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         
         const start = Date.now();
         try {
-            let fetchOptions = { method };
-
-            if (hasFiles) {
-                fetchOptions.body = formData;
-                // Don't set Content-Type — browser will set it with boundary
-            } else if (method !== 'GET' && queryParams.toString()) {
-                fetchOptions.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-                fetchOptions.body = queryParams.toString();
-            }
-
-            const res = await fetch(finalUrl, fetchOptions);
+            const res      = await fetch(finalUrl);
             const duration = Date.now() - start;
             const contentType = res.headers.get('content-type');
             
             document.getElementById('response-status').textContent = res.status;
             document.getElementById('response-time').textContent   = `${duration}ms`;
 
-            // ── Log activity ──
+            // ── Log ke localStorage ──
             logActivity({
                 endpoint:  finalUrl,
-                method:    method,
                 status:    res.status,
                 ok:        res.ok,
                 duration:  duration,
@@ -500,9 +262,9 @@ document.addEventListener('DOMContentLoaded', async function () {
             const duration = Date.now() - start;
             responseData.innerHTML = `<span class="text-red-500 font-bold uppercase text-[10px]">Error: ${err.message}</span>`;
 
+            // ── Log error ke localStorage juga ──
             logActivity({
                 endpoint:  finalUrl,
-                method:    method,
                 status:    0,
                 ok:        false,
                 duration:  duration,
@@ -520,6 +282,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const isOpen    = accordion.classList.toggle('active');
                 header.querySelector('.accordion-icon').classList.toggle('rotate');
 
+                // swap folder icon: folder ↔ folder_open
                 const folderIcon = header.querySelector('.material-icons.text-gray-500');
                 if (folderIcon) folderIcon.textContent = isOpen ? 'folder_open' : 'folder';
             });
