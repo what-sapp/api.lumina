@@ -146,7 +146,7 @@ module.exports = {
     name: "Deepseek AI",
     desc: "Deepseek AI Chat & Vision - Support text, history, reasoning, dan image analysis",
     category: "AI",
-    method: "GET",
+    method: "POST",
     params: [
         {
             name: 'prompt',
