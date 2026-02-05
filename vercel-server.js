@@ -143,8 +143,8 @@ app.get('/status', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'status.html'));
 });
 
-app.get('/ai', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'ai.html'));
+app.get('/luminaai', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'luminaai.html'));
 });
 
 // ========================================
