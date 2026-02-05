@@ -269,6 +269,9 @@
     const modelSelector = document.getElementById('model-selector');    
     const messageCountEl = document.getElementById('message-count');    
 
+    // System instruction yang lebih sederhana
+    const SYSTEM_INSTRUCTION = "Kamu adalah Lumina, asisten AI yang pintar, ramah, dan membantu. Kamu dirancang untuk memberikan jawaban yang jelas, akurat, dan relevan. Lumina API adalah layanan AI yang dikembangkan oleh Robin untuk kebutuhan chatbot, automasi, dan integrasi AI modern.";
+    
     // ── Upload Image ──    
     uploadBtn.addEventListener('click', () => imageInput.click());    
 
@@ -366,15 +369,20 @@
 
     // ── Convert Base64 to Blob ──
     function dataURLtoBlob(dataURL) {
-        const arr = dataURL.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1];
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
+        try {
+            const arr = dataURL.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], { type: mime });
+        } catch (error) {
+            console.error('Error converting dataURL to blob:', error);
+            return null;
         }
-        return new Blob([u8arr], { type: mime });
     }
 
     // ── Send Message ──    
@@ -403,12 +411,13 @@
                 const formData = new FormData();    
                 formData.append('model', modelSelector.value);    
                 formData.append('prompt', message || 'apa ini?');    
-                formData.append('system_instruction', 'Kamu adalah Lumina, asisten AI yang pintar, ramah, dan membantu. Lumina dirancang untuk memberikan jawaban yang jelas, akurat, dan relevan dengan gaya yang natural dan mudah dipahami.
-Lumina API adalah layanan AI yang dikembangkan oleh Robin, dirancang untuk kebutuhan chatbot, automasi, dan integrasi AI modern. Lumina mengutamakan kecepatan, fleksibilitas, dan kemudahan integrasi bagi developer.');    
+                formData.append('system_instruction', SYSTEM_INSTRUCTION);    
 
                 // Konversi base64 ke blob    
                 const blob = dataURLtoBlob(currentImage);
-                formData.append('media', blob, 'image.png');    
+                if (blob) {
+                    formData.append('media', blob, 'image.png');    
+                }
 
                 // Tambahkan history jika ada    
                 if (chatHistory.length > 0) {    
@@ -418,7 +427,6 @@ Lumina API adalah layanan AI yang dikembangkan oleh Robin, dirancang untuk kebut
                 apiResponse = await fetch('https://api.nefu.biz.id/ai/geminiall', {    
                     method: 'POST',    
                     body: formData    
-                    // JANGAN set Content-Type header    
                 });    
 
             }     
@@ -429,8 +437,7 @@ Lumina API adalah layanan AI yang dikembangkan oleh Robin, dirancang untuk kebut
                 const params = new URLSearchParams({    
                     prompt: message,    
                     model: modelSelector.value,    
-                    system_instruction: 'Kamu adalah Lumina, asisten AI yang pintar, ramah, dan membantu. Lumina dirancang untuk memberikan jawaban yang jelas, akurat, dan relevan dengan gaya yang natural dan mudah dipahami.
-Lumina API adalah layanan AI yang dikembangkan oleh Robin, dirancang untuk kebutuhan chatbot, automasi, dan integrasi AI modern. Lumina mengutamakan kecepatan, fleksibilitas, dan kemudahan integrasi bagi developer.'    
+                    system_instruction: SYSTEM_INSTRUCTION    
                 });    
 
                 // Tambahkan history jika ada    
@@ -485,6 +492,8 @@ Lumina API adalah layanan AI yang dikembangkan oleh Robin, dirancang untuk kebut
                 errorMsg += 'CORS error ✨';    
             } else if (error.message.includes('400')) {    
                 errorMsg += 'Format request salah ✨';    
+            } else if (error.message.includes('500')) {    
+                errorMsg += 'Server error ✨';    
             } else {    
                 errorMsg += error.message + ' ✨';    
             }    
