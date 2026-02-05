@@ -138,7 +138,7 @@
             <div class="corner-label top-1 right-2 text-[8px] text-gray-300 font-mono uppercase tracking-widest">v1.0</div>
             
             <div class="flex items-center gap-2 mb-3">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center text-gray-400 hover:text-gray-600 transition-colors" style="font-size: 11px;">
+                <a id="api-info" href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center text-gray-400 hover:text-gray-600 transition-colors" style="font-size: 11px;">
                     <i class="fab fa-github mr-2"></i>
                     <span class="font-medium">Lumina Api`s</span>
                 </a>
@@ -176,29 +176,20 @@
         <div class="tab-content" id="api-content"></div>
     </div>
     
-    <!-- Modal -->
+    <!-- ✅ UPDATED MODAL -->
     <div id="api-modal" class="fixed inset-0 z-50 hidden overflow-y-auto overflow-x-hidden flex items-center justify-center p-6 transition-opacity duration-200 ease-out opacity-0">
         <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm opacity-0 transition-opacity duration-200 ease-out"></div>
-        <div class="relative z-10 bg-white border-2 border-gray-800 shadow-[8px_8px_0px_0px_rgba(31,41,55,1)] w-full max-w-lg mx-auto p-8 my-auto transform scale-95 opacity-0 transition-all duration-200 ease-out">
+        <div class="relative z-10 bg-white border-2 border-gray-800 shadow-[8px_8px_0px_0px_rgba(31,41,55,1)] w-full max-w-lg mx-auto p-8 my-auto transform scale-95 opacity-0 transition-all duration-200 ease-out max-h-[90vh] overflow-y-auto">
             
             <!-- Modal Header -->
-            <div class="flex justify-between items-center mb-5">
-                <div class="flex items-center gap-2">
-                    <span id="api-method" class="method-badge px-2.5 py-1 text-[10px] font-bold bg-blue-600 text-white tracking-widest">GET</span>
+            <div class="flex justify-between items-start mb-5 sticky top-0 bg-white pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span id="method-badge" class="method-badge px-2.5 py-1 text-[10px] font-bold bg-blue-600 text-white tracking-widest">GET</span>
                     <h3 class="text-lg font-bold tracking-tight text-gray-900" id="modal-title">API Request</h3>
                 </div>
                 <button id="close-modal" class="text-gray-300 hover:text-gray-900 transition-colors focus:outline-none p-1 hover:bg-gray-100 rounded">
                     <span class="material-icons text-lg">close</span>
                 </button>
-            </div>
-
-            <!-- Divider with dots -->
-            <div class="modal-divider flex items-center gap-1.5 mb-5">
-                <div class="flex-1 h-px bg-gray-100"></div>
-                <div class="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
-                <div class="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
-                <div class="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
-                <div class="flex-1 h-px bg-gray-100"></div>
             </div>
             
             <div class="mb-5">
@@ -213,7 +204,8 @@
                 </div>
             </div>
             
-            <div id="params-container" class="mb-6"></div>
+            <!-- ✅ Parameters Container (support dynamic inputs) -->
+            <div id="params-container" class="mb-6 space-y-4"></div>
             
             <button id="submit-api" class="btn-solid w-full bg-gray-800 hover:bg-gray-900 text-white px-4 py-3 text-[11px] font-bold uppercase tracking-[0.2em] transition-all">
                 Send Request
@@ -228,7 +220,7 @@
                         <span id="response-time" class="text-[10px] font-mono text-gray-400">200ms</span>
                     </div>
                 </div>
-                <pre id="response-data" class="bg-gray-50 p-4 text-[11px] font-mono text-gray-600 overflow-auto max-h-60 border border-gray-100 rounded"></pre>
+                <div id="response-data" class="bg-gray-50 p-4 text-[11px] font-mono text-gray-600 overflow-auto max-h-80 border border-gray-100 rounded"></div>
             </div>
         </div>
     </div>
