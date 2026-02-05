@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// script.js  —  Lumina Docs (Full Featured + Auto-Discovery)
+// script.js  —  Lumina Docs (Support Upload & Dropdown)
 // ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 itemEl.dataset.name = itemName.toLowerCase();
                 itemEl.dataset.desc = (item.desc || '').toLowerCase();
 
-                // Badge untuk method
                 const methodBadge = item.method === 'POST' 
                     ? '<span class="text-[8px] bg-green-500 text-white px-2 py-1 rounded font-bold ml-2">POST</span>'
                     : '<span class="text-[8px] bg-blue-500 text-white px-2 py-1 rounded font-bold ml-2">GET</span>';
@@ -118,7 +117,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         const responseContainer = document.getElementById('response-container');
         const responseData     = document.getElementById('response-data');
         
-        // Display method badge
         const methodBadge = document.getElementById('method-badge');
         if (methodBadge) {
             methodBadge.textContent = endpoint.method || 'GET';
@@ -127,7 +125,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             }`;
         }
         
-        // Display URL endpoint
         const apiUrlElement = document.getElementById('api-url');
         if (apiUrlElement) {
             const baseUrl = window.location.origin;
@@ -143,9 +140,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         document.getElementById('submit-api').classList.remove('hidden');
         paramsContainer.classList.remove('hidden');
 
-        // Generate parameter inputs dari paramsSchema
-        if (endpoint.paramsSchema && endpoint.paramsSchema.length > 0) {
-            endpoint.paramsSchema.forEach(param => createParamInput(param, paramsContainer));
+        if (endpoint.params && endpoint.params.length > 0) {
+            endpoint.params.forEach(param => {
+                createParamInput(param, paramsContainer, endpoint.paramConfig);
+            });
         } else {
             paramsContainer.innerHTML = '<p class="text-gray-500 text-sm italic">No parameters required</p>';
         }
@@ -161,14 +159,15 @@ document.addEventListener('DOMContentLoaded', async function () {
         document.getElementById('submit-api').onclick = () => handleApiRequest(endpoint, paramsContainer);
     }
 
-    // --- 5. CREATE PARAMETER INPUT (SUPPORT ALL TYPES) ---
-    function createParamInput(param, container) {
-        const isOptional = param.name.startsWith('_');
-        const cleanName = isOptional ? param.name.substring(1) : param.name;
+    // --- 5. CREATE PARAMETER INPUT (SUPPORT TEXT, FILE, DROPDOWN) ---
+    function createParamInput(param, container, paramConfig = {}) {
+        const isOptional = param.startsWith('_');
+        const cleanName = isOptional ? param.substring(1) : param;
+        const config = paramConfig?.[param] || {};
+        
         const div = document.createElement('div');
         div.className = 'mb-4';
 
-        let inputHTML = '';
         const labelHTML = `
             <label class="text-[10px] font-bold uppercase text-gray-400 mb-1 flex items-center gap-2">
                 <span>${cleanName}</span>
@@ -176,68 +175,40 @@ document.addEventListener('DOMContentLoaded', async function () {
                     ? '<span class="text-[8px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded">OPTIONAL</span>' 
                     : '<span class="text-[8px] bg-red-500 text-white px-2 py-0.5 rounded">REQUIRED</span>'}
             </label>
-            ${param.description ? `<p class="text-[9px] text-gray-400 mb-2">${param.description}</p>` : ''}
+            ${config.description ? `<p class="text-[9px] text-gray-400 mb-2">${config.description}</p>` : ''}
         `;
 
-        // ✅ FILE INPUT
-        if (param.type === 'file') {
-            inputHTML = `
-                ${labelHTML}
-                <input type="file" 
-                       id="param-${param.name}" 
-                       accept="${param.accept || '*/*'}"
-                       class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-black">
-                ${param.maxSize ? `<p class="text-[9px] text-gray-400 mt-1">Max size: ${param.maxSize}</p>` : ''}
-                <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">File wajib diupload!</p>
-                <div id="preview-${param.name}" class="mt-3 hidden">
-                    <p class="text-[9px] text-gray-500 mb-2">Preview:</p>
-                    <img src="" alt="Preview" class="max-w-xs max-h-48 border-2 border-gray-200 shadow-sm rounded">
-                </div>
-            `;
-        }
+        let inputHTML = '';
+
         // ✅ DROPDOWN/SELECT
-        else if (param.type === 'select') {
-            const options = param.options.map(opt => 
+        if (config.type === 'select' && config.options) {
+            const options = config.options.map(opt => 
                 `<option value="${opt.value}">${opt.label}</option>`
             ).join('');
             
             inputHTML = `
                 ${labelHTML}
-                <select id="param-${param.name}" 
+                <select id="param-${param}" 
                         class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none bg-white">
-                    ${isOptional ? `<option value="">-- Select (Optional) --</option>` : `<option value="" disabled selected>-- Select --</option>`}
+                    ${isOptional ? '<option value="">-- Select (Optional) --</option>' : '<option value="" disabled selected>-- Select --</option>'}
                     ${options}
                 </select>
-                <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">Pilih salah satu!</p>
+                <p id="error-${param}" class="text-red-500 text-[10px] mt-1 hidden">Pilih salah satu!</p>
             `;
         }
-        // ✅ TEXTAREA
-        else if (param.type === 'textarea') {
+        // ✅ FILE UPLOAD
+        else if (config.type === 'file') {
             inputHTML = `
                 ${labelHTML}
-                <textarea id="param-${param.name}" 
-                          rows="${param.rows || 3}"
-                          maxlength="${param.maxLength || ''}"
-                          placeholder="${param.placeholder || ''}"
-                          class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none resize-none"></textarea>
-                ${param.maxLength ? `<p class="text-[9px] text-gray-400 mt-1">Max ${param.maxLength} characters</p>` : ''}
-                <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
-            `;
-        }
-        // ✅ RANGE SLIDER
-        else if (param.type === 'range') {
-            const defaultVal = param.default !== undefined ? param.default : (param.min || 0);
-            inputHTML = `
-                ${labelHTML}
-                <div class="flex items-center gap-3">
-                    <input type="range" 
-                           id="param-${param.name}" 
-                           min="${param.min || 0}" 
-                           max="${param.max || 100}" 
-                           step="${param.step || 1}"
-                           value="${defaultVal}"
-                           class="flex-1">
-                    <span id="value-${param.name}" class="text-sm font-bold text-gray-700 min-w-[60px] text-center bg-gray-100 px-3 py-1 rounded">${defaultVal}</span>
+                <input type="file" 
+                       id="param-${param}" 
+                       accept="${config.accept || '*/*'}"
+                       class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-black">
+                ${config.maxSize ? `<p class="text-[9px] text-gray-400 mt-1">Max size: ${config.maxSize}</p>` : ''}
+                <p id="error-${param}" class="text-red-500 text-[10px] mt-1 hidden">File wajib diupload!</p>
+                <div id="preview-${param}" class="mt-3 hidden">
+                    <p class="text-[9px] text-gray-500 mb-2">Preview:</p>
+                    <img src="" alt="Preview" class="max-w-xs max-h-48 border-2 border-gray-200 shadow-sm rounded">
                 </div>
             `;
         }
@@ -246,11 +217,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             inputHTML = `
                 ${labelHTML}
                 <input type="text" 
-                       id="param-${param.name}" 
-                       placeholder="${param.placeholder || `Enter ${cleanName}...`}"
-                       maxlength="${param.maxLength || ''}"
+                       id="param-${param}" 
+                       placeholder="${config.placeholder || `Enter ${cleanName}...`}"
                        class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none">
-                <p id="error-${param.name}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
+                <p id="error-${param}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
             `;
         }
 
@@ -258,26 +228,14 @@ document.addEventListener('DOMContentLoaded', async function () {
         container.appendChild(div);
 
         // ✅ FILE PREVIEW
-        if (param.type === 'file') {
+        if (config.type === 'file') {
             const input = div.querySelector('input[type="file"]');
-            const preview = div.querySelector(`#preview-${param.name}`);
-            const img = preview.querySelector('img');
+            const preview = div.querySelector(`#preview-${param}`);
+            const img = preview?.querySelector('img');
             
-            input.addEventListener('change', (e) => {
+            input?.addEventListener('change', (e) => {
                 const file = e.target.files[0];
-                if (file) {
-                    // Validate file size
-                    if (param.maxSize) {
-                        const maxBytes = parseSize(param.maxSize);
-                        if (file.size > maxBytes) {
-                            alert(`File terlalu besar! Max ${param.maxSize}`);
-                            input.value = '';
-                            preview.classList.add('hidden');
-                            return;
-                        }
-                    }
-                    
-                    // Preview image
+                if (file && img) {
                     if (file.type.startsWith('image/')) {
                         const reader = new FileReader();
                         reader.onload = (event) => {
@@ -285,32 +243,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                             preview.classList.remove('hidden');
                         };
                         reader.readAsDataURL(file);
-                    } else {
-                        preview.classList.add('hidden');
                     }
                 }
             });
         }
-
-        // ✅ RANGE VALUE DISPLAY
-        if (param.type === 'range') {
-            const input = div.querySelector('input[type="range"]');
-            const display = div.querySelector(`#value-${param.name}`);
-            
-            input.addEventListener('input', (e) => {
-                display.textContent = e.target.value;
-            });
-        }
-    }
-
-    // Helper: Parse size string (e.g., "10MB" -> bytes)
-    function parseSize(sizeStr) {
-        const units = { KB: 1024, MB: 1024 * 1024, GB: 1024 * 1024 * 1024 };
-        const match = sizeStr.match(/^(\d+)(KB|MB|GB)$/i);
-        if (match) {
-            return parseInt(match[1]) * units[match[2].toUpperCase()];
-        }
-        return 0;
     }
 
     // ─── 6. LIVE ACTIVITY LOGGER ───
@@ -320,15 +256,13 @@ document.addEventListener('DOMContentLoaded', async function () {
             const MAX  = 50;
             let logs   = [];
             try { logs = JSON.parse(localStorage.getItem(KEY)) || []; } catch (_) {}
-
             logs.push(entry);
             if (logs.length > MAX) logs = logs.slice(-MAX);
-
             localStorage.setItem(KEY, JSON.stringify(logs));
         } catch (_) {}
     }
 
-    // --- 7. REQUEST HANDLER (SUPPORT GET & POST) ---
+    // --- 7. REQUEST HANDLER ---
     async function handleApiRequest(endpoint, paramsContainer) {
         const submitBtn         = document.getElementById('submit-api');
         const responseContainer = document.getElementById('response-container');
@@ -337,7 +271,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         let isValid = true;
         const method = endpoint.method || 'GET';
         
-        // Detect if has file upload
         const hasFile = Array.from(paramsContainer.querySelectorAll('input')).some(
             input => input.type === 'file' && input.files.length > 0
         );
@@ -346,13 +279,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         let finalUrl = endpoint.path.split('?')[0];
         
         if (method === 'POST' || hasFile) {
-            // ✅ POST REQUEST dengan FormData
             requestData = new FormData();
             
             const inputs = paramsContainer.querySelectorAll('input, select, textarea');
             inputs.forEach(input => {
                 const pName = input.id.replace('param-', '');
                 const isOptional = pName.startsWith('_');
+                const cleanName = isOptional ? pName.substring(1) : pName;
                 const error = document.getElementById(`error-${pName}`);
                 
                 if (input.type === 'file') {
@@ -364,7 +297,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     } else {
                         error?.classList.add('hidden');
                         input.classList.remove('border-red-500');
-                        if (file) requestData.append(pName, file);
+                        if (file) requestData.append(cleanName, file);
                     }
                 } else {
                     const val = input.value.trim();
@@ -375,18 +308,18 @@ document.addEventListener('DOMContentLoaded', async function () {
                     } else {
                         error?.classList.add('hidden');
                         input.classList.remove('border-red-500');
-                        if (val) requestData.append(pName, val);
+                        if (val) requestData.append(cleanName, val);
                     }
                 }
             });
         } else {
-            // ✅ GET REQUEST dengan Query Params
             let queryParams = new URLSearchParams();
             
             const inputs = paramsContainer.querySelectorAll('input, select, textarea');
             inputs.forEach(input => {
                 const pName = input.id.replace('param-', '');
                 const isOptional = pName.startsWith('_');
+                const cleanName = isOptional ? pName.substring(1) : pName;
                 const val = input.value.trim();
                 const error = document.getElementById(`error-${pName}`);
 
@@ -397,7 +330,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 } else {
                     error?.classList.add('hidden');
                     input.classList.remove('border-red-500');
-                    if (val) queryParams.append(pName, val);
+                    if (val) queryParams.append(cleanName, val);
                 }
             });
             
@@ -417,9 +350,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         
         const start = Date.now();
         try {
-            const fetchOptions = {
-                method: method
-            };
+            const fetchOptions = { method: method };
             
             if (method === 'POST' || hasFile) {
                 fetchOptions.body = requestData;
@@ -433,7 +364,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             document.getElementById('response-status').textContent = res.status;
             document.getElementById('response-time').textContent   = `${duration}ms`;
 
-            // Log activity
             logActivity({
                 endpoint:  targetUrl,
                 method:    method,
@@ -444,7 +374,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 timestamp: Date.now()
             });
 
-            // Render response
             if (contentType && contentType.includes('image/')) {
                 const blob   = await res.blob();
                 const imgUrl = URL.createObjectURL(blob);
