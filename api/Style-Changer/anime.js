@@ -172,7 +172,7 @@ module.exports = {
             // ── Return ──
             res.status(200).json({
                 status: true,
-                creator: "riyzonly",
+                //creator: "riyzonly",
                 responseTime: result.responseTime,
                 result: {
                     url: result.url,
