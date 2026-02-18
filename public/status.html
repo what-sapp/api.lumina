@@ -669,8 +669,8 @@
                         Refresh
                     </button>
                     <button id="test-all-btn" class="action-btn action-btn-outline">
-                        <span class="material-icons" style="font-size:0.9rem;">play_arrow</span>
-                        Test All
+                        <span class="material-icons" style="font-size:0.9rem;">insights</span>
+                        Last 24h Stats
                     </button>
                 </div>
             </div>
@@ -701,10 +701,10 @@
             </div>
             <div class="metric-card" style="animation-delay:0.2s;">
                 <div class="metric-icon-box">
-                    <span class="material-icons" style="color:var(--warning-color); font-size:1.1rem;">cloud_done</span>
+                    <span class="material-icons" style="color:var(--warning-color); font-size:1.1rem;">bar_chart</span>
                 </div>
                 <div id="uptime" class="metric-value">--</div>
-                <div class="metric-label">Uptime 30d</div>
+                <div class="metric-label">Total Requests</div>
             </div>
         </div>
 
@@ -719,22 +719,26 @@
                 Error: <strong id="live-error">0</strong>
             </div>
             <div class="counter-chip pending pending-right">
-                <span class="material-icons" style="font-size:0.85rem;">pending</span>
-                Pending: <strong id="live-pending">0</strong>
+                <span class="material-icons" style="font-size:0.85rem;">storage</span>
+                Logged: <strong id="live-pending">0</strong>
             </div>
         </div>
 
-        <!-- Endpoint Health Check -->
+        <!-- Top Endpoints -->
         <div class="status-panel">
             <div class="panel-header">
                 <div class="panel-title">
-                    <span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">monitor_heart</span>
-                    Endpoint Health Check
+                    <span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">leaderboard</span>
+                    Top Endpoints
                 </div>
-                <span id="test-progress" style="font-size:0.65rem; font-weight:600; color:var(--text-muted);"></span>
+                <span style="font-size:0.62rem; color:var(--text-muted);">by usage</span>
             </div>
             <div class="endpoint-scroll">
-                <div id="endpoint-tests"></div>
+                <div id="top-endpoints">
+                    <div id="top-endpoints-placeholder" style="padding:2rem 1.25rem; text-align:center; font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em;">
+                        Belum ada data — coba request di docs dulu
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -783,8 +787,6 @@
     </div>
 
     <script>
-        let endpoints    = [];
-        let testResults  = [];
         let successCount = 0;
         let errorCount   = 0;
 
@@ -831,196 +833,153 @@
         }
 
         function updateLiveCounters() {
-            document.getElementById('live-success').textContent = successCount;
-            document.getElementById('live-error').textContent   = errorCount;
-            document.getElementById('live-pending').textContent = endpoints.length - successCount - errorCount;
+            try {
+                const logs = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
+                document.getElementById('live-success').textContent = logs.filter(e=>e.ok).length;
+                document.getElementById('live-error').textContent   = logs.filter(e=>!e.ok).length;
+                document.getElementById('live-pending').textContent  = logs.length;
+            } catch (_) {}
         }
 
-        // ── Fetch endpoints ──
+        // ── Fetch total endpoints count ──
         async function fetchEndpoints() {
             try {
-                log('Fetching endpoints list...', 'info');
                 const res  = await fetch('/endpoints');
                 const data = await res.json();
-
-                endpoints = [];
-                data.endpoints.forEach(cat => {
-                    cat.items.forEach(item => {
-                        const name = Object.keys(item)[0];
-                        const ep   = item[name];
-                        endpoints.push({ name, path: ep.path.split('?')[0], fullPath: ep.path, category: cat.name });
-                    });
-                });
-
-                document.getElementById('total-endpoints').textContent      = endpoints.length;
-                document.getElementById('menu-total-endpoints').textContent  = endpoints.length;
-                document.getElementById('live-pending').textContent          = endpoints.length;
-                log(`Found ${endpoints.length} endpoints`, 'success');
-                renderEndpointTests();
+                let count  = 0;
+                data.endpoints.forEach(cat => { count += cat.items.length; });
+                document.getElementById('total-endpoints').textContent     = count;
+                document.getElementById('menu-total-endpoints').textContent = count;
+                log(`Found ${count} endpoints`, 'info');
             } catch (err) {
                 log(`Error fetching endpoints: ${err.message}`, 'error');
             }
         }
 
-        // ── Render endpoint test rows ──
-        function renderEndpointTests() {
-            const container = document.getElementById('endpoint-tests');
-            container.innerHTML = '';
-
-            endpoints.forEach((ep, i) => {
-                const row = document.createElement('div');
-                row.className = 'endpoint-test';
-                row.id        = `endpoint-${i}`;
-                row.innerHTML = `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
-                        <div style="flex:1; min-width:0;">
-                            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
-                                <span class="endpoint-name">${ep.name}</span>
-                                <span class="endpoint-category-badge">${ep.category}</span>
-                            </div>
-                            <div class="endpoint-path-text">${ep.path}</div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
-                            <span class="test-status-badge pending">Pending</span>
-                            <button class="test-single-btn" data-index="${i}" title="Test this endpoint">
-                                <span class="material-icons" style="font-size:1rem;">play_arrow</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="error-detail" id="error-detail-${i}">
-                        <div class="error-detail-inner">
-                            <span class="material-icons" style="font-size:0.9rem; color:var(--error-color); flex-shrink:0;">error_outline</span>
-                            <div>
-                                <div style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--error-color); margin-bottom:0.2rem;">Error Detail</div>
-                                <div class="error-message" style="font-family:'Courier New',monospace; font-size:0.68rem; color:var(--error-color); word-break:break-all;">-</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-
-            // Event delegation
-            container.addEventListener('click', e => {
-                const btn = e.target.closest('.test-single-btn');
-                if (btn) testEndpoint(Number(btn.dataset.index));
-            });
-        }
-
-        // ── Test single endpoint ──
-        window.testEndpoint = async function(index) {
-            const ep      = endpoints[index];
-            const row     = document.getElementById(`endpoint-${index}`);
-            const badge   = row.querySelector('.test-status-badge');
-            const detail  = document.getElementById(`error-detail-${index}`);
-            const errMsg  = detail.querySelector('.error-message');
-
-            row.classList.remove('success','error');
-            row.classList.add('pending');
-            detail.classList.remove('open');
-            badge.textContent = 'Testing...';
-            badge.className   = 'test-status-badge pending';
-
-            // Build URL with smart defaults
-            let testUrl = ep.fullPath;
-            if (testUrl.includes('?')) {
-                const [base, params] = testUrl.split('?');
-                const filled = params.split('&').map(p => {
-                    const pName = p.split('=')[0];
-                    return `${pName}=${encodeURIComponent(getDefaultValue(pName, ep.name))}`;
-                });
-                testUrl = `${base}?${filled.join('&')}`;
-            }
-
-            log(`Testing: ${testUrl}`, 'info');
+        // ── Top Endpoints (from Live Activity) ──
+        function renderTopEndpoints() {
+            const container   = document.getElementById('top-endpoints');
+            const placeholder = document.getElementById('top-endpoints-placeholder');
+            if (!container) return;
 
             try {
-                const start    = Date.now();
-                const res      = await fetch(testUrl);
-                const duration = Date.now() - start;
+                const logs = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
+                if (!logs.length) { if (placeholder) placeholder.style.display = 'block'; return; }
+                if (placeholder) placeholder.style.display = 'none';
 
-                if (!res.ok) {
-                    let errBody = `HTTP ${res.status}`;
-                    try {
-                        const ct   = res.headers.get('content-type') || '';
-                        const text = await res.text();
-                        errBody = ct.includes('application/json') ? (JSON.parse(text).error || JSON.parse(text).message || text) : (text || errBody);
-                    } catch (_) {}
-                    throw { status: res.status, detail: errBody };
-                }
+                // Aggregate by path
+                const map = {};
+                logs.forEach(e => {
+                    let path = e.endpoint;
+                    try { path = new URL(e.endpoint).pathname; } catch (_) {}
+                    if (!map[path]) map[path] = { count:0, ok:0, durations:[] };
+                    map[path].count++;
+                    if (e.ok) { map[path].ok++; map[path].durations.push(e.duration); }
+                });
 
-                row.classList.remove('pending');
-                row.classList.add('success');
-                badge.textContent = `${duration}ms`;
-                badge.className   = 'test-status-badge success';
-                log(`✓ ${ep.name}: ${duration}ms`, 'success');
-                testResults.push({ success: true, time: duration });
-                successCount++;
-                flash(document.getElementById('live-success'), 'flash-green');
+                // Sort by count desc
+                const sorted = Object.entries(map).sort((a,b) => b[1].count - a[1].count).slice(0, 10);
+                const maxCount = sorted[0][1].count;
+
+                container.innerHTML = '';
+                sorted.forEach(([path, data], idx) => {
+                    const rate    = ((data.ok / data.count) * 100).toFixed(0);
+                    const avg     = data.durations.length ? Math.round(data.durations.reduce((s,d)=>s+d,0)/data.durations.length) : 0;
+                    const barPct  = Math.round((data.count / maxCount) * 100);
+                    const isOk    = rate >= 80;
+                    const rateCol = rate >= 95 ? 'var(--success-color)' : rate >= 70 ? 'var(--warning-color)' : 'var(--error-color)';
+
+                    const row = document.createElement('div');
+                    row.style.cssText = 'padding:0.875rem 1.25rem; border-bottom:1px solid var(--border-color); animation:slideInUp 0.3s ease both;';
+                    row.style.animationDelay = `${idx * 0.04}s`;
+                    row.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
+                            <span style="font-size:0.62rem; font-weight:800; color:var(--text-muted); width:1.25rem; text-align:center;">#${idx+1}</span>
+                            <code style="font-size:0.78rem; color:var(--primary-color); font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${path}</code>
+                            <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
+                                <span style="font-size:0.62rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:100px; background:var(--highlight-color); color:var(--primary-color);">${data.count} req</span>
+                                <span style="font-size:0.62rem; font-weight:700; color:${rateCol};">${rate}%</span>
+                                ${avg ? `<span style="font-size:0.6rem; color:var(--text-muted); font-family:'Courier New',monospace;">${avg}ms</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span style="font-size:0.6rem; color:var(--text-muted); width:1.25rem;"></span>
+                            <div style="flex:1; height:4px; background:var(--border-color); border-radius:100px; overflow:hidden;">
+                                <div style="height:100%; width:${barPct}%; background:linear-gradient(90deg,var(--primary-color),var(--accent-color)); border-radius:100px; transition:width 0.6s ease;"></div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(row);
+                });
 
             } catch (err) {
-                const txt = err.detail || err.message || 'Unknown error';
-                row.classList.remove('pending');
-                row.classList.add('error');
-                badge.textContent = `${err.status || 'Fail'}`;
-                badge.className   = 'test-status-badge error';
-                errMsg.textContent = txt;
-                detail.classList.add('open');
-                log(`✗ ${ep.name}: ${txt}`, 'error');
-                testResults.push({ success: false, time: 0 });
-                errorCount++;
-                flash(document.getElementById('live-error'), 'flash-red');
+                log(`Error rendering top endpoints: ${err.message}`, 'error');
             }
-
-            updateLiveCounters();
-            updateMetrics();
-        };
-
-        // ── Test all ──
-        async function testAllEndpoints() {
-            testResults = []; successCount = 0; errorCount = 0;
-            updateLiveCounters();
-            log('Starting full system test...', 'info');
-
-            const btn = document.getElementById('test-all-btn');
-            btn.disabled  = true;
-            btn.innerHTML = `<span class="material-icons" style="font-size:0.9rem; animation:spin 0.8s linear infinite;">refresh</span> Testing...`;
-
-            for (let i = 0; i < endpoints.length; i++) {
-                document.getElementById('test-progress').textContent = `Testing ${i+1}/${endpoints.length}`;
-                await testEndpoint(i);
-                await new Promise(r => setTimeout(r, 150));
-            }
-
-            document.getElementById('test-progress').textContent = 'Complete';
-            btn.disabled  = false;
-            btn.innerHTML = `<span class="material-icons" style="font-size:0.9rem;">play_arrow</span> Test All`;
-            log('System test completed', 'success');
         }
 
-        // ── Update metrics ──
-        function updateMetrics() {
-            if (!testResults.length) return;
-            const ok      = testResults.filter(r => r.success);
-            const rate    = ((ok.length / testResults.length) * 100).toFixed(1);
-            const avgTime = ok.length ? ok.reduce((s,r)=>s+r.time,0)/ok.length : 0;
+        // ── Last 24h Stats ──
+        function showLast24hStats() {
+            try {
+                const logs   = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
+                const now    = Date.now();
+                const h24    = 24 * 60 * 60 * 1000;
+                const recent = logs.filter(e => (now - e.timestamp) <= h24);
 
-            document.getElementById('success-rate').innerHTML       = `${rate}<span>%</span>`;
-            document.getElementById('menu-success-rate').textContent = `${rate}%`;
-            document.getElementById('avg-response-time').innerHTML  = `${Math.round(avgTime)}<span>ms</span>`;
-            document.getElementById('uptime').innerHTML             = `99.9<span>%</span>`;
+                if (!recent.length) {
+                    log('No activity in the last 24 hours.', 'warning');
+                    return;
+                }
+
+                const ok      = recent.filter(e => e.ok);
+                const rate    = ((ok.length / recent.length) * 100).toFixed(1);
+                const avgTime = ok.length ? ok.reduce((s,e)=>s+e.duration,0)/ok.length : 0;
+                const fastest = ok.length ? Math.min(...ok.map(e=>e.duration)) : 0;
+                const slowest = ok.length ? Math.max(...ok.map(e=>e.duration)) : 0;
+
+                log(`── Last 24h Stats ──────────────────`, 'info');
+                log(`Total Requests : ${recent.length}`, 'info');
+                log(`Success        : ${ok.length} (${rate}%)`, 'success');
+                log(`Failed         : ${recent.length - ok.length}`, recent.length - ok.length > 0 ? 'error' : 'success');
+                log(`Avg Duration   : ${Math.round(avgTime)}ms`, 'info');
+                log(`Fastest        : ${fastest}ms`, 'success');
+                log(`Slowest        : ${slowest}ms`, slowest > 2000 ? 'warning' : 'info');
+                log(`────────────────────────────────────`, 'info');
+            } catch (err) {
+                log(`Error reading activity: ${err.message}`, 'error');
+            }
+        }
+
+        // ── Update metrics from Live Activity (real user requests from docs) ──
+        function updateMetrics() {
+            try {
+                const logs = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
+                if (!logs.length) return;
+
+                const ok      = logs.filter(r => r.ok);
+                const rate    = ((ok.length / logs.length) * 100).toFixed(1);
+                const avgTime = ok.length ? ok.reduce((s,r)=>s+r.duration,0)/ok.length : 0;
+
+                document.getElementById('success-rate').innerHTML        = `${rate}<span>%</span>`;
+                document.getElementById('menu-success-rate').textContent  = `${rate}%`;
+                document.getElementById('avg-response-time').innerHTML   = `${Math.round(avgTime)}<span>ms</span>`;
+                document.getElementById('uptime').innerHTML              = `${logs.length}<span style='font-size:1rem'> req</span>`;
+            } catch (_) { return; }
 
             const circle = document.getElementById('status-circle');
             const icon   = document.getElementById('status-icon');
             const text   = document.getElementById('status-text');
             const pulse  = document.getElementById('pulse-ring');
 
-            if (rate >= 95) {
+            const logs2  = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
+            const ok2    = logs2.filter(r => r.ok);
+            const rate2  = logs2.length ? ((ok2.length / logs2.length) * 100).toFixed(1) : 100;
+
+            if (rate2 >= 95) {
                 circle.className  = 'status-circle status-online';
                 icon.textContent  = 'check_circle';
                 text.textContent  = 'All Systems Operational';
                 pulse.style.background = '#10b981';
-            } else if (rate >= 70) {
+            } else if (rate2 >= 70) {
                 circle.className  = 'status-circle status-degraded';
                 icon.textContent  = 'warning';
                 text.textContent  = 'Degraded Performance';
@@ -1035,7 +994,7 @@
 
         // ── Event listeners ──
         document.getElementById('refresh-btn').addEventListener('click', () => window.location.reload());
-        document.getElementById('test-all-btn').addEventListener('click', testAllEndpoints);
+        document.getElementById('test-all-btn').addEventListener('click', showLast24hStats);
         document.getElementById('clear-logs-btn').addEventListener('click', () => {
             document.getElementById('debug-logs').innerHTML = `<div style="color:var(--text-muted);">Logs cleared.</div>`;
         });
@@ -1102,6 +1061,11 @@
             });
 
             newEntries.forEach(e => log(`[docs] ${e.ok ? '✓' : '✗'} ${e.endpoint} — ${e.duration}ms`, e.ok ? 'success' : 'error'));
+
+            // Recalculate metrics from real activity
+            updateMetrics();
+            renderTopEndpoints();
+            updateLiveCounters();
         }
 
         window.addEventListener('storage', e => {
@@ -1115,7 +1079,7 @@
         (function loadExisting() {
             try {
                 const logs = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
-                if (logs.length) renderLiveActivity(logs);
+                if (logs.length) { renderLiveActivity(logs); updateMetrics(); renderTopEndpoints(); updateLiveCounters(); }
             } catch (_) {}
         })();
 
@@ -1126,6 +1090,15 @@
                 <div id="activity-placeholder" style="padding:2rem 1.25rem; text-align:center; font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em;">
                     Belum ada request — buka docs.html dan coba Send Request
                 </div>`;
+            document.getElementById('top-endpoints').innerHTML = `
+                <div id="top-endpoints-placeholder" style="padding:2rem 1.25rem; text-align:center; font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em;">
+                    Belum ada data — coba request di docs dulu
+                </div>`;
+            updateLiveCounters();
+            // Reset metrics
+            document.getElementById('success-rate').innerHTML      = '--';
+            document.getElementById('avg-response-time').innerHTML = '--';
+            document.getElementById('uptime').innerHTML            = '--';
         });
 
         // ── Hamburger ──
@@ -1219,6 +1192,8 @@
 
         // ── Init ──
         fetchEndpoints();
+        renderTopEndpoints();
+        updateLiveCounters();
     </script>
 </body>
 </html>
