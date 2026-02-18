@@ -414,7 +414,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                     }
                     section.style.display = hasMatch ? '' : 'none';
                 } else {
+                    // Reset — tutup semua accordion, tampilkan semua card
+                    content.classList.remove('open');
+                    header.classList.remove('open');
+                    chevron.style.transform = 'rotate(0deg)';
+                    if (icon) icon.textContent = 'folder';
                     section.style.display = '';
+                    section.querySelectorAll('.endpoint-card').forEach(c => c.style.display = '');
                 }
             });
         });
