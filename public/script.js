@@ -18,6 +18,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         }, 800);
     };
 
+    // Safety: kalau fetch gagal / timeout, force unlock scroll setelah 5 detik
+    setTimeout(() => {
+        document.body.classList.remove('noscroll');
+        if (pageLoader) { pageLoader.style.opacity = '0'; pageLoader.style.display = 'none'; }
+    }, 5000);
+
     // --- 2. DATA FETCHING ---
     try {
         const endpoints = await (await fetch('/endpoints')).json();
@@ -128,6 +134,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
 
             apiContent.appendChild(section);
+
         });
 
         // Accordion toggle
