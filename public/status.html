@@ -4,57 +4,302 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Status & Debug | Lumina API</title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <script src="https://cdn.tailwindcss.com"></script>
+
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css">
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+
     <style>
-        .status-online { 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        /* ── Status-specific styles ── */
+
+        /* Overall status banner */
+        .status-banner {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.5rem;
+            animation: slideInUp 0.6s ease-out;
         }
-        .status-degraded { 
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+
+        .status-banner::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 220px; height: 220px;
+            background: radial-gradient(circle, rgba(79,70,229,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
         }
-        .status-offline { 
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+
+        /* Status indicator */
+        .status-indicator-wrap {
+            position: relative;
+            width: 4rem;
+            height: 4rem;
+            flex-shrink: 0;
         }
-        
+
+        .status-circle {
+            width: 4rem;
+            height: 4rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .status-online   { background: linear-gradient(135deg, #10b981, #059669); }
+        .status-degraded { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .status-offline  { background: linear-gradient(135deg, #f43f5e, #e11d48); }
+
         .pulse-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: #10b981;
+            z-index: 1;
             animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        .pulse-ring.degraded { background: #f59e0b; }
-        .pulse-ring.offline  { background: #ef4444; }
-        
+
         @keyframes pulse-ring {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50%      { opacity: 0.5; transform: scale(1.1); }
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50%       { opacity: 0.2; transform: scale(1.2); }
         }
 
-        .metric-card { transition: all 0.3s ease; }
+        /* Metric cards */
+        .metric-card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--card-shadow);
+            transition: var(--hover-transition);
+            animation: slideInUp 0.5s ease-out both;
+        }
+
         .metric-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transform: var(--hover-transform);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(79,70,229,0.2);
         }
 
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-value {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: var(--text-color);
+            line-height: 1;
+            margin-bottom: 0.35rem;
+        }
+
+        .metric-value span {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .metric-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+        }
+
+        .metric-icon-box {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--border-radius-sm);
+            background: var(--highlight-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        /* Counter strip */
+        .counter-strip {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .counter-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.875rem;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--card-background);
+            font-size: 0.72rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .counter-chip.success { border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.06); color: var(--success-color); }
+        .counter-chip.error   { border-color: rgba(244,63,94,0.3);  background: rgba(244,63,94,0.06);  color: var(--error-color); }
+        .counter-chip.pending { border-color: var(--border-color);  color: var(--text-muted); }
+        .counter-chip.pending-right { margin-left: auto; }
+
+        /* Panel (endpoint list, activity, debug) */
+        .status-panel {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.25rem;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.875rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-action {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            padding: 0.3rem 0.6rem;
+            border-radius: var(--border-radius-sm);
+        }
+
+        .panel-action:hover { color: var(--primary-color); background: var(--highlight-color); }
+
+        /* Action buttons */
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.6rem 1.1rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: var(--hover-transition);
+            border: none;
+        }
+
+        .action-btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            box-shadow: 0 4px 12px rgba(79,70,229,0.25);
+        }
+        .action-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(79,70,229,0.35); }
+
+        .action-btn-outline {
+            border: 2px solid var(--primary-color) !important;
+            background: transparent;
+            color: var(--primary-color);
+        }
+        .action-btn-outline:hover { background: var(--highlight-color); transform: translateY(-2px); }
+
+        /* Endpoint test rows */
         .endpoint-test {
+            padding: 0.875rem 1.25rem;
             border-left: 3px solid transparent;
-            transition: all 0.2s ease;
+            transition: var(--transition);
+            border-bottom: 1px solid var(--border-color);
         }
-        .endpoint-test.success {
-            border-left-color: #10b981;
-            background: rgba(16, 185, 129, 0.05);
+
+        .endpoint-test:last-child { border-bottom: none; }
+        .endpoint-test:hover { background: var(--highlight-color); }
+        .endpoint-test.success { border-left-color: var(--success-color); background: rgba(16,185,129,0.04); }
+        .endpoint-test.error   { border-left-color: var(--error-color);   background: rgba(244,63,94,0.04); }
+        .endpoint-test.pending { border-left-color: var(--warning-color); background: rgba(245,158,11,0.04); }
+
+        .endpoint-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-color);
         }
-        .endpoint-test.error {
-            border-left-color: #ef4444;
-            background: rgba(239, 68, 68, 0.05);
+
+        .endpoint-category-badge {
+            font-size: 0.58rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.15rem 0.5rem;
+            border-radius: 100px;
+            background: var(--highlight-color);
+            color: var(--primary-color);
         }
-        .endpoint-test.pending {
-            border-left-color: #f59e0b;
-            background: rgba(245, 158, 11, 0.05);
+
+        .endpoint-path-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
         }
+
+        .test-status-badge {
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.25rem 0.6rem;
+            border-radius: 100px;
+            white-space: nowrap;
+        }
+
+        .test-status-badge.pending { background: rgba(245,158,11,0.12); color: var(--warning-color); }
+        .test-status-badge.success { background: rgba(16,185,129,0.12);  color: var(--success-color); }
+        .test-status-badge.error   { background: rgba(244,63,94,0.12);   color: var(--error-color); }
+
+        .test-single-btn {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .test-single-btn:hover { background: var(--highlight-color); color: var(--primary-color); }
 
         /* Error detail expand */
         .error-detail {
@@ -64,141 +309,160 @@
         }
         .error-detail.open {
             max-height: 120px;
-            padding-top: 8px;
+            padding-top: 0.5rem;
         }
 
-        /* Live Activity feed */
+        .error-detail-inner {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            background: rgba(244,63,94,0.06);
+            border: 1px solid rgba(244,63,94,0.2);
+            border-radius: var(--border-radius-sm);
+            padding: 0.75rem;
+        }
+
+        /* Activity feed */
         .activity-row {
-            animation: slideIn 0.3s ease;
-            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            border-left: 3px solid transparent;
+            animation: slideInLeft 0.3s ease;
         }
         .activity-row:last-child { border-bottom: none; }
+        .activity-row.ok   { border-left-color: var(--success-color); }
+        .activity-row.fail { border-left-color: var(--error-color); }
 
-        .activity-row.ok    { border-left: 3px solid #10b981; }
-        .activity-row.fail  { border-left: 3px solid #ef4444; }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-8px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
 
         .activity-dot {
             width: 8px; height: 8px;
             border-radius: 50%;
             flex-shrink: 0;
+            margin-top: 0.2rem;
         }
-        .activity-dot.ok   { background: #10b981; box-shadow: 0 0 6px #10b98180; }
-        .activity-dot.fail { background: #ef4444; box-shadow: 0 0 6px #ef444480; }
+        .activity-dot.ok   { background: var(--success-color); box-shadow: 0 0 6px rgba(16,185,129,0.5); }
+        .activity-dot.fail { background: var(--error-color);   box-shadow: 0 0 6px rgba(244,63,94,0.5); }
 
-        .log-entry { animation: slideIn 0.3s ease; }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-10px); }
-            to   { opacity: 1; transform: translateX(0); }
+        .live-indicator {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--border-color);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
         }
 
-        /* Counter flash */
+        /* Debug console */
+        .debug-console {
+            padding: 1rem;
+            background: var(--background-color);
+            font-family: 'Courier New', monospace;
+            font-size: 0.68rem;
+            height: 16rem;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) transparent;
+        }
+
+        .debug-console::-webkit-scrollbar { width: 4px; }
+        .debug-console::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 4px; }
+
+        .log-entry { animation: fadeIn 0.3s ease; line-height: 1.6; }
+        .log-info    { color: var(--primary-color); }
+        .log-success { color: var(--success-color); }
+        .log-error   { color: var(--error-color); }
+        .log-warning { color: var(--warning-color); }
+
+        /* Flash animations */
         @keyframes flashGreen {
-            0%, 100% { color: #111827; }
-            50%      { color: #10b981; }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; color: var(--success-color); }
         }
         @keyframes flashRed {
-            0%, 100% { color: #111827; }
-            50%      { color: #ef4444; }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; color: var(--error-color); }
         }
         .flash-green { animation: flashGreen 0.4s ease; }
         .flash-red   { animation: flashRed 0.4s ease; }
 
-        /* ── Hamburger + Mobile Menu (sama persis docs.html) ── */
-        .mobile-menu {
-            position: fixed;
-            top: 64px;
-            right: -100%;
-            width: 320px;
-            height: calc(100vh - 64px);
-            background: white;
-            box-shadow: -4px 0 12px rgba(0,0,0,0.15);
-            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 40;
+        /* Endpoint list scroll */
+        .endpoint-scroll {
+            max-height: 24rem;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) transparent;
         }
-        .mobile-menu.active { right: 0; }
+        .endpoint-scroll::-webkit-scrollbar { width: 4px; }
+        .endpoint-scroll::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 4px; }
 
-        .mobile-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(3px);
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            z-index: 39;
+        .activity-scroll {
+            max-height: 16rem;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) transparent;
         }
-        .mobile-overlay.active { opacity: 1; visibility: visible; }
+        .activity-scroll::-webkit-scrollbar { width: 4px; }
+        .activity-scroll::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 4px; }
 
-        .hamburger {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+        /* Page header */
+        .page-header {
+            margin-bottom: 1.5rem;
+            animation: slideInUp 0.5s ease-out;
         }
-        .hamburger:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); }
-        .hamburger::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        .hamburger:hover::before { opacity: 1; }
-        .hamburger.active { background: rgba(239, 68, 68, 0.2); }
 
-        .hamburger-inner { width: 20px; height: 14px; position: relative; }
-        .hamburger-inner span {
-            display: block;
-            position: absolute;
-            height: 2px;
-            width: 100%;
-            background: white;
-            border-radius: 2px;
-            left: 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .page-header-title {
+            font-size: clamp(1.5rem, 4vw, 2.25rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: var(--text-color);
+            margin-bottom: 0.35rem;
         }
-        .hamburger-inner span:nth-child(1) { top: 0; width: 100%; }
-        .hamburger-inner span:nth-child(2) { top: 6px; width: 75%; }
-        .hamburger-inner span:nth-child(3) { top: 12px; width: 100%; }
 
-        .hamburger.active .hamburger-inner span:nth-child(1) { top: 6px; transform: rotate(45deg); width: 100%; }
-        .hamburger.active .hamburger-inner span:nth-child(2) { opacity: 0; transform: translateX(-20px); }
-        .hamburger.active .hamburger-inner span:nth-child(3) { top: 6px; transform: rotate(-45deg); width: 100%; }
-
-        .menu-item { position: relative; overflow: hidden; }
-        .menu-item::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 0;
-            height: 100%;
-            width: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transform: scaleY(0);
-            transition: transform 0.3s ease;
+        .page-header-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
         }
-        .menu-item:hover::before,
-        .menu-item.active::before { transform: scaleY(1); }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .metric-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .status-banner { padding: 1.25rem; }
+            .status-banner-inner { flex-direction: column; gap: 1rem; }
+            .status-banner-actions { width: 100%; justify-content: stretch; }
+            .status-banner-actions .action-btn { flex: 1; justify-content: center; }
+            .counter-chip.pending-right { margin-left: 0; }
+        }
+
+        @media (max-width: 480px) {
+            .metric-grid { grid-template-columns: repeat(2, 1fr); gap: 0.625rem; }
+            .metric-value { font-size: 1.75rem; }
+            .metric-card { padding: 1rem; }
+            .metric-icon-box { width: 2rem; height: 2rem; margin-bottom: 0.75rem; }
+            .status-banner { padding: 1rem; }
+            .counter-strip { gap: 0.5rem; }
+            .counter-chip { padding: 0.4rem 0.625rem; font-size: 0.68rem; }
+            .endpoint-test { padding: 0.75rem 1rem; }
+        }
     </style>
 </head>
-<body class="bg-white min-h-screen pt-[84px] pb-20">
+<body>
 
-    <div id="page-loader" class="page-loader bg-white">
-        <div class="loader"></div>
+    <!-- Page Loader -->
+    <div id="page-loader" class="page-loader">
+        <div class="loader-ring"></div>
     </div>
 
-    <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
-        <div class="text-white font-bold tracking-tighter uppercase text-sm">
-            Lumina <span class="text-gray-400">API`s</span>
-        </div>
+    <!-- ── NAVBAR ── -->
+    <nav class="main-nav" id="main-nav">
+        <a href="/" class="nav-logo">
+            Lumina <span class="nav-logo-accent">API's</span>
+        </a>
         <div class="hamburger" id="hamburger">
             <div class="hamburger-inner">
                 <span></span>
@@ -208,122 +472,204 @@
         </div>
     </nav>
 
-    <!-- Mobile Menu Overlay -->
+    <!-- Overlay -->
     <div class="mobile-overlay" id="mobile-overlay"></div>
 
-    <!-- Mobile Menu -->
+    <!-- ── MOBILE MENU ── -->
     <div class="mobile-menu" id="mobile-menu">
-        <div class="p-6">
-            <div class="flex items-center gap-3 mb-6 pb-4 border-b-2 border-gray-100">
-                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                    <span class="material-icons text-white text-lg">apps</span>
+        <div style="padding:1.5rem;">
+
+            <!-- Header -->
+            <div class="menu-header">
+                <div class="menu-header-icon">
+                    <span class="material-icons" style="color:white; font-size:1.1rem;">apps</span>
+                    <div class="menu-header-dot"></div>
                 </div>
                 <div>
-                    <span class="text-sm font-bold text-gray-900 uppercase tracking-tight block">Navigation</span>
-                    <span class="text-[10px] text-gray-500 uppercase tracking-wider">Lumina API</span>
+                    <span class="menu-header-title">Navigation</span>
+                    <span class="menu-header-sub">Lumina API</span>
                 </div>
             </div>
 
-            <nav class="space-y-2">
-                <a href="/" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
-                    <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-gray-600">home</span>
+            <!-- Nav Links -->
+            <nav style="display:flex; flex-direction:column; gap:0.25rem;">
+                <a href="/" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(100,116,139,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--text-muted);">home</span>
                     </div>
                     <span>Home</span>
                 </a>
-                <a href="/docs" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
-                    <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-gray-600">description</span>
+
+                <a href="/docs" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(59,130,246,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:#3b82f6;">description</span>
                     </div>
                     <span>Documentation</span>
                 </a>
-                <a href="/contributors" class="menu-item flex items-center gap-4 px-4 py-4 text-gray-700 hover:bg-gray-50 font-semibold text-sm uppercase tracking-wide rounded-lg transition-all hover:shadow-sm">
-                    <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-purple-600">people</span>
+
+                <a href="/contributors" class="menu-item">
+                    <div class="menu-icon-box" style="background:var(--highlight-color);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">people</span>
                     </div>
                     <span>Contributors</span>
                 </a>
-                <!-- Status — active state -->
-                <a href="/status" class="menu-item active flex items-center gap-4 px-4 py-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white font-bold text-sm uppercase tracking-wide rounded-lg shadow-md transition-all hover:shadow-lg">
-                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm">bar_chart</span>
+
+                <a href="/luminaai" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(79,70,229,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:#4f46e5;">auto_awesome</span>
+                    </div>
+                    <span>Lumina AI</span>
+                    <span class="menu-badge" style="background:rgba(79,70,229,0.12); color:#4f46e5;">New</span>
+                </a>
+
+                <a href="/status" class="menu-item active">
+                    <div class="menu-icon-box" style="background:rgba(255,255,255,0.15);">
+                        <span class="material-icons" style="font-size:1rem; color:white;">bar_chart</span>
                     </div>
                     <span>API Status</span>
+                    <span class="menu-badge menu-badge-current">Current</span>
                 </a>
             </nav>
 
-            <div class="mt-8 pt-6 border-t-2 border-gray-100">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center gap-4 px-4 py-4 bg-gray-900 text-white font-semibold text-sm rounded-lg hover:bg-black transition-all shadow-md hover:shadow-lg">
-                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm">code</span>
+            <!-- GitHub -->
+            <div class="menu-section-divider">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link">
+                    <div class="github-link-icon">
+                        <i class="fab fa-github" style="color:white; font-size:0.95rem;"></i>
                     </div>
-                    <div class="flex-1">
-                        <span class="block">View on GitHub</span>
-                        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Open Source</span>
+                    <div style="flex:1;">
+                        <span style="display:block; font-size:0.82rem;">View on GitHub</span>
+                        <span style="font-size:0.6rem; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:0.12em;">Open Source</span>
                     </div>
-                    <span class="material-icons text-sm">arrow_forward</span>
+                    <span class="material-icons" style="font-size:1rem; color:rgba(255,255,255,0.4);">arrow_forward</span>
                 </a>
             </div>
 
-            <!-- Quick Stats widget -->
-            <div class="mt-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-gray-100">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="material-icons text-sm text-purple-600">info</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-700">Quick Stats</span>
+            <!-- Quick Stats -->
+            <div class="stats-card">
+                <div class="stats-card-header">
+                    <span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">insights</span>
+                    Quick Stats
                 </div>
-                <div class="grid grid-cols-2 gap-2 mt-3">
-                    <div class="bg-white p-2 rounded">
-                        <div id="menu-total-endpoints" class="text-lg font-bold text-gray-900">--</div>
-                        <div class="text-[9px] text-gray-500 uppercase">Endpoints</div>
+                <div class="stats-grid">
+                    <div class="stats-item">
+                        <div id="menu-total-endpoints" class="stats-value">--</div>
+                        <div class="stats-label">Endpoints</div>
                     </div>
-                    <div class="bg-white p-2 rounded">
-                        <div id="menu-success-rate" class="text-lg font-bold text-gray-900">--</div>
-                        <div class="text-[9px] text-gray-500 uppercase">Success</div>
+                    <div class="stats-item">
+                        <div id="menu-success-rate" class="stats-value" style="color:var(--success-color);">--</div>
+                        <div class="stats-label">Success</div>
                     </div>
                 </div>
             </div>
+
+            <!-- Color Customizer -->
+            <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border-color);">
+                <div class="color-customizer">
+                    <div class="customizer-header" id="customizer-toggle">
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">palette</span>
+                            <span class="customizer-title">Theme Colors</span>
+                        </div>
+                        <span class="material-icons" id="customizer-chevron" style="font-size:1rem; color:var(--text-muted); transition:transform 0.3s ease;">expand_more</span>
+                    </div>
+                    <div class="customizer-panel" id="customizer-panel">
+                        <div class="customizer-section-label">Quick Presets</div>
+                        <div class="preset-grid">
+                            <button class="preset-btn active" data-primary="#4f46e5" data-accent="#22d3ee" data-nav="#1e1b4b" title="Indigo + Cyan">
+                                <span style="background:#4f46e5"></span><span style="background:#22d3ee"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#7c3aed" data-accent="#a29bfe" data-nav="#1a1035" title="Purple">
+                                <span style="background:#7c3aed"></span><span style="background:#a29bfe"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#0ea5e9" data-accent="#06b6d4" data-nav="#0c1a2e" title="Sky Blue">
+                                <span style="background:#0ea5e9"></span><span style="background:#06b6d4"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#10b981" data-accent="#34d399" data-nav="#0a1f18" title="Emerald">
+                                <span style="background:#10b981"></span><span style="background:#34d399"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#f59e0b" data-accent="#fbbf24" data-nav="#1c1505" title="Amber">
+                                <span style="background:#f59e0b"></span><span style="background:#fbbf24"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#f43f5e" data-accent="#fb7185" data-nav="#1f0a10" title="Rose">
+                                <span style="background:#f43f5e"></span><span style="background:#fb7185"></span>
+                            </button>
+                        </div>
+                        <div class="customizer-section-label" style="margin-top:0.875rem;">Custom</div>
+                        <div class="picker-row">
+                            <label class="picker-label">
+                                <span>Primary</span>
+                                <div class="picker-wrap">
+                                    <input type="color" id="pick-primary" class="color-picker" value="#4f46e5">
+                                    <span class="picker-swatch" id="swatch-primary" style="background:#4f46e5"></span>
+                                </div>
+                            </label>
+                            <label class="picker-label">
+                                <span>Accent</span>
+                                <div class="picker-wrap">
+                                    <input type="color" id="pick-accent" class="color-picker" value="#22d3ee">
+                                    <span class="picker-swatch" id="swatch-accent" style="background:#22d3ee"></span>
+                                </div>
+                            </label>
+                            <label class="picker-label">
+                                <span>Navbar</span>
+                                <div class="picker-wrap">
+                                    <input type="color" id="pick-nav" class="color-picker" value="#1e1b4b">
+                                    <span class="picker-swatch" id="swatch-nav" style="background:#1e1b4b"></span>
+                                </div>
+                            </label>
+                        </div>
+                        <button class="customizer-reset" id="customizer-reset">
+                            <span class="material-icons" style="font-size:0.85rem;">refresh</span>
+                            Reset to Default
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <div class="px-10 md:px-5 max-w-6xl mx-auto">
-        
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 mb-3 tracking-tight">API Status & Debug</h1>
-            <p class="text-[11px] text-gray-600 leading-relaxed">
-                Real-time monitoring dan debugging tools untuk Lumina API infrastructure
-            </p>
+    <!-- ── MAIN CONTENT ── -->
+    <div class="page-wrapper" style="max-width: 56rem;">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.35rem;">
+                <h1 class="page-header-title">API Status <span class="gradient-text">&amp; Debug</span></h1>
+            </div>
+            <p class="page-header-sub">Real-time monitoring dan debugging tools untuk Lumina API infrastructure</p>
         </div>
 
         <!-- Overall Status Banner -->
-        <div class="industrial-banner p-8 w-full mb-8 bg-white">
-            <div class="dot -top-1.5 -left-1.5"></div>
-            <div class="dot -top-1.5 -right-1.5"></div>
-            <div class="dot -bottom-1.5 -left-1.5"></div>
-            <div class="dot -bottom-1.5 -right-1.5"></div>
-            
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="relative">
-                        <div id="status-indicator" class="w-16 h-16 status-online rounded-full flex items-center justify-center z-10 relative">
-                            <span id="status-icon" class="material-icons text-white text-3xl">check_circle</span>
+        <div class="status-banner">
+            <div class="corner-dot tl"></div>
+            <div class="corner-dot tr"></div>
+            <div class="corner-dot bl"></div>
+            <div class="corner-dot br"></div>
+
+            <div class="status-banner-inner" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <div class="status-indicator-wrap">
+                        <div id="status-circle" class="status-circle status-online">
+                            <span id="status-icon" class="material-icons" style="color:white; font-size:1.75rem;">check_circle</span>
                         </div>
-                        <div id="pulse-ring" class="absolute inset-0 w-16 h-16 bg-green-500 rounded-full pulse-ring"></div>
+                        <div id="pulse-ring" class="pulse-ring"></div>
                     </div>
                     <div>
-                        <h2 id="status-text" class="text-2xl font-bold text-gray-900 mb-1">All Systems Operational</h2>
-                        <p class="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                        <div id="status-text" style="font-size:1.1rem; font-weight:700; color:var(--text-color); margin-bottom:0.25rem;">All Systems Operational</div>
+                        <div style="font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.15em; color:var(--text-muted);">
                             Last updated: <span id="last-update">Just now</span>
-                        </p>
+                        </div>
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button id="refresh-btn" class="bg-gray-800 text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-gray-900 transition flex items-center gap-2">
-                        <span class="material-icons text-sm">refresh</span>
+                <div class="status-banner-actions" style="display:flex; gap:0.625rem; flex-wrap:wrap;">
+                    <button id="refresh-btn" class="action-btn action-btn-primary">
+                        <span class="material-icons" style="font-size:0.9rem;">refresh</span>
                         Refresh
                     </button>
-                    <button id="test-all-btn" class="border-2 border-gray-800 text-gray-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 transition flex items-center gap-2">
-                        <span class="material-icons text-sm">play_arrow</span>
+                    <button id="test-all-btn" class="action-btn action-btn-outline">
+                        <span class="material-icons" style="font-size:0.9rem;">play_arrow</span>
                         Test All
                     </button>
                 </div>
@@ -331,368 +677,297 @@
         </div>
 
         <!-- Metrics Grid -->
-        <div class="grid md:grid-cols-4 gap-4 mb-8">
-            <div class="metric-card border-2 border-gray-200 p-6 bg-white">
-                <div class="flex items-center justify-between mb-4">
-                    <span class="material-icons text-blue-600 text-3xl">api</span>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Endpoints</span>
+        <div class="metric-grid">
+            <div class="metric-card" style="animation-delay:0.05s;">
+                <div class="metric-icon-box">
+                    <span class="material-icons" style="color:var(--primary-color); font-size:1.1rem;">api</span>
                 </div>
-                <div id="total-endpoints" class="text-4xl font-bold text-gray-900 mb-2">--</div>
-                <p class="text-[10px] text-gray-500 font-medium">Total Available</p>
+                <div id="total-endpoints" class="metric-value">--</div>
+                <div class="metric-label">Total Endpoints</div>
             </div>
-
-            <div class="metric-card border-2 border-gray-200 p-6 bg-white">
-                <div class="flex items-center justify-between mb-4">
-                    <span class="material-icons text-green-600 text-3xl">speed</span>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Speed</span>
+            <div class="metric-card" style="animation-delay:0.1s;">
+                <div class="metric-icon-box">
+                    <span class="material-icons" style="color:var(--accent-color); font-size:1.1rem;">speed</span>
                 </div>
-                <div id="avg-response-time" class="text-4xl font-bold text-gray-900 mb-2">--</div>
-                <p class="text-[10px] text-gray-500 font-medium">Avg Response Time</p>
+                <div id="avg-response-time" class="metric-value">--</div>
+                <div class="metric-label">Avg Response</div>
             </div>
-
-            <div class="metric-card border-2 border-gray-200 p-6 bg-white">
-                <div class="flex items-center justify-between mb-4">
-                    <span class="material-icons text-purple-600 text-3xl">check_circle</span>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Success</span>
+            <div class="metric-card" style="animation-delay:0.15s;">
+                <div class="metric-icon-box">
+                    <span class="material-icons" style="color:var(--success-color); font-size:1.1rem;">check_circle</span>
                 </div>
-                <div id="success-rate" class="text-4xl font-bold text-gray-900 mb-2">--</div>
-                <p class="text-[10px] text-gray-500 font-medium">Success Rate</p>
+                <div id="success-rate" class="metric-value">--</div>
+                <div class="metric-label">Success Rate</div>
             </div>
-
-            <div class="metric-card border-2 border-gray-200 p-6 bg-white">
-                <div class="flex items-center justify-between mb-4">
-                    <span class="material-icons text-orange-600 text-3xl">cloud_done</span>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Uptime</span>
+            <div class="metric-card" style="animation-delay:0.2s;">
+                <div class="metric-icon-box">
+                    <span class="material-icons" style="color:var(--warning-color); font-size:1.1rem;">cloud_done</span>
                 </div>
-                <div id="uptime" class="text-4xl font-bold text-gray-900 mb-2">--</div>
-                <p class="text-[10px] text-gray-500 font-medium">Last 30 Days</p>
+                <div id="uptime" class="metric-value">--</div>
+                <div class="metric-label">Uptime 30d</div>
             </div>
         </div>
 
-        <!-- Live counter row (success / error) -->
-        <div class="flex gap-3 mb-4">
-            <div class="flex items-center gap-2 bg-green-50 border border-green-200 px-4 py-2">
-                <span class="material-icons text-green-600 text-sm">check_circle</span>
-                <span class="text-[11px] font-bold text-green-700">Success:</span>
-                <span id="live-success" class="text-[11px] font-bold text-green-700">0</span>
+        <!-- Counter Strip -->
+        <div class="counter-strip">
+            <div class="counter-chip success">
+                <span class="material-icons" style="font-size:0.85rem;">check_circle</span>
+                Success: <strong id="live-success">0</strong>
             </div>
-            <div class="flex items-center gap-2 bg-red-50 border border-red-200 px-4 py-2">
-                <span class="material-icons text-red-600 text-sm">error</span>
-                <span class="text-[11px] font-bold text-red-700">Error:</span>
-                <span id="live-error" class="text-[11px] font-bold text-red-700">0</span>
+            <div class="counter-chip error">
+                <span class="material-icons" style="font-size:0.85rem;">error</span>
+                Error: <strong id="live-error">0</strong>
             </div>
-            <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 px-4 py-2 ml-auto">
-                <span class="material-icons text-gray-600 text-sm">pending</span>
-                <span class="text-[11px] font-bold text-gray-600">Pending:</span>
-                <span id="live-pending" class="text-[11px] font-bold text-gray-600">0</span>
+            <div class="counter-chip pending pending-right">
+                <span class="material-icons" style="font-size:0.85rem;">pending</span>
+                Pending: <strong id="live-pending">0</strong>
             </div>
         </div>
 
-        <!-- Endpoint Testing -->
-        <div class="border-2 border-gray-200 bg-white mb-8">
-            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-800">Endpoint Health Check</h3>
-                <span id="test-progress" class="text-[10px] font-bold text-gray-500"></span>
+        <!-- Endpoint Health Check -->
+        <div class="status-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">monitor_heart</span>
+                    Endpoint Health Check
+                </div>
+                <span id="test-progress" style="font-size:0.65rem; font-weight:600; color:var(--text-muted);"></span>
             </div>
-            <div id="endpoint-tests" class="divide-y divide-gray-100 max-h-96 overflow-y-auto"></div>
+            <div class="endpoint-scroll">
+                <div id="endpoint-tests"></div>
+            </div>
         </div>
 
-        <!-- Live Activity dari docs.html -->
-        <div class="border-2 border-gray-200 bg-white mb-8">
-            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-800">Live Activity</h3>
-                    <!-- dot kedip kalau ada activity masuk -->
-                    <span id="live-dot" class="w-2 h-2 rounded-full bg-gray-300"></span>
+        <!-- Live Activity -->
+        <div class="status-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="material-icons" style="font-size:0.9rem; color:var(--success-color);">bolt</span>
+                    Live Activity
+                    <span class="live-indicator" id="live-dot"></span>
                 </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-[10px] text-gray-400 font-medium">dari docs.html</span>
-                    <button id="clear-activity-btn" class="text-[10px] font-bold uppercase text-gray-500 hover:text-gray-900 transition">
-                        Clear
-                    </button>
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <span style="font-size:0.62rem; color:var(--text-muted);">dari docs.html</span>
+                    <button id="clear-activity-btn" class="panel-action">Clear</button>
                 </div>
             </div>
-            <div id="live-activity" class="max-h-64 overflow-y-auto">
-                <div class="px-6 py-6 text-center text-[10px] text-gray-400 uppercase tracking-wider" id="activity-placeholder">
-                    Belum ada request dari docs — buka docs.html dan coba "Send Request"
+            <div class="activity-scroll">
+                <div id="live-activity">
+                    <div id="activity-placeholder" style="padding:2rem 1.25rem; text-align:center; font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em;">
+                        Belum ada request — buka docs.html dan coba Send Request
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Debug Console -->
-        <div class="border-2 border-gray-200 bg-white mb-8">
-            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-800">Debug Console</h3>
-                <button id="clear-logs-btn" class="text-[10px] font-bold uppercase text-gray-500 hover:text-gray-900 transition">
-                    Clear Logs
-                </button>
+        <div class="status-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="material-icons" style="font-size:0.9rem; color:var(--text-muted);">terminal</span>
+                    Debug Console
+                </div>
+                <button id="clear-logs-btn" class="panel-action">Clear Logs</button>
             </div>
-            <div id="debug-logs" class="p-4 bg-gray-50 font-mono text-[10px] h-64 overflow-y-auto">
-                <div class="text-gray-500">Waiting for activity...</div>
+            <div class="debug-console" id="debug-logs">
+                <div class="text-muted" style="color:var(--text-muted);">Waiting for activity...</div>
             </div>
         </div>
 
         <!-- Footer -->
-        <div class="mt-16 pt-8 border-t border-gray-200 flex justify-between items-center">
-            <span class="text-[10px] text-gray-400 font-bold tracking-[0.4em] uppercase">
-                © 2025 Robin • All Rights Reserved
-            </span>
-            <a href="/" class="text-[10px] text-gray-400 hover:text-gray-600 font-bold tracking-widest uppercase transition">
-                Back to Home
-            </a>
+        <div class="main-footer">
+            <span class="footer-copy">© 2025 Robin • All Rights Reserved</span>
+            <span class="footer-id">ID::LUM-STATUS</span>
         </div>
+
     </div>
 
     <script>
-        let endpoints   = [];
-        let testResults = [];
+        let endpoints    = [];
+        let testResults  = [];
         let successCount = 0;
         let errorCount   = 0;
 
-        // ─── Logger ───
+        // ── Logger ──
         function log(message, type = 'info') {
-            const logsContainer = document.getElementById('debug-logs');
-            const timestamp     = new Date().toLocaleTimeString('id-ID');
-            const colors = {
-                info:    'text-blue-600',
-                success: 'text-green-600',
-                error:   'text-red-600',
-                warning: 'text-yellow-600'
-            };
+            const container = document.getElementById('debug-logs');
+            const timestamp = new Date().toLocaleTimeString('id-ID');
+            const cls       = { info:'log-info', success:'log-success', error:'log-error', warning:'log-warning' }[type] || 'log-info';
 
-            const entry       = document.createElement('div');
-            entry.className   = `log-entry ${colors[type] || colors.info}`;
-            entry.innerHTML   = `[${timestamp}] ${message}`;
-            
-            if (logsContainer.children[0]?.textContent === 'Waiting for activity...') {
-                logsContainer.innerHTML = '';
-            }
-            
-            logsContainer.appendChild(entry);
-            logsContainer.scrollTop = logsContainer.scrollHeight;
+            if (container.children[0]?.textContent === 'Waiting for activity...') container.innerHTML = '';
+
+            const entry     = document.createElement('div');
+            entry.className = `log-entry ${cls}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
         }
 
-        // ─── Smart Defaults ───
+        // ── Smart defaults ──
         function getDefaultValue(paramName, endpointName) {
-            const paramLower    = paramName.replace(/^_/, '').toLowerCase(); // strip prefix underscore
-            const endpointLower = endpointName.toLowerCase();
-            
-            const defaults = {
-                'prompt': 'Hello',
-                'text': 'test',
-                'query': 'test',
-                'q': 'test',
-                'message': 'Hello',
-                'content': 'test content',
-                'search': 'anime',
-                'keyword': 'cute',
-                'term': 'test',
-                'username': 'testuser',
-                'user': 'testuser',
-                'name': 'Test User',
-                'url': 'https://example.com',
-                'link': 'https://example.com',
-                'count': '1',
-                'limit': '5',
-                'page': '1',
-                'amount': '10',
-                'id': '1',
-                'userid': '123',
-                'city': 'Jakarta',
-                'location': 'Jakarta',
-                'country': 'Indonesia',
-                'lang': 'en',
-                'language': 'english',
-                'type': 'image',
-                'category': 'anime',
-                'action': 'chat',
-                'aspectratio': '1:1'
+            const p = paramName.replace(/^_/, '').toLowerCase();
+            const e = endpointName.toLowerCase();
+            const map = {
+                prompt:'Hello', text:'test', query:'test', q:'test', message:'Hello',
+                content:'test content', search:'anime', keyword:'cute', term:'test',
+                username:'testuser', user:'testuser', name:'Test User',
+                url:'https://example.com', link:'https://example.com',
+                count:'1', limit:'5', page:'1', amount:'10', id:'1', userid:'123',
+                city:'Jakarta', location:'Jakarta', country:'Indonesia',
+                lang:'en', language:'english', type:'image', category:'anime',
+                action:'chat', aspectratio:'1:1'
             };
-            
-            for (const [key, value] of Object.entries(defaults)) {
-                if (paramLower.includes(key)) return value;
-            }
-            
-            if (endpointLower.includes('chat') || endpointLower.includes('ai'))         return 'Hello, how are you?';
-            if (endpointLower.includes('search') || endpointLower.includes('google'))   return 'artificial intelligence';
-            if (endpointLower.includes('translate'))                                    return 'hello world';
-            if (endpointLower.includes('image') || endpointLower.includes('photo'))     return 'cute anime girl';
-            
+            for (const [k, v] of Object.entries(map)) { if (p.includes(k)) return v; }
+            if (e.includes('chat') || e.includes('ai'))              return 'Hello, how are you?';
+            if (e.includes('search') || e.includes('google'))        return 'artificial intelligence';
+            if (e.includes('translate'))                             return 'hello world';
+            if (e.includes('image') || e.includes('photo'))         return 'cute anime girl';
             return 'test';
         }
 
-        // ─── Flash helper (kedip angka pas update) ───
         function flash(el, cls) {
             el.classList.add(cls);
             setTimeout(() => el.classList.remove(cls), 400);
         }
 
-        // ─── Update live counters ───
         function updateLiveCounters() {
-            const elS = document.getElementById('live-success');
-            const elE = document.getElementById('live-error');
-            const elP = document.getElementById('live-pending');
-
-            elS.textContent = successCount;
-            elE.textContent = errorCount;
-            elP.textContent = endpoints.length - successCount - errorCount;
+            document.getElementById('live-success').textContent = successCount;
+            document.getElementById('live-error').textContent   = errorCount;
+            document.getElementById('live-pending').textContent = endpoints.length - successCount - errorCount;
         }
 
-        // ─── Fetch Endpoints (simpan path LENGKAP) ───
+        // ── Fetch endpoints ──
         async function fetchEndpoints() {
             try {
                 log('Fetching endpoints list...', 'info');
-                const response = await fetch('/endpoints');
-                const data     = await response.json();
-                
+                const res  = await fetch('/endpoints');
+                const data = await res.json();
+
                 endpoints = [];
-                data.endpoints.forEach(category => {
-                    category.items.forEach(item => {
-                        const name     = Object.keys(item)[0];
-                        const endpoint = item[name];
-                        endpoints.push({
-                            name,
-                            path:     endpoint.path.split('?')[0],   // buat display
-                            fullPath: endpoint.path,                  // lengkap, buat test
-                            category: category.name
-                        });
+                data.endpoints.forEach(cat => {
+                    cat.items.forEach(item => {
+                        const name = Object.keys(item)[0];
+                        const ep   = item[name];
+                        endpoints.push({ name, path: ep.path.split('?')[0], fullPath: ep.path, category: cat.name });
                     });
                 });
 
-                document.getElementById('total-endpoints').textContent = endpoints.length;
-                document.getElementById('menu-total-endpoints').textContent = endpoints.length;
-                document.getElementById('live-pending').textContent     = endpoints.length;
+                document.getElementById('total-endpoints').textContent      = endpoints.length;
+                document.getElementById('menu-total-endpoints').textContent  = endpoints.length;
+                document.getElementById('live-pending').textContent          = endpoints.length;
                 log(`Found ${endpoints.length} endpoints`, 'success');
                 renderEndpointTests();
-            } catch (error) {
-                log(`Error fetching endpoints: ${error.message}`, 'error');
+            } catch (err) {
+                log(`Error fetching endpoints: ${err.message}`, 'error');
             }
         }
 
-        // ─── Render Endpoint Tests ───
+        // ── Render endpoint test rows ──
         function renderEndpointTests() {
             const container = document.getElementById('endpoint-tests');
             container.innerHTML = '';
 
-            endpoints.forEach((endpoint, index) => {
-                const div       = document.createElement('div');
-                div.className   = 'endpoint-test px-6 py-4 hover:bg-gray-50 transition';
-                div.id          = `endpoint-${index}`;
-                div.innerHTML   = `
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-xs font-bold text-gray-900">${endpoint.name}</span>
-                                <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 bg-gray-100 text-gray-600">${endpoint.category}</span>
+            endpoints.forEach((ep, i) => {
+                const row = document.createElement('div');
+                row.className = 'endpoint-test';
+                row.id        = `endpoint-${i}`;
+                row.innerHTML = `
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
+                        <div style="flex:1; min-width:0;">
+                            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                                <span class="endpoint-name">${ep.name}</span>
+                                <span class="endpoint-category-badge">${ep.category}</span>
                             </div>
-                            <code class="text-[10px] text-gray-500">${endpoint.path}</code>
+                            <div class="endpoint-path-text">${ep.path}</div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <span class="status-badge text-[9px] font-bold uppercase px-2 py-1 bg-gray-100 text-gray-600">Pending</span>
-                            <button class="test-single-btn text-gray-400 hover:text-gray-900 transition" data-index="${index}">
-                                <span class="material-icons text-sm">play_arrow</span>
+                        <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
+                            <span class="test-status-badge pending">Pending</span>
+                            <button class="test-single-btn" data-index="${i}" title="Test this endpoint">
+                                <span class="material-icons" style="font-size:1rem;">play_arrow</span>
                             </button>
                         </div>
                     </div>
-                    <!-- Error detail — muncul kalau ada error -->
-                    <div class="error-detail" id="error-detail-${index}">
-                        <div class="flex items-start gap-2 bg-red-50 border border-red-100 p-3 mt-1">
-                            <span class="material-icons text-red-500 text-sm mt-0.5">error_outline</span>
-                            <div class="flex-1 min-w-0">
-                                <span class="text-[10px] font-bold text-red-600 uppercase tracking-wider">Error Detail</span>
-                                <p class="error-message text-[10px] text-red-500 font-mono mt-0.5 break-all">-</p>
+                    <div class="error-detail" id="error-detail-${i}">
+                        <div class="error-detail-inner">
+                            <span class="material-icons" style="font-size:0.9rem; color:var(--error-color); flex-shrink:0;">error_outline</span>
+                            <div>
+                                <div style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--error-color); margin-bottom:0.2rem;">Error Detail</div>
+                                <div class="error-message" style="font-family:'Courier New',monospace; font-size:0.68rem; color:var(--error-color); word-break:break-all;">-</div>
                             </div>
                         </div>
                     </div>
                 `;
-                container.appendChild(div);
+                container.appendChild(row);
             });
 
-            // single-test button — event delegation
-            container.addEventListener('click', (e) => {
+            // Event delegation
+            container.addEventListener('click', e => {
                 const btn = e.target.closest('.test-single-btn');
                 if (btn) testEndpoint(Number(btn.dataset.index));
             });
         }
 
-        // ─── Test Single Endpoint ───
+        // ── Test single endpoint ──
         window.testEndpoint = async function(index) {
-            const endpoint = endpoints[index];
-            const element  = document.getElementById(`endpoint-${index}`);
-            const badge    = element.querySelector('.status-badge');
-            const detail   = document.getElementById(`error-detail-${index}`);
-            const errMsg   = detail.querySelector('.error-message');
+            const ep      = endpoints[index];
+            const row     = document.getElementById(`endpoint-${index}`);
+            const badge   = row.querySelector('.test-status-badge');
+            const detail  = document.getElementById(`error-detail-${index}`);
+            const errMsg  = detail.querySelector('.error-message');
 
-            // Reset state
-            element.classList.remove('success', 'error');
-            element.classList.add('pending');
+            row.classList.remove('success','error');
+            row.classList.add('pending');
             detail.classList.remove('open');
             badge.textContent = 'Testing...';
-            badge.className   = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-yellow-100 text-yellow-700';
+            badge.className   = 'test-status-badge pending';
 
-            // ── Build URL dari fullPath + smart defaults ──
-            let testUrl = endpoint.fullPath;
-
+            // Build URL with smart defaults
+            let testUrl = ep.fullPath;
             if (testUrl.includes('?')) {
                 const [base, params] = testUrl.split('?');
-                const filledParams   = params.split('&').map(param => {
-                    const paramName   = param.split('=')[0];
-                    const defaultVal  = getDefaultValue(paramName, endpoint.name);
-                    return `${paramName}=${encodeURIComponent(defaultVal)}`;
+                const filled = params.split('&').map(p => {
+                    const pName = p.split('=')[0];
+                    return `${pName}=${encodeURIComponent(getDefaultValue(pName, ep.name))}`;
                 });
-                testUrl = `${base}?${filledParams.join('&')}`;
+                testUrl = `${base}?${filled.join('&')}`;
             }
 
             log(`Testing: ${testUrl}`, 'info');
 
             try {
                 const start    = Date.now();
-                const response = await fetch(testUrl);
+                const res      = await fetch(testUrl);
                 const duration = Date.now() - start;
 
-                // Cek response — kalau bukan ok, ambil body buat error detail
-                if (!response.ok) {
-                    let errorBody = `HTTP ${response.status}`;
+                if (!res.ok) {
+                    let errBody = `HTTP ${res.status}`;
                     try {
-                        const ct   = response.headers.get('content-type') || '';
-                        const text = await response.text();
-                        if (ct.includes('application/json')) {
-                            const json = JSON.parse(text);
-                            errorBody  = json.error || json.message || text;
-                        } else {
-                            errorBody  = text || errorBody;
-                        }
-                    } catch (_) { /* biarin default */ }
-                    throw { status: response.status, detail: errorBody };
+                        const ct   = res.headers.get('content-type') || '';
+                        const text = await res.text();
+                        errBody = ct.includes('application/json') ? (JSON.parse(text).error || JSON.parse(text).message || text) : (text || errBody);
+                    } catch (_) {}
+                    throw { status: res.status, detail: errBody };
                 }
 
-                // ── Success ──
-                element.classList.remove('pending');
-                element.classList.add('success');
+                row.classList.remove('pending');
+                row.classList.add('success');
                 badge.textContent = `${duration}ms`;
-                badge.className   = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-green-100 text-green-700';
-                log(`✓ ${endpoint.name}: ${duration}ms`, 'success');
+                badge.className   = 'test-status-badge success';
+                log(`✓ ${ep.name}: ${duration}ms`, 'success');
                 testResults.push({ success: true, time: duration });
-
                 successCount++;
                 flash(document.getElementById('live-success'), 'flash-green');
 
-            } catch (error) {
-                // ── Error ──
-                const detail_text = error.detail || error.message || 'Unknown error';
-
-                element.classList.remove('pending');
-                element.classList.add('error');
-                badge.textContent = `${error.status || 'Fail'}`;
-                badge.className   = 'status-badge text-[9px] font-bold uppercase px-2 py-1 bg-red-100 text-red-700';
-
-                // Buka error detail langsung
-                errMsg.textContent = detail_text;
+            } catch (err) {
+                const txt = err.detail || err.message || 'Unknown error';
+                row.classList.remove('pending');
+                row.classList.add('error');
+                badge.textContent = `${err.status || 'Fail'}`;
+                badge.className   = 'test-status-badge error';
+                errMsg.textContent = txt;
                 detail.classList.add('open');
-
-                log(`✗ ${endpoint.name}: ${detail_text}`, 'error');
+                log(`✗ ${ep.name}: ${txt}`, 'error');
                 testResults.push({ success: false, time: 0 });
-
                 errorCount++;
                 flash(document.getElementById('live-error'), 'flash-red');
             }
@@ -701,188 +976,159 @@
             updateMetrics();
         };
 
-        // ─── Test All ───
+        // ── Test all ──
         async function testAllEndpoints() {
-            // Reset semua
-            testResults  = [];
-            successCount = 0;
-            errorCount   = 0;
+            testResults = []; successCount = 0; errorCount = 0;
             updateLiveCounters();
-
             log('Starting full system test...', 'info');
-            
-            const testBtn = document.getElementById('test-all-btn');
-            testBtn.disabled = true;
-            testBtn.innerHTML = '<span class="material-icons text-sm animate-spin">refresh</span> Testing...';
+
+            const btn = document.getElementById('test-all-btn');
+            btn.disabled  = true;
+            btn.innerHTML = `<span class="material-icons" style="font-size:0.9rem; animation:spin 0.8s linear infinite;">refresh</span> Testing...`;
 
             for (let i = 0; i < endpoints.length; i++) {
-                document.getElementById('test-progress').textContent = `Testing ${i + 1}/${endpoints.length}`;
+                document.getElementById('test-progress').textContent = `Testing ${i+1}/${endpoints.length}`;
                 await testEndpoint(i);
-                await new Promise(r => setTimeout(r, 150)); // slight throttle
+                await new Promise(r => setTimeout(r, 150));
             }
 
             document.getElementById('test-progress').textContent = 'Complete';
-            testBtn.disabled  = false;
-            testBtn.innerHTML = '<span class="material-icons text-sm">play_arrow</span> Test All';
+            btn.disabled  = false;
+            btn.innerHTML = `<span class="material-icons" style="font-size:0.9rem;">play_arrow</span> Test All`;
             log('System test completed', 'success');
         }
 
-        // ─── Update Metrics ───
+        // ── Update metrics ──
         function updateMetrics() {
-            if (testResults.length === 0) return;
+            if (!testResults.length) return;
+            const ok      = testResults.filter(r => r.success);
+            const rate    = ((ok.length / testResults.length) * 100).toFixed(1);
+            const avgTime = ok.length ? ok.reduce((s,r)=>s+r.time,0)/ok.length : 0;
 
-            const successful  = testResults.filter(r => r.success).length;
-            const total       = testResults.length;
-            const successRate = ((successful / total) * 100).toFixed(1);
-            const avgTime     = successful > 0
-                ? testResults.filter(r => r.success).reduce((s, r) => s + r.time, 0) / successful
-                : 0;
+            document.getElementById('success-rate').innerHTML       = `${rate}<span>%</span>`;
+            document.getElementById('menu-success-rate').textContent = `${rate}%`;
+            document.getElementById('avg-response-time').innerHTML  = `${Math.round(avgTime)}<span>ms</span>`;
+            document.getElementById('uptime').innerHTML             = `99.9<span>%</span>`;
 
-            document.getElementById('success-rate').innerHTML        = `${successRate}<span class="text-lg text-gray-500">%</span>`;
-            document.getElementById('menu-success-rate').textContent  = `${successRate}%`;
-            document.getElementById('avg-response-time').innerHTML   = `${Math.round(avgTime)}<span class="text-lg text-gray-500">ms</span>`;
-            document.getElementById('uptime').innerHTML              = `99.9<span class="text-lg text-gray-500">%</span>`;
+            const circle = document.getElementById('status-circle');
+            const icon   = document.getElementById('status-icon');
+            const text   = document.getElementById('status-text');
+            const pulse  = document.getElementById('pulse-ring');
 
-            // ── Overall status + pulse color ──
-            const statusIndicator = document.getElementById('status-indicator');
-            const statusIcon      = document.getElementById('status-icon');
-            const statusText      = document.getElementById('status-text');
-            const pulseRing       = document.getElementById('pulse-ring');
-
-            pulseRing.classList.remove('degraded', 'offline');
-
-            if (successRate >= 95) {
-                statusIndicator.className = 'w-16 h-16 status-online rounded-full flex items-center justify-center z-10 relative';
-                statusIcon.textContent    = 'check_circle';
-                statusText.textContent    = 'All Systems Operational';
-                pulseRing.style.background = '#22c55e';
-            } else if (successRate >= 70) {
-                statusIndicator.className = 'w-16 h-16 status-degraded rounded-full flex items-center justify-center z-10 relative';
-                statusIcon.textContent    = 'warning';
-                statusText.textContent    = 'Degraded Performance';
-                pulseRing.style.background = '#f59e0b';
+            if (rate >= 95) {
+                circle.className  = 'status-circle status-online';
+                icon.textContent  = 'check_circle';
+                text.textContent  = 'All Systems Operational';
+                pulse.style.background = '#10b981';
+            } else if (rate >= 70) {
+                circle.className  = 'status-circle status-degraded';
+                icon.textContent  = 'warning';
+                text.textContent  = 'Degraded Performance';
+                pulse.style.background = '#f59e0b';
             } else {
-                statusIndicator.className = 'w-16 h-16 status-offline rounded-full flex items-center justify-center z-10 relative';
-                statusIcon.textContent    = 'error';
-                statusText.textContent    = 'Major Outage';
-                pulseRing.style.background = '#ef4444';
+                circle.className  = 'status-circle status-offline';
+                icon.textContent  = 'error';
+                text.textContent  = 'Major Outage';
+                pulse.style.background = '#f43f5e';
             }
         }
 
-        // ─── Event Listeners ───
+        // ── Event listeners ──
         document.getElementById('refresh-btn').addEventListener('click', () => window.location.reload());
         document.getElementById('test-all-btn').addEventListener('click', testAllEndpoints);
         document.getElementById('clear-logs-btn').addEventListener('click', () => {
-            document.getElementById('debug-logs').innerHTML = '<div class="text-gray-500">Logs cleared</div>';
+            document.getElementById('debug-logs').innerHTML = `<div style="color:var(--text-muted);">Logs cleared.</div>`;
         });
 
-        // ─── Loader ───
-        window.addEventListener('load', function() {
+        // ── Loader ──
+        window.addEventListener('load', () => {
             const loader = document.getElementById('page-loader');
-            setTimeout(() => {
-                loader.style.opacity = '0';
-                setTimeout(() => { loader.style.display = 'none'; }, 300);
-            }, 300);
+            if (loader) {
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    setTimeout(() => { loader.style.display = 'none'; }, 400);
+                }, 300);
+            }
         });
 
-        // ─── Live Timestamp ───
+        // ── Live timestamp ──
         setInterval(() => {
             document.getElementById('last-update').textContent = new Date().toLocaleTimeString('id-ID');
         }, 1000);
 
-        // ─── Live Activity (dari docs.html via localStorage) ───
+        // ── Live Activity ──
         const ACTIVITY_KEY = 'lumina_live_activity';
-        let lastSeenCount  = 0; // track jumlah entry yang udah di-render
+        let lastSeenCount  = 0;
+
+        function pulseLiveDot() {
+            const dot = document.getElementById('live-dot');
+            dot.style.background = 'var(--success-color)';
+            dot.style.boxShadow  = '0 0 8px rgba(16,185,129,0.6)';
+            setTimeout(() => { dot.style.background = 'var(--border-color)'; dot.style.boxShadow = 'none'; }, 700);
+        }
 
         function renderLiveActivity(logs) {
             const container   = document.getElementById('live-activity');
             const placeholder = document.getElementById('activity-placeholder');
 
-            if (!logs || logs.length === 0) {
-                placeholder.style.display = 'block';
-                return;
-            }
-            placeholder.style.display = 'none';
+            if (!logs?.length) { if (placeholder) placeholder.style.display = 'block'; return; }
+            if (placeholder) placeholder.style.display = 'none';
 
-            // Cuma render yang baru (dari lastSeenCount ke atas) — append, bukan re-render semua
             const newEntries = logs.slice(lastSeenCount);
             lastSeenCount    = logs.length;
 
             newEntries.forEach(entry => {
-                const row      = document.createElement('div');
-                const isOk     = entry.ok;
-                const time     = new Date(entry.timestamp).toLocaleTimeString('id-ID');
-                // potong URL — cuma tampil path + query, bukan origin
-                let displayUrl = entry.endpoint;
-                try { displayUrl = new URL(entry.endpoint).pathname + new URL(entry.endpoint).search; } catch (_) {}
+                const isOk = entry.ok;
+                let url    = entry.endpoint;
+                try { url = new URL(entry.endpoint).pathname + new URL(entry.endpoint).search; } catch (_) {}
+                const time = new Date(entry.timestamp).toLocaleTimeString('id-ID');
 
-                row.className = `activity-row ${isOk ? 'ok' : 'fail'} px-5 py-3 flex items-start gap-3`;
+                const row = document.createElement('div');
+                row.className = `activity-row ${isOk ? 'ok' : 'fail'}`;
                 row.innerHTML = `
-                    <div class="activity-dot ${isOk ? 'ok' : 'fail'} mt-1"></div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-[10px] font-bold ${isOk ? 'text-green-700' : 'text-red-700'} uppercase tracking-wider">
-                                ${isOk ? '✓ Success' : '✗ Error'}
-                            </span>
-                            <span class="text-[9px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5">${entry.status || 0}</span>
-                            <span class="text-[9px] text-gray-400">${entry.duration}ms</span>
-                            <span class="text-[9px] text-gray-400 ml-auto">${time}</span>
+                    <div class="activity-dot ${isOk ? 'ok' : 'fail'}"></div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.2rem;">
+                            <span style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:${isOk ? 'var(--success-color)' : 'var(--error-color)'};">${isOk ? '✓ Success' : '✗ Error'}</span>
+                            <span style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:100px; background:var(--highlight-color); color:var(--primary-color);">${entry.status || 0}</span>
+                            <span style="font-size:0.6rem; color:var(--text-muted);">${entry.duration}ms</span>
+                            <span style="font-size:0.6rem; color:var(--text-muted); margin-left:auto;">${time}</span>
                         </div>
-                        <code class="text-[10px] text-gray-500 block mt-0.5 truncate">${displayUrl}</code>
-                        ${!isOk && entry.error ? `<p class="text-[9px] text-red-500 mt-0.5 font-mono">${entry.error}</p>` : ''}
+                        <code style="font-size:0.68rem; color:var(--text-muted); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${url}</code>
+                        ${!isOk && entry.error ? `<div style="font-size:0.62rem; color:var(--error-color); font-family:'Courier New',monospace; margin-top:0.15rem;">${entry.error}</div>` : ''}
                     </div>
                 `;
-
-                // Insert di atas (newest first)
                 container.insertBefore(row, container.firstChild);
             });
 
-            // Log ke debug console juga
-            newEntries.forEach(entry => {
-                log(`[docs] ${entry.ok ? '✓' : '✗'} ${entry.endpoint} — ${entry.duration}ms`, entry.ok ? 'success' : 'error');
-            });
+            newEntries.forEach(e => log(`[docs] ${e.ok ? '✓' : '✗'} ${e.endpoint} — ${e.duration}ms`, e.ok ? 'success' : 'error'));
         }
 
-        // Pulse dot sebentar pas ada activity baru
-        function pulseLiveDot() {
-            const dot = document.getElementById('live-dot');
-            dot.style.background = '#10b981';
-            dot.style.boxShadow  = '0 0 6px #10b98180';
-            setTimeout(() => {
-                dot.style.background  = '#d1d5db';
-                dot.style.boxShadow   = 'none';
-            }, 600);
-        }
-
-        // ── Listen perubahan localStorage dari tab lain ──
-        window.addEventListener('storage', (e) => {
+        window.addEventListener('storage', e => {
             if (e.key !== ACTIVITY_KEY) return;
             try {
                 const logs = JSON.parse(e.newValue) || [];
-                if (logs.length > lastSeenCount) {
-                    pulseLiveDot();
-                    renderLiveActivity(logs);
-                }
+                if (logs.length > lastSeenCount) { pulseLiveDot(); renderLiveActivity(logs); }
             } catch (_) {}
         });
 
-        // ── On load — baca yang udah ada di localStorage ──
-        (function loadExistingActivity() {
+        (function loadExisting() {
             try {
                 const logs = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
-                if (logs.length > 0) renderLiveActivity(logs);
+                if (logs.length) renderLiveActivity(logs);
             } catch (_) {}
         })();
 
-        // ── Clear activity ──
         document.getElementById('clear-activity-btn').addEventListener('click', () => {
             localStorage.removeItem(ACTIVITY_KEY);
             lastSeenCount = 0;
-            document.getElementById('live-activity').innerHTML =
-                '<div class="px-6 py-6 text-center text-[10px] text-gray-400 uppercase tracking-wider" id="activity-placeholder">Belum ada request dari docs — buka docs.html dan coba "Send Request"</div>';
+            document.getElementById('live-activity').innerHTML = `
+                <div id="activity-placeholder" style="padding:2rem 1.25rem; text-align:center; font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em;">
+                    Belum ada request — buka docs.html dan coba Send Request
+                </div>`;
         });
 
-        // ─── Hamburger Menu ───
+        // ── Hamburger ──
         const hamburger     = document.getElementById('hamburger');
         const mobileMenu    = document.getElementById('mobile-menu');
         const mobileOverlay = document.getElementById('mobile-overlay');
@@ -896,18 +1142,82 @@
 
         hamburger.addEventListener('click', toggleMenu);
         mobileOverlay.addEventListener('click', toggleMenu);
-
-        mobileMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (mobileMenu.classList.contains('active')) toggleMenu();
-            });
-        });
-
-        document.addEventListener('keydown', (e) => {
+        mobileMenu.querySelectorAll('a').forEach(l => l.addEventListener('click', () => {
+            if (mobileMenu.classList.contains('active')) toggleMenu();
+        }));
+        document.addEventListener('keydown', e => {
             if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();
         });
 
-        // ─── Init ───
+        // ══════════════════════════════════
+        //  COLOR CUSTOMIZER
+        // ══════════════════════════════════
+        const root = document.documentElement;
+        const nav  = document.getElementById('main-nav');
+        const STORAGE = 'lumina-theme';
+        const DEFAULTS = { primary:'#4f46e5', accent:'#22d3ee', nav:'#1e1b4b' };
+
+        function hexToHsl(hex) {
+            let r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+            const max=Math.max(r,g,b), min=Math.min(r,g,b); let h,s,l=(max+min)/2;
+            if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}
+            return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
+        }
+        function hslToHex(h,s,l){s/=100;l/=100;const a=s*Math.min(l,1-l);const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c).toString(16).padStart(2,'0');};return `#${f(0)}${f(8)}${f(4)}`;}
+
+        function applyTheme(c) {
+            const [ph,ps,pl]=hexToHsl(c.primary);
+            root.style.setProperty('--primary-color',  c.primary);
+            root.style.setProperty('--primary-hover',  hslToHex(ph,ps,Math.max(pl-8,10)));
+            root.style.setProperty('--secondary-color',hslToHex(ph,Math.max(ps-15,0),Math.min(pl+18,90)));
+            root.style.setProperty('--accent-color',   c.accent);
+            root.style.setProperty('--highlight-color',`${c.primary}18`);
+            const [nh,ns,nl]=hexToHsl(c.nav);
+            nav.style.background=`linear-gradient(135deg,${c.nav},${hslToHex(nh,ns,Math.min(nl+6,50))})`;
+            nav.style.boxShadow =`0 4px 24px ${c.primary}40`;
+            document.getElementById('pick-primary').value=c.primary;
+            document.getElementById('pick-accent').value =c.accent;
+            document.getElementById('pick-nav').value    =c.nav;
+            document.getElementById('swatch-primary').style.background=c.primary;
+            document.getElementById('swatch-accent').style.background =c.accent;
+            document.getElementById('swatch-nav').style.background    =c.nav;
+            localStorage.setItem(STORAGE, JSON.stringify(c));
+        }
+
+        const saved = JSON.parse(localStorage.getItem(STORAGE)||'null');
+        if (saved) applyTheme(saved);
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+                btn.classList.add('active');
+                applyTheme({primary:btn.dataset.primary,accent:btn.dataset.accent,nav:btn.dataset.nav});
+            });
+        });
+
+        function onPickerChange() {
+            document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+            applyTheme({primary:document.getElementById('pick-primary').value,accent:document.getElementById('pick-accent').value,nav:document.getElementById('pick-nav').value});
+        }
+        ['pick-primary','pick-accent','pick-nav'].forEach(id=>document.getElementById(id).addEventListener('input',onPickerChange));
+
+        document.getElementById('customizer-reset').addEventListener('click',()=>{
+            document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+            ['--primary-color','--primary-hover','--secondary-color','--accent-color','--highlight-color'].forEach(p=>root.style.removeProperty(p));
+            nav.style.background=''; nav.style.boxShadow='';
+            localStorage.removeItem(STORAGE);
+            applyTheme(DEFAULTS);
+        });
+
+        const custToggle  = document.getElementById('customizer-toggle');
+        const custPanel   = document.getElementById('customizer-panel');
+        const custChevron = document.getElementById('customizer-chevron');
+        custToggle.addEventListener('click',()=>{
+            const open=custPanel.classList.toggle('open');
+            custChevron.style.transform=open?'rotate(180deg)':'rotate(0deg)';
+        });
+
+        // ── Init ──
         fetchEndpoints();
     </script>
 </body>
