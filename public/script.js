@@ -1,8 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-// script.js  —  Lumina Docs (docs.html)
+// script.js  —  Lumina Docs (docs.html) — updated for new UI
 // ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async function () {
+
     // --- 1. INITIAL STATE & LOADER ---
     document.body.classList.add('noscroll');
     const pageLoader = document.getElementById('page-loader');
@@ -21,20 +22,18 @@ document.addEventListener('DOMContentLoaded', async function () {
     try {
         const endpoints = await (await fetch('/endpoints')).json();
         const set       = await (await fetch('/set')).json();
-        
-        setContent('api-icon', 'href', set.icon);
-        setContent('api-title', 'textContent', set.name.main);
-        setContent('api-description', 'content', set.description);
-        setContent('api-name', 'textContent', set.name.main);
-        setContent('api-author', 'textContent', `by ${set.author}`);
-        setContent('api-desc', 'textContent', set.description);
+
+        setContent('api-icon',      'href',        set.icon);
+        setContent('api-title',     'textContent', set.name.main);
+        setContent('api-description','content',    set.description);
+        setContent('api-name',      'textContent', set.name.main);
+        setContent('api-author',    'textContent', `by ${set.author}`);
+        setContent('api-desc',      'textContent', set.description);
         setContent('api-copyright', 'textContent', `© 2025 ${set.name.copyright}. All rights reserved.`);
-        setContent('api-info', 'href', set.info_url);
-        
+
         setupApiLinks(set);
         setupApiContent(endpoints);
         setupSearchFunctionality();
-        setupAccordion();
         hideLoader();
     } catch (error) {
         console.error('Error loading configuration:', error);
@@ -42,8 +41,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function setContent(id, property, value) {
-        const element = document.getElementById(id);
-        if (element) element[property] = value;
+        const el = document.getElementById(id);
+        if (el && value !== undefined) el[property] = value;
     }
 
     // --- 3. UI GENERATION ---
@@ -51,86 +50,135 @@ document.addEventListener('DOMContentLoaded', async function () {
         const apiContent = document.getElementById('api-content');
         if (!apiContent) return;
 
-        data.endpoints.forEach(category => {
-            const categoryWrapper = document.createElement('div');
-            categoryWrapper.className = 'mb-5 category-section';
-            
-            categoryWrapper.innerHTML = `
-                <div class="category-header flex items-center justify-between p-4 bg-gray-100 border border-gray-300 transition-all hover:bg-gray-200 cursor-pointer">
-                    <div class="flex items-center gap-3">
-                        <span class="material-icons text-gray-500" style="font-size:18px;">folder</span>
-                        <h3 class="text-sm font-bold text-gray-700 uppercase tracking-tight">${category.name}</h3>
+        data.endpoints.forEach((category, catIndex) => {
+            const section = document.createElement('div');
+            section.className = 'category-section';
+            section.style.animationDelay = `${catIndex * 0.08}s`;
+
+            // Count items
+            const count = category.items.length;
+
+            section.innerHTML = `
+                <div class="category-header" data-category="${catIndex}">
+                    <div class="category-header-left">
+                        <div class="category-icon">
+                            <span class="material-icons" style="font-size:1.1rem; color:var(--primary-color);">folder</span>
+                        </div>
+                        <span class="category-name">${category.name}</span>
+                        <span class="category-count">${count}</span>
                     </div>
-                    <span class="material-icons accordion-icon text-gray-600">expand_more</span>
+                    <span class="material-icons category-chevron">expand_more</span>
                 </div>
                 <div class="accordion-content">
-                    <div class="row pt-4 space-y-2"></div>
+                    <div class="endpoint-grid" id="grid-${catIndex}"></div>
                 </div>
             `;
 
-            const row = categoryWrapper.querySelector('.row');
-            category.items.forEach(itemData => {
+            const grid = section.querySelector(`#grid-${catIndex}`);
+
+            category.items.forEach((itemData, itemIndex) => {
                 const itemName = Object.keys(itemData)[0];
                 const item     = itemData[itemName];
-                const itemEl   = document.createElement('div');
-                itemEl.className = 'api-item-card w-full mb-2';
-                itemEl.dataset.name = itemName.toLowerCase();
-                itemEl.dataset.desc = (item.desc || '').toLowerCase();
 
-                itemEl.innerHTML = `
-                    <div class="flex items-center justify-between p-4 px-6 bg-gray-50 border border-gray-200 shadow-sm transition-all hover:border-gray-800">
-                        <div class="flex-grow mr-4 overflow-hidden">
-                            <h5 class="text-[13px] font-bold text-gray-800 truncate uppercase tracking-tight">${itemName}</h5>
-                            <p class="text-[11px] font-medium text-gray-500 truncate">${item.desc || 'No description available'}</p>
-                        </div>
-                        <button class="try-btn bg-gray-800 text-white px-5 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-colors"
-                                data-path='${item.path || ""}' 
-                                data-name="${itemName}" 
-                                data-desc="${item.desc || ""}">TRY</button>
+                const card = document.createElement('div');
+                card.className   = 'endpoint-card';
+                card.style.animationDelay = `${itemIndex * 0.04}s`;
+                card.dataset.name = itemName.toLowerCase();
+                card.dataset.desc = (item.desc || '').toLowerCase();
+                card.dataset.category = catIndex;
+
+                // Determine status badge
+                const status     = item.status || 'ready';
+                const statusMap  = {
+                    ready  : { cls: 'status-ready',  icon: 'circle',  label: 'Ready'  },
+                    error  : { cls: 'status-error',  icon: 'cancel',  label: 'Error'  },
+                    update : { cls: 'status-update', icon: 'update',  label: 'Update' },
+                };
+                const s = statusMap[status] || statusMap.ready;
+
+                // Method badge (default GET)
+                const method    = (item.method || 'GET').toUpperCase();
+                const methodCls = { GET:'method-get', POST:'method-post', PUT:'method-put', DELETE:'method-delete' }[method] || 'method-get';
+
+                card.innerHTML = `
+                    <div class="endpoint-card-header">
+                        <span class="method-badge ${methodCls}">${method}</span>
+                        <span class="endpoint-name">${itemName}</span>
+                    </div>
+                    <div class="endpoint-path">${item.path || '/'}</div>
+                    <div class="endpoint-desc">${item.desc || 'No description available.'}</div>
+                    <div class="endpoint-card-footer">
+                        <span class="status-badge ${s.cls}">
+                            <span class="material-icons" style="font-size:0.6rem;">${s.icon}</span>
+                            ${s.label}
+                        </span>
+                        <button class="try-btn"
+                            data-path="${item.path || ''}"
+                            data-name="${itemName}"
+                            data-desc="${item.desc || ''}"
+                            data-method="${method}"
+                            ${status === 'error' ? 'disabled' : ''}>
+                            <span class="material-icons" style="font-size:0.75rem;">send</span>
+                            Try
+                        </button>
                     </div>
                 `;
-                row.appendChild(itemEl);
+
+                grid.appendChild(card);
             });
-            apiContent.appendChild(categoryWrapper);
+
+            apiContent.appendChild(section);
         });
 
-        apiContent.addEventListener('click', (e) => {
-            if (e.target.classList.contains('try-btn')) {
-                const btn = e.target;
-                openApiModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc);
+        // Accordion toggle
+        apiContent.querySelectorAll('.category-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content  = header.nextElementSibling;
+                const chevron  = header.querySelector('.category-chevron');
+                const icon     = header.querySelector('.category-icon .material-icons');
+                const isOpen   = content.classList.toggle('open');
+                header.classList.toggle('open', isOpen);
+                chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+                if (icon) icon.textContent = isOpen ? 'folder_open' : 'folder';
+            });
+        });
+
+        // Try button click — delegate
+        apiContent.addEventListener('click', e => {
+            const btn = e.target.closest('.try-btn');
+            if (btn && !btn.disabled) {
+                openApiModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc, btn.dataset.method);
             }
         });
     }
 
-    // --- 4. MODAL & PARAMETER LOGIC ---
-    function openApiModal(name, endpoint, description) {
-        const modal            = document.getElementById('api-modal');
-        const modalContent     = modal.querySelector('.relative.z-10');
-        const paramsContainer  = document.getElementById('params-container');
+    // --- 4. MODAL ---
+    function openApiModal(name, endpoint, description, method = 'GET') {
+        const paramsContainer   = document.getElementById('params-container');
         const responseContainer = document.getElementById('response-container');
-        const responseData     = document.getElementById('response-data');
-        
-        // Display URL endpoint
-        const apiUrlElement = document.getElementById('api-url');
-        if (apiUrlElement) {
-            const baseUrl      = window.location.origin;
-            const cleanEndpoint = endpoint.split('?')[0];
-            apiUrlElement.textContent = `${baseUrl}${cleanEndpoint}`;
-        }
-        
-        responseContainer.classList.add('hidden');
-        paramsContainer.innerHTML = '';
-        responseData.innerHTML   = '';
-        document.getElementById('modal-title').textContent      = name;
-        document.getElementById('api-description').textContent  = description;
-        document.getElementById('submit-api').classList.remove('hidden');
-        paramsContainer.classList.remove('hidden');
+        const responseData      = document.getElementById('response-data');
+        const apiUrlEl          = document.getElementById('api-url');
+        const sendBtn           = document.getElementById('submit-api');
 
-        // Deteksi Parameter dari endpoint
+        // Reset
+        responseContainer.classList.remove('visible');
+        paramsContainer.innerHTML  = '';
+        responseData.innerHTML     = '';
+
+        // Fill modal content
+        document.getElementById('modal-title').textContent       = name;
+        document.getElementById('modal-path').textContent        = endpoint || '/';
+        document.getElementById('modal-description').textContent = description || 'No description available.';
+
+        if (apiUrlEl) {
+            const clean = endpoint.split('?')[0];
+            apiUrlEl.textContent = `${window.location.origin}${clean}`;
+        }
+
+        // Parse params
         const params = [];
         const pathMatches = endpoint.match(/{([^}]+)}/g);
-        if (pathMatches) pathMatches.forEach(m => params.push(m.replace(/{|}/g, '')));
-        
+        if (pathMatches) pathMatches.forEach(m => params.push(m.replace(/[{}]/g, '')));
         if (endpoint.includes('?')) {
             endpoint.split('?')[1].split('&').forEach(p => {
                 const pName = p.split('=')[0];
@@ -138,72 +186,71 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
         }
 
-        params.forEach(p => createParamInput(p, paramsContainer));
+        if (params.length > 0) {
+            const section = document.createElement('div');
+            section.className = 'params-section';
+            section.innerHTML = `<div class="params-title"><span class="material-icons" style="font-size:0.75rem;">tune</span> Parameters</div>`;
+            params.forEach(p => {
+                const isOptional = p.startsWith('_');
+                const cleanName  = isOptional ? p.substring(1) : p;
+                const group      = document.createElement('div');
+                group.className  = 'param-group';
+                group.innerHTML  = `
+                    <div class="param-label">
+                        ${cleanName}
+                        ${!isOptional ? '<span class="param-required">*required</span>' : '<span style="font-size:0.62rem;color:var(--text-muted);font-weight:400;">(optional)</span>'}
+                    </div>
+                    <input type="text" id="param-${p}" class="param-input" placeholder="Enter ${cleanName}...">
+                    <div id="error-${p}" style="display:none; font-size:0.65rem; color:var(--error-color); margin-top:0.25rem;">This field is required.</div>
+                `;
+                section.appendChild(group);
+            });
+            paramsContainer.appendChild(section);
+        }
 
-        modal.classList.remove('hidden');
-        document.body.classList.add('noscroll');
-        setTimeout(() => {
-            modal.classList.add('opacity-100');
-            modalContent.classList.remove('scale-95', 'opacity-0');
-            modalContent.classList.add('scale-100', 'opacity-100');
-        }, 10);
+        sendBtn.onclick = () => handleApiRequest(endpoint, paramsContainer);
 
-        document.getElementById('submit-api').onclick = () => handleApiRequest(endpoint, paramsContainer);
+        // Open modal
+        if (window.openApiModal) window.openApiModal();
     }
 
-    function createParamInput(name, container) {
-        const isOptional = name.startsWith('_');
-        const cleanName  = isOptional ? name.substring(1) : name;
-        const div        = document.createElement('div');
-        div.className    = 'mb-3';
-        div.innerHTML    = `
-            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1 block">${cleanName} ${isOptional ? '(Optional)' : '*'}</label>
-            <input type="text" id="param-${name}" class="w-full px-3 py-2 text-sm border-2 border-gray-100 focus:border-gray-800 outline-none" placeholder="Enter ${cleanName}...">
-            <p id="error-${name}" class="text-red-500 text-[10px] mt-1 hidden">Wajib diisi!</p>
-        `;
-        container.appendChild(div);
-    }
-
-    // ─── 5. LIVE ACTIVITY LOGGER (ke localStorage, dibaca oleh status.html) ───
+    // --- 5. LIVE ACTIVITY LOGGER ---
     function logActivity(entry) {
         try {
-            const KEY  = 'lumina_live_activity';
-            const MAX  = 50;
-            let logs   = [];
+            const KEY = 'lumina_live_activity';
+            let logs = [];
             try { logs = JSON.parse(localStorage.getItem(KEY)) || []; } catch (_) {}
-
             logs.push(entry);
-            if (logs.length > MAX) logs = logs.slice(-MAX); // FIFO — buang yang lama
-
+            if (logs.length > 50) logs = logs.slice(-50);
             localStorage.setItem(KEY, JSON.stringify(logs));
-        } catch (_) {
-            // localStorage mungkin blocked — silent fail
-        }
+        } catch (_) {}
     }
 
     // --- 6. REQUEST HANDLER ---
     async function handleApiRequest(endpoint, paramsContainer) {
-        const submitBtn         = document.getElementById('submit-api');
+        const sendBtn           = document.getElementById('submit-api');
         const responseContainer = document.getElementById('response-container');
         const responseData      = document.getElementById('response-data');
-        
-        let isValid = true;
-        let baseUrl = endpoint.split('?')[0];
+        const statusEl          = document.getElementById('response-status');
+        const timeEl            = document.getElementById('response-time');
+
+        let isValid    = true;
+        let baseUrl    = endpoint.split('?')[0];
         let queryParams = new URLSearchParams();
 
-        const inputs = paramsContainer.querySelectorAll('input');
-        inputs.forEach(input => {
+        // Validate & build URL
+        paramsContainer.querySelectorAll('.param-input').forEach(input => {
             const pName = input.id.replace('param-', '');
             const val   = input.value.trim();
             const error = document.getElementById(`error-${pName}`);
 
             if (!pName.startsWith('_') && !val) {
                 isValid = false;
-                error?.classList.remove('hidden');
-                input.classList.add('border-red-500');
+                input.classList.add('invalid');
+                if (error) error.style.display = 'block';
             } else {
-                error?.classList.add('hidden');
-                input.classList.remove('border-red-500');
+                input.classList.remove('invalid');
+                if (error) error.style.display = 'none';
                 if (val) {
                     if (baseUrl.includes(`{${pName}}`)) {
                         baseUrl = baseUrl.replace(`{${pName}}`, encodeURIComponent(val));
@@ -216,120 +263,107 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         if (!isValid) return;
 
-        const finalUrl = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl;
-        
-        submitBtn.classList.add('hidden');
-        responseContainer.classList.remove('hidden');
-        responseData.innerHTML = '<div class="text-[10px] font-bold animate-pulse uppercase">Processing Request...</div>';
-        
+        const finalUrl = queryParams.toString() ? `${baseUrl}?${queryParams}` : baseUrl;
+
+        // Loading state
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = `<span class="material-icons" style="font-size:1rem; animation:spin 0.8s linear infinite;">refresh</span> Sending...`;
+        responseContainer.classList.add('visible');
+        responseData.innerHTML = `<span style="opacity:0.5; font-size:0.72rem;">Processing request...</span>`;
+
         const start = Date.now();
         try {
-            const res      = await fetch(finalUrl);
-            const duration = Date.now() - start;
-            const contentType = res.headers.get('content-type');
-            
-            document.getElementById('response-status').textContent = res.status;
-            document.getElementById('response-time').textContent   = `${duration}ms`;
+            const res         = await fetch(finalUrl);
+            const duration    = Date.now() - start;
+            const contentType = res.headers.get('content-type') || '';
 
-            // ── Log ke localStorage ──
-            logActivity({
-                endpoint:  finalUrl,
-                status:    res.status,
-                ok:        res.ok,
-                duration:  duration,
-                error:     res.ok ? null : `HTTP ${res.status}`,
-                timestamp: Date.now()
-            });
+            // Status badge
+            statusEl.textContent = `${res.status} ${res.statusText || (res.ok ? 'OK' : 'Error')}`;
+            statusEl.className   = `response-status ${res.ok ? 'ok' : 'error'}`;
+            timeEl.textContent   = `${duration}ms`;
 
-            // ── Render response ──
-            if (contentType && contentType.includes('image/')) {
+            logActivity({ endpoint: finalUrl, status: res.status, ok: res.ok, duration, error: res.ok ? null : `HTTP ${res.status}`, timestamp: Date.now() });
+
+            // Render response
+            if (contentType.includes('image/')) {
                 const blob   = await res.blob();
                 const imgUrl = URL.createObjectURL(blob);
                 responseData.innerHTML = `
-                    <div class="flex flex-col items-center">
-                        <img src="${imgUrl}" class="max-w-full h-auto border border-gray-200 shadow-sm mb-3" />
-                        <a href="${imgUrl}" download="result.jpg" class="bg-gray-800 text-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all">Download Image</a>
-                    </div>
-                `;
-            } else if (contentType && contentType.includes('application/json')) {
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem;">
+                        <img src="${imgUrl}" style="max-width:100%; height:auto; border-radius:var(--border-radius-sm); border:1px solid var(--border-color);">
+                        <a href="${imgUrl}" download="result.jpg" class="try-btn" style="text-decoration:none; font-size:0.7rem;">
+                            <span class="material-icons" style="font-size:0.75rem;">download</span> Download
+                        </a>
+                    </div>`;
+            } else if (contentType.includes('application/json')) {
                 const json = await res.json();
-                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700">${JSON.stringify(json, null, 2)}</pre>`;
+                responseData.textContent = JSON.stringify(json, null, 2);
             } else {
-                const text = await res.text();
-                responseData.innerHTML = `<pre class="text-[11px] whitespace-pre-wrap font-mono text-gray-700">${text}</pre>`;
+                responseData.textContent = await res.text();
             }
         } catch (err) {
             const duration = Date.now() - start;
-            responseData.innerHTML = `<span class="text-red-500 font-bold uppercase text-[10px]">Error: ${err.message}</span>`;
-
-            // ── Log error ke localStorage juga ──
-            logActivity({
-                endpoint:  finalUrl,
-                status:    0,
-                ok:        false,
-                duration:  duration,
-                error:     err.message,
-                timestamp: Date.now()
-            });
+            statusEl.textContent = 'Error';
+            statusEl.className   = 'response-status error';
+            timeEl.textContent   = `${duration}ms`;
+            responseData.innerHTML = `<span style="color:var(--error-color); font-weight:600;">Error: ${err.message}</span>`;
+            logActivity({ endpoint: finalUrl, status: 0, ok: false, duration, error: err.message, timestamp: Date.now() });
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = `<span class="material-icons" style="font-size:1rem;">send</span> Send Request`;
         }
     }
 
-    // --- 7. UTILS ---
-    function setupAccordion() {
-        document.querySelectorAll('.category-header').forEach(header => {
-            header.addEventListener('click', () => {
-                const accordion = header.nextElementSibling;
-                const isOpen    = accordion.classList.toggle('active');
-                header.querySelector('.accordion-icon').classList.toggle('rotate');
-
-                // swap folder icon: folder ↔ folder_open
-                const folderIcon = header.querySelector('.material-icons.text-gray-500');
-                if (folderIcon) folderIcon.textContent = isOpen ? 'folder_open' : 'folder';
-            });
-        });
-    }
-
+    // --- 7. SEARCH ---
     function setupSearchFunctionality() {
         const searchInput = document.getElementById('api-search');
         if (!searchInput) return;
-        searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            document.querySelectorAll('.api-item-card').forEach(card => {
-                const match = card.dataset.name.includes(term) || card.dataset.desc.includes(term);
-                card.style.display = match ? 'block' : 'none';
-                if (term && match) {
-                    const accordion = card.closest('.accordion-content');
-                    accordion.classList.add('active');
-                    const header = accordion.previousElementSibling;
-                    header.querySelector('.accordion-icon').classList.add('rotate');
-                    const folderIcon = header.querySelector('.material-icons.text-gray-500');
-                    if (folderIcon) folderIcon.textContent = 'folder_open';
+
+        searchInput.addEventListener('input', e => {
+            const term = e.target.value.toLowerCase().trim();
+
+            document.querySelectorAll('.category-section').forEach(section => {
+                const header    = section.querySelector('.category-header');
+                const content   = section.querySelector('.accordion-content');
+                const chevron   = header.querySelector('.category-chevron');
+                const icon      = header.querySelector('.category-icon .material-icons');
+                let   hasMatch  = false;
+
+                section.querySelectorAll('.endpoint-card').forEach(card => {
+                    const match = !term || card.dataset.name.includes(term) || card.dataset.desc.includes(term);
+                    card.style.display = match ? '' : 'none';
+                    if (match) hasMatch = true;
+                });
+
+                if (term) {
+                    // Auto-expand categories with matches
+                    if (hasMatch) {
+                        content.classList.add('open');
+                        header.classList.add('open');
+                        chevron.style.transform = 'rotate(180deg)';
+                        if (icon) icon.textContent = 'folder_open';
+                    }
+                    section.style.display = hasMatch ? '' : 'none';
+                } else {
+                    section.style.display = '';
                 }
             });
         });
     }
 
-    window.closeModal = function() {
-        const modal        = document.getElementById('api-modal');
-        const modalContent = modal.querySelector('.relative.z-10');
-        modal.classList.remove('opacity-100');
-        modalContent.classList.add('scale-95', 'opacity-0');
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            document.body.classList.remove('noscroll');
-        }, 300);
-    };
-
-    document.getElementById('close-modal').onclick = closeModal;
-
+    // --- 8. API LINKS ---
     function setupApiLinks(set) {
         const container = document.getElementById('api-links');
         if (!container || !set.links) return;
         container.innerHTML = set.links.map(l => `
-            <div class="flex items-center gap-2">
-                <div class="w-1 h-1 bg-gray-400 rounded-full"></div>
-                <a href="${l.url}" target="_blank" class="hover:text-gray-800 uppercase tracking-tighter" style="font-size: 10px;">${l.name}</a>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <div style="width:4px; height:4px; background:var(--primary-color); border-radius:50%; opacity:0.5;"></div>
+                <a href="${l.url}" target="_blank"
+                   style="font-size:0.72rem; color:var(--text-muted); text-decoration:none; text-transform:uppercase; letter-spacing:0.08em; transition:var(--transition);"
+                   onmouseover="this.style.color='var(--primary-color)'"
+                   onmouseout="this.style.color='var(--text-muted)'">${l.name}</a>
             </div>
         `).join('');
     }
+
 });
