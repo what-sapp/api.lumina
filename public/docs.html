@@ -6,26 +6,663 @@
     <meta id="api-description" name="description" content="Description">
     <link id="api-icon" rel="icon" href="/image/icon.png" type="image/png">
     <title id="api-title">Lumina | Documentation</title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
+
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/styles.css">
-</head>
-<body class="bg-white min-h-screen pt-[84px] pb-10">
+    <link rel="stylesheet" href="styles.css">
 
-    <div id="page-loader" class="page-loader bg-white">
-        <div class="loader"></div>
+    <style>
+        /* ── Docs-specific styles ── */
+
+        /* Search input */
+        .search-box {
+            position: relative;
+            width: 100%;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.875rem;
+            color: var(--text-color);
+            background: var(--card-background);
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            outline: none;
+            transition: var(--transition);
+            box-shadow: var(--card-shadow);
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--highlight-color);
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        .search-box .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* Accordion category */
+        .category-section {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            animation: slideInUp 0.5s ease-out both;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            user-select: none;
+            transition: var(--transition);
+            border-bottom: 1px solid transparent;
+        }
+
+        .category-header:hover {
+            background: var(--highlight-color);
+        }
+
+        .category-header.open {
+            border-bottom-color: var(--border-color);
+        }
+
+        .category-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .category-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: var(--border-radius-sm);
+            background: var(--highlight-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .category-header.open .category-icon,
+        .category-header:hover .category-icon {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .category-header.open .category-icon .material-icons,
+        .category-header:hover .category-icon .material-icons {
+            color: white;
+        }
+
+        .category-name {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .category-count {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.2rem 0.55rem;
+            border-radius: 100px;
+            background: var(--highlight-color);
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .category-chevron {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .category-header.open .category-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Accordion content */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .accordion-content.open {
+            max-height: 5000px;
+        }
+
+        .endpoint-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.875rem;
+            padding: 1rem;
+        }
+
+        @media (max-width: 640px) {
+            .endpoint-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Endpoint card */
+        .endpoint-card {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            cursor: pointer;
+            transition: var(--hover-transition);
+            position: relative;
+            overflow: hidden;
+            animation: slideInUp 0.35s ease-out both;
+        }
+
+        .endpoint-card::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 0; height: 0;
+            border-style: solid;
+            border-width: 0 32px 32px 0;
+            border-color: transparent var(--highlight-color) transparent transparent;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .endpoint-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--hover-shadow);
+            transform: translateY(-3px);
+        }
+
+        .endpoint-card:hover::after {
+            opacity: 1;
+        }
+
+        .endpoint-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .method-badge {
+            font-size: 0.58rem;
+            font-weight: 800;
+            padding: 0.2rem 0.55rem;
+            border-radius: 4px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .method-get    { background: rgba(16,185,129,0.12); color: #059669; }
+        .method-post   { background: rgba(79,70,229,0.12);  color: var(--primary-color); }
+        .method-put    { background: rgba(245,158,11,0.12); color: #d97706; }
+        .method-delete { background: rgba(244,63,94,0.12);  color: #e11d48; }
+
+        .endpoint-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.625rem;
+        }
+
+        .endpoint-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.55;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .endpoint-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.62rem;
+            font-weight: 600;
+            padding: 0.2rem 0.55rem;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .status-ready  { background: rgba(16,185,129,0.12); color: var(--success-color); }
+        .status-error  { background: rgba(244,63,94,0.12);  color: var(--error-color); }
+        .status-update { background: rgba(245,158,11,0.12); color: var(--warning-color); }
+
+        .try-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+            border-radius: var(--border-radius-sm);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: var(--hover-transition);
+            box-shadow: 0 2px 8px rgba(79,70,229,0.25);
+        }
+
+        .try-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(79,70,229,0.35);
+        }
+
+        /* No results */
+        .no-results {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            animation: fadeIn 0.4s ease;
+        }
+
+        .no-results .material-icons {
+            font-size: 2.5rem;
+            color: var(--text-muted);
+            opacity: 0.35;
+            margin-bottom: 1rem;
+        }
+
+        .no-results p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0;
+        }
+
+        /* ── MODAL ── */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 17, 32, 0.65);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 60;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal-backdrop.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -48%) scale(0.96);
+            z-index: 61;
+            width: calc(100% - 2rem);
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--border-color);
+            padding: 1.75rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) transparent;
+        }
+
+        .modal-box::-webkit-scrollbar { width: 4px; }
+        .modal-box::-webkit-scrollbar-thumb {
+            background: linear-gradient(var(--primary-color), var(--secondary-color));
+            border-radius: 10px;
+        }
+
+        .modal-box.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            gap: 1rem;
+        }
+
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-color);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.25rem;
+        }
+
+        .modal-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+        }
+
+        .modal-close {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: none;
+            background: var(--highlight-color);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .modal-close:hover {
+            background: rgba(244, 63, 94, 0.12);
+            color: var(--error-color);
+        }
+
+        .modal-divider {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .modal-divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .modal-divider-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--border-color);
+        }
+
+        /* URL block */
+        .url-block {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: 0.875rem 1rem;
+            margin-bottom: 1.25rem;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .url-block:hover {
+            border-color: var(--primary-color);
+        }
+
+        .url-block-label {
+            font-size: 0.58rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .url-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.78rem;
+            color: var(--primary-color);
+            word-break: break-all;
+        }
+
+        /* Params */
+        .params-section {
+            margin-bottom: 1.25rem;
+        }
+
+        .params-title {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .param-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .param-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.35rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .param-required {
+            font-size: 0.6rem;
+            color: var(--error-color);
+            font-weight: 700;
+        }
+
+        .param-input {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.82rem;
+            color: var(--text-color);
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .param-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--highlight-color);
+        }
+
+        .param-input.invalid {
+            border-color: var(--error-color);
+            box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1);
+        }
+
+        /* Send button */
+        .send-btn {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            transition: var(--hover-transition);
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .send-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0));
+            transform: translateX(-100%);
+            transition: 0.4s;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4);
+        }
+
+        .send-btn:hover::before {
+            transform: translateX(100%);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Response */
+        .response-section {
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .response-section.visible {
+            display: block;
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        .response-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .response-title {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+        }
+
+        .response-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .response-status {
+            font-size: 0.62rem;
+            font-weight: 700;
+            padding: 0.2rem 0.55rem;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .response-status.ok    { background: rgba(16,185,129,0.12); color: var(--success-color); }
+        .response-status.error { background: rgba(244,63,94,0.12);  color: var(--error-color); }
+
+        .response-time {
+            font-size: 0.65rem;
+            font-family: 'Courier New', monospace;
+            color: var(--text-muted);
+        }
+
+        .response-pre {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow: auto;
+            max-height: 14rem;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .response-pre::-webkit-scrollbar { display: none; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Page Loader -->
+    <div id="page-loader" class="page-loader">
+        <div class="loader-ring"></div>
     </div>
 
-    <!-- Navbar -->
-    <nav class="shadow-sm w-full fixed top-0 z-50 bg-gray-800 px-10 h-[64px] flex items-center justify-between">
-        <div class="text-white font-bold tracking-tighter uppercase text-sm">
-            Lumina <span class="text-gray-400">API`s</span>
-        </div>
+    <!-- ── NAVBAR ── -->
+    <nav class="main-nav" id="main-nav">
+        <a href="/" class="nav-logo">
+            Lumina <span class="nav-logo-accent">API's</span>
+        </a>
         <div class="hamburger" id="hamburger">
             <div class="hamburger-inner">
                 <span></span>
@@ -38,227 +675,302 @@
     <!-- Overlay -->
     <div class="mobile-overlay" id="mobile-overlay"></div>
 
-    <!-- Mobile Menu -->
+    <!-- ── MOBILE MENU ── -->
     <div class="mobile-menu" id="mobile-menu">
-        <div class="p-6">
+        <div style="padding: 1.5rem;">
+
             <!-- Header -->
-            <div class="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100">
-                <div class="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center relative">
-                    <span class="material-icons text-white text-lg">apps</span>
-                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-purple-500 rounded-full border-2 border-white"></div>
+            <div class="menu-header">
+                <div class="menu-header-icon">
+                    <span class="material-icons" style="color:white; font-size:1.1rem;">apps</span>
+                    <div class="menu-header-dot"></div>
                 </div>
                 <div>
-                    <span class="text-sm font-bold text-gray-900 uppercase tracking-tight block">Navigation</span>
-                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Lumina API</span>
+                    <span class="menu-header-title">Navigation</span>
+                    <span class="menu-header-sub">Lumina API</span>
                 </div>
             </div>
-            
+
             <!-- Nav Links -->
-            <nav class="space-y-1">
-                <a href="/" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
-                    <div class="w-8 h-8 bg-gray-100 group-hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors">
-                        <span class="material-icons text-sm text-gray-500 group-hover:text-gray-700">home</span>
+            <nav style="display:flex; flex-direction:column; gap:0.25rem;">
+                <a href="/" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(100,116,139,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--text-muted);">home</span>
                     </div>
                     <span>Home</span>
                 </a>
 
-                <a href="/docs" class="menu-item active flex items-center gap-4 px-4 py-3.5 bg-gray-900 text-white font-semibold text-[13px] rounded-lg shadow-md relative overflow-hidden">
-                    <div class="w-8 h-8 bg-white bg-opacity-10 rounded-lg flex items-center justify-center">
-                        <span class="material-icons text-sm text-white">description</span>
+                <a href="/docs" class="menu-item active">
+                    <div class="menu-icon-box" style="background:rgba(255,255,255,0.15);">
+                        <span class="material-icons" style="font-size:1rem; color:white;">description</span>
                     </div>
                     <span>Documentation</span>
-                    <span class="ml-auto text-[9px] bg-white bg-opacity-15 px-2 py-0.5 rounded-full uppercase tracking-wider">Current</span>
+                    <span class="menu-badge menu-badge-current">Current</span>
                 </a>
 
-                <a href="/contributors" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
-                    <div class="w-8 h-8 bg-purple-50 group-hover:bg-purple-100 rounded-lg flex items-center justify-center transition-colors">
-                        <span class="material-icons text-sm text-purple-600">people</span>
+                <a href="/contributors" class="menu-item">
+                    <div class="menu-icon-box" style="background:var(--highlight-color);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">people</span>
                     </div>
                     <span>Contributors</span>
                 </a>
 
-                <a href="/status" class="menu-item flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:text-gray-900 font-medium text-[13px] rounded-lg transition-all group">
-                    <div class="w-8 h-8 bg-emerald-50 group-hover:bg-emerald-100 rounded-lg flex items-center justify-center transition-colors">
-                        <span class="material-icons text-sm text-emerald-600">bar_chart</span>
+                <a href="/luminaai" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(79,70,229,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:#4f46e5;">auto_awesome</span>
+                    </div>
+                    <span>Lumina AI</span>
+                    <span class="menu-badge" style="background:rgba(79,70,229,0.12); color:#4f46e5;">New</span>
+                </a>
+
+                <a href="/status" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(16,185,129,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--success-color);">bar_chart</span>
                     </div>
                     <span>API Status</span>
-                    <!-- live dot -->
-                    <span class="ml-auto flex items-center gap-1.5">
-                        <span class="w-2 h-2 bg-emerald-400 rounded-full live-dot"></span>
-                        <span class="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">Live</span>
+                    <span style="margin-left:auto; display:flex; align-items:center; gap:0.35rem;">
+                        <span class="live-dot"></span>
+                        <span class="live-label">Live</span>
                     </span>
                 </a>
             </nav>
 
             <!-- GitHub -->
-            <div class="mt-6 pt-5 border-t border-gray-100">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link flex items-center gap-3 px-4 py-3.5 bg-gray-900 text-white font-medium text-[13px] rounded-lg transition-all group">
-                    <div class="w-8 h-8 bg-white bg-opacity-10 group-hover:bg-opacity-20 rounded-lg flex items-center justify-center transition-all">
-                        <i class="fab fa-github text-sm"></i>
+            <div class="menu-section-divider">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link">
+                    <div class="github-link-icon">
+                        <i class="fab fa-github" style="color:white; font-size:0.95rem;"></i>
                     </div>
-                    <div class="flex-1">
-                        <span class="block">View on GitHub</span>
-                        <span class="text-[9px] text-gray-400 uppercase tracking-wider">Open Source</span>
+                    <div style="flex:1;">
+                        <span style="display:block; font-size:0.82rem;">View on GitHub</span>
+                        <span style="font-size:0.6rem; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:0.12em;">Open Source</span>
                     </div>
-                    <span class="material-icons text-sm text-gray-500 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    <span class="material-icons" style="font-size:1rem; color:rgba(255,255,255,0.4);">arrow_forward</span>
                 </a>
             </div>
 
             <!-- Quick Stats -->
-            <div class="mt-4 stats-card p-4 rounded-lg">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="material-icons text-sm text-purple-600">insights</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-600">Quick Stats</span>
+            <div class="stats-card">
+                <div class="stats-card-header">
+                    <span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">insights</span>
+                    Quick Stats
                 </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="stats-item bg-white p-2.5 rounded-md border border-gray-100">
-                        <div id="total-endpoints-widget" class="text-lg font-bold text-gray-900">--</div>
-                        <div class="text-[9px] text-gray-400 uppercase tracking-wider">Endpoints</div>
+                <div class="stats-grid">
+                    <div class="stats-item">
+                        <div id="total-endpoints-widget" class="stats-value">--</div>
+                        <div class="stats-label">Endpoints</div>
                     </div>
-                    <div class="stats-item bg-white p-2.5 rounded-md border border-gray-100">
-                        <div class="text-lg font-bold text-emerald-600">99.9%</div>
-                        <div class="text-[9px] text-gray-400 uppercase tracking-wider">Uptime</div>
+                    <div class="stats-item">
+                        <div class="stats-value" style="color:var(--success-color);">99.9%</div>
+                        <div class="stats-label">Uptime</div>
                     </div>
                 </div>
             </div>
+
+            <!-- Color Customizer -->
+            <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border-color);">
+                <div class="color-customizer">
+                    <div class="customizer-header" id="customizer-toggle">
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">palette</span>
+                            <span class="customizer-title">Theme Colors</span>
+                        </div>
+                        <span class="material-icons" id="customizer-chevron" style="font-size:1rem; color:var(--text-muted); transition:transform 0.3s ease;">expand_more</span>
+                    </div>
+                    <div class="customizer-panel" id="customizer-panel">
+                        <div class="customizer-section-label">Quick Presets</div>
+                        <div class="preset-grid">
+                            <button class="preset-btn active" data-primary="#4f46e5" data-accent="#22d3ee" data-nav="#1e1b4b" title="Indigo + Cyan">
+                                <span style="background:#4f46e5"></span><span style="background:#22d3ee"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#7c3aed" data-accent="#a29bfe" data-nav="#1a1035" title="Purple">
+                                <span style="background:#7c3aed"></span><span style="background:#a29bfe"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#0ea5e9" data-accent="#06b6d4" data-nav="#0c1a2e" title="Sky Blue">
+                                <span style="background:#0ea5e9"></span><span style="background:#06b6d4"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#10b981" data-accent="#34d399" data-nav="#0a1f18" title="Emerald">
+                                <span style="background:#10b981"></span><span style="background:#34d399"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#f59e0b" data-accent="#fbbf24" data-nav="#1c1505" title="Amber">
+                                <span style="background:#f59e0b"></span><span style="background:#fbbf24"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#f43f5e" data-accent="#fb7185" data-nav="#1f0a10" title="Rose">
+                                <span style="background:#f43f5e"></span><span style="background:#fb7185"></span>
+                            </button>
+                        </div>
+                        <div class="customizer-section-label" style="margin-top:0.875rem;">Custom</div>
+                        <div class="picker-row">
+                            <label class="picker-label">
+                                <span>Primary</span>
+                                <div class="picker-wrap">
+                                    <input type="color" id="pick-primary" class="color-picker" value="#4f46e5">
+                                    <span class="picker-swatch" id="swatch-primary" style="background:#4f46e5"></span>
+                                </div>
+                            </label>
+                            <label class="picker-label">
+                                <span>Accent</span>
+                                <div class="picker-wrap">
+                                    <input type="color" id="pick-accent" class="color-picker" value="#22d3ee">
+                                    <span class="picker-swatch" id="swatch-accent" style="background:#22d3ee"></span>
+                                </div>
+                            </label>
+                            <label class="picker-label">
+                                <span>Navbar</span>
+                                <div class="picker-wrap">
+                                    <input type="color" id="pick-nav" class="color-picker" value="#1e1b4b">
+                                    <span class="picker-swatch" id="swatch-nav" style="background:#1e1b4b"></span>
+                                </div>
+                            </label>
+                        </div>
+                        <button class="customizer-reset" id="customizer-reset">
+                            <span class="material-icons" style="font-size:0.85rem;">refresh</span>
+                            Reset to Default
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
-    
-    <!-- Main Content -->
-    <div class="px-10 md:px-5 max-w-3xl mx-auto">
-        <!-- Banner -->
-        <div id="banner" class="industrial-banner p-7 py-10 w-full mb-7 bg-white">
-            <div class="dot -top-1.5 -left-1.5"></div>
-            <div class="dot -top-1.5 -right-1.5"></div>
-            <div class="dot -bottom-1.5 -left-1.5"></div>
-            <div class="dot -bottom-1.5 -right-1.5"></div>
 
-            <!-- Corner labels -->
-            <div class="corner-label top-1 left-2 text-[8px] text-gray-300 font-mono uppercase tracking-widest">SYS::DOC</div>
-            <div class="corner-label top-1 right-2 text-[8px] text-gray-300 font-mono uppercase tracking-widest">v1.0</div>
-            
-            <div class="flex items-center gap-2 mb-3">
-                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="flex items-center text-gray-400 hover:text-gray-600 transition-colors" style="font-size: 11px;">
-                    <i class="fab fa-github mr-2"></i>
-                    <span class="font-medium">Lumina Api`s</span>
+    <!-- ── MAIN CONTENT ── -->
+    <div class="page-wrapper">
+
+        <!-- Hero Banner -->
+        <div class="hero-banner" style="padding: 2rem 2.5rem;">
+            <div class="corner-dot tl"></div>
+            <div class="corner-dot tr"></div>
+            <div class="corner-dot bl"></div>
+            <div class="corner-dot br"></div>
+            <div class="corner-label tl">SYS::DOC</div>
+            <div class="corner-label tr">v1.0</div>
+
+            <div class="hero-badge">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank">
+                    <i class="fab fa-github"></i>
+                    <span>Lumina API's</span>
                 </a>
-                <!-- status badge -->
-                <span class="flex items-center gap-1 ml-2">
-                    <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full live-dot"></span>
-                    <span class="text-[9px] text-emerald-600 font-semibold uppercase tracking-wider">Active</span>
+                <span style="display:flex; align-items:center; gap:0.35rem; margin-left:0.5rem;">
+                    <span class="live-dot"></span>
+                    <span class="live-label">Active</span>
                 </span>
             </div>
-            
-            <div class="flex flex-wrap items-center gap-2 mb-2">
-                <h2 id="api-name" class="text-3xl font-bold tracking-tight text-gray-900">Name</h2>
-                <div id="api-author" class="author-badge bg-gray-800 text-white text-[10px] font-bold px-2.5 py-1 tracking-widest uppercase">by Who.</div>
-            </div>
-            <p id="api-desc" class="text-[12px] text-gray-500 mb-4 leading-relaxed max-w-xl">Desc</p>
-            <div id="api-links" class="flex flex-col gap-1 text-[11px] text-gray-400"></div>
 
-            <!-- Footer line -->
-            <div class="mt-5 pt-3 border-t border-dashed border-gray-200 flex justify-between items-center">
-                <span id="api-copyright" class="text-[9px] text-gray-300 font-bold tracking-widest uppercase">© 2025 Rynxzyy • DevAPI</span>
-                <span class="text-[9px] text-gray-300 font-mono">ID::LUM-001</span>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:0.75rem; margin-bottom:0.625rem;">
+                <h2 id="api-name" style="font-size:clamp(1.5rem,4vw,2.25rem); font-weight:800; letter-spacing:-0.04em; color:var(--text-color); margin:0;">
+                    <span class="gradient-text">Name</span>
+                </h2>
+                <div id="api-author" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.75rem; border-radius:100px; background:linear-gradient(135deg,var(--primary-color),var(--secondary-color)); color:white; letter-spacing:0.12em; text-transform:uppercase;">
+                    by Who.
+                </div>
+            </div>
+
+            <p id="api-desc" style="font-size:0.85rem; color:var(--text-muted); line-height:1.7; max-width:500px; margin-bottom:1rem;">Desc</p>
+
+            <div id="api-links" style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.75rem; color:var(--text-muted);"></div>
+
+            <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px dashed var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                <span id="api-copyright" style="font-size:0.6rem; font-weight:700; letter-spacing:0.3em; text-transform:uppercase; color:var(--text-muted); opacity:0.45;">© 2025 Rynxzyy • DevAPI</span>
+                <span style="font-size:0.6rem; font-family:'Courier New',monospace; color:var(--text-muted); opacity:0.45;">ID::LUM-001</span>
             </div>
         </div>
-        
+
         <!-- Search -->
-        <div class="relative w-full mb-6">
-            <input 
-                type="text" 
-                id="api-search" 
-                class="search-input w-full px-4 py-4 text-sm text-gray-700 border-2 border-gray-100 focus:outline-none focus:border-gray-800 transition-all pl-12 bg-white" 
-                placeholder="Search API Endpoints...">
-            <span class="material-icons absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300">search</span>
+        <div class="search-box">
+            <span class="material-icons search-icon">search</span>
+            <input type="text" id="api-search" placeholder="Search API Endpoints...">
         </div>
-        
-        <div class="tab-content" id="api-content"></div>
-    </div>
-    
-    <!-- Modal -->
-    <div id="api-modal" class="fixed inset-0 z-50 hidden overflow-y-auto overflow-x-hidden flex items-center justify-center p-6 transition-opacity duration-200 ease-out opacity-0">
-        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm opacity-0 transition-opacity duration-200 ease-out"></div>
-        <div class="relative z-10 bg-white border-2 border-gray-800 shadow-[8px_8px_0px_0px_rgba(31,41,55,1)] w-full max-w-lg mx-auto p-8 my-auto transform scale-95 opacity-0 transition-all duration-200 ease-out">
-            
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center mb-5">
-                <h3 class="text-lg font-bold tracking-tight text-gray-900" id="modal-title">API Request</h3>
-                <button id="close-modal" class="text-gray-300 hover:text-gray-900 transition-colors focus:outline-none p-1 hover:bg-gray-100 rounded">
-                    <span class="material-icons text-lg">close</span>
-                </button>
-            </div>
 
-            <!-- Divider with dots -->
-            <div class="modal-divider flex items-center gap-1.5 mb-5">
-                <div class="flex-1 h-px bg-gray-100"></div>
-                <div class="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
-                <div class="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
-                <div class="w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
-                <div class="flex-1 h-px bg-gray-100"></div>
+        <!-- API Content (rendered by script.js) -->
+        <div id="api-content"></div>
+
+    </div>
+
+    <!-- ── MODAL ── -->
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-box" id="api-modal">
+
+        <div class="modal-header">
+            <div>
+                <div class="modal-title" id="modal-title">API Request</div>
+                <div class="modal-subtitle" id="modal-path">/endpoint</div>
             </div>
-            
-            <div class="mb-5">
-                <p id="api-description" class="text-[12px] text-gray-500 leading-relaxed mb-3">API description will appear here</p>
-                
-                <!-- URL -->
-                <div class="url-block bg-gray-50 border border-gray-200 p-3 rounded relative group">
-                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span class="text-[8px] text-gray-400 font-mono uppercase tracking-wider bg-white border border-gray-100 px-1.5 py-0.5 rounded">URL</span>
-                    </div>
-                    <code id="api-url" class="text-[11px] font-mono text-gray-600 break-all">https://api-lumina-ashy.vercel.app/endpoint</code>
-                </div>
-            </div>
-            
-            <div id="params-container" class="mb-6"></div>
-            
-            <button id="submit-api" class="btn-solid w-full bg-gray-800 hover:bg-gray-900 text-white px-4 py-3 text-[11px] font-bold uppercase tracking-[0.2em] transition-all">
-                Send Request
+            <button class="modal-close" id="close-modal">
+                <span class="material-icons" style="font-size:1rem;">close</span>
             </button>
-            
-            <!-- Response -->
-            <div id="response-container" class="mt-6 hidden border-t border-gray-100 pt-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h4 class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Response</h4>
-                    <div class="flex items-center gap-2">
-                        <span id="response-status" class="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 rounded uppercase">200 OK</span>
-                        <span id="response-time" class="text-[10px] font-mono text-gray-400">200ms</span>
-                    </div>
-                </div>
-                <pre id="response-data" class="bg-gray-50 p-4 text-[11px] font-mono text-gray-600 overflow-auto max-h-60 border border-gray-100 rounded"></pre>
-            </div>
         </div>
+
+        <!-- Divider -->
+        <div class="modal-divider">
+            <div class="modal-divider-line"></div>
+            <div class="modal-divider-dot"></div>
+            <div class="modal-divider-dot" style="opacity:0.6;"></div>
+            <div class="modal-divider-dot" style="opacity:0.35;"></div>
+            <div class="modal-divider-line"></div>
+        </div>
+
+        <!-- Description -->
+        <p id="modal-description" style="font-size:0.8rem; color:var(--text-muted); line-height:1.65; margin-bottom:1rem;">API description will appear here.</p>
+
+        <!-- URL -->
+        <div class="url-block">
+            <div class="url-block-label">Endpoint URL</div>
+            <code id="api-url">https://api-lumina-ashy.vercel.app/endpoint</code>
+        </div>
+
+        <!-- Params -->
+        <div id="params-container"></div>
+
+        <!-- Send -->
+        <button id="submit-api" class="send-btn">
+            <span class="material-icons" style="font-size:1rem;">send</span>
+            Send Request
+        </button>
+
+        <!-- Response -->
+        <div class="response-section" id="response-container">
+            <div class="response-header">
+                <span class="response-title">Response</span>
+                <div class="response-meta">
+                    <span class="response-status ok" id="response-status">200 OK</span>
+                    <span class="response-time" id="response-time">--ms</span>
+                </div>
+            </div>
+            <pre class="response-pre" id="response-data"></pre>
+        </div>
+
     </div>
 
     <script src="/script.js"></script>
     <script>
-        // Loader
+        // ── Page Loader ──
         window.addEventListener('load', () => {
             const loader = document.getElementById('page-loader');
-            setTimeout(() => {
-                loader.style.opacity = '0';
-                setTimeout(() => { loader.style.display = 'none'; }, 300);
-            }, 300);
+            if (loader) {
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    setTimeout(() => { loader.style.display = 'none'; }, 400);
+                }, 300);
+            }
         });
 
-        // Endpoint count
+        // ── Endpoint Count ──
         async function fetchEndpointCount() {
             try {
-                const response = await fetch('/endpoints');
-                const data = await response.json();
+                const res  = await fetch('/endpoints');
+                const data = await res.json();
                 if (data.status && data.count) {
-                    const widget = document.getElementById('total-endpoints-widget');
-                    if (widget) widget.textContent = data.count + '+';
+                    const w = document.getElementById('total-endpoints-widget');
+                    if (w) w.textContent = data.count + '+';
                 }
-            } catch (e) {
-                console.log('Could not fetch endpoint count');
-            }
+            } catch (e) { /* silent */ }
         }
         fetchEndpointCount();
 
-        // Hamburger
-        const hamburger = document.getElementById('hamburger');
-        const mobileMenu = document.getElementById('mobile-menu');
+        // ── Hamburger ──
+        const hamburger     = document.getElementById('hamburger');
+        const mobileMenu    = document.getElementById('mobile-menu');
         const mobileOverlay = document.getElementById('mobile-overlay');
 
         function toggleMenu() {
@@ -270,15 +982,115 @@
 
         hamburger.addEventListener('click', toggleMenu);
         mobileOverlay.addEventListener('click', toggleMenu);
-
-        mobileMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
+        mobileMenu.querySelectorAll('a').forEach(l => l.addEventListener('click', () => {
+            if (mobileMenu.classList.contains('active')) toggleMenu();
+        }));
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
                 if (mobileMenu.classList.contains('active')) toggleMenu();
+                closeModal();
+            }
+        });
+
+        // ── Modal helpers ──
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalBox      = document.getElementById('api-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+
+        function openModal() {
+            modalBackdrop.classList.add('open');
+            modalBox.classList.add('open');
+            document.body.classList.add('noscroll');
+        }
+
+        function closeModal() {
+            modalBackdrop.classList.remove('open');
+            modalBox.classList.remove('open');
+            document.body.classList.remove('noscroll');
+        }
+
+        modalBackdrop.addEventListener('click', closeModal);
+        closeModalBtn.addEventListener('click', closeModal);
+
+        // Expose for script.js
+        window.openApiModal  = openModal;
+        window.closeApiModal = closeModal;
+
+        // ══════════════════════════════════════════
+        //  COLOR CUSTOMIZER (same logic as index)
+        // ══════════════════════════════════════════
+        const root    = document.documentElement;
+        const nav     = document.getElementById('main-nav');
+        const STORAGE = 'lumina-theme';
+
+        const DEFAULTS = { primary:'#4f46e5', accent:'#22d3ee', nav:'#1e1b4b' };
+
+        function hexToHsl(hex) {
+            let r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+            const max=Math.max(r,g,b), min=Math.min(r,g,b);
+            let h, s, l=(max+min)/2;
+            if(max===min){h=s=0;}
+            else{const d=max-min; s=l>0.5?d/(2-max-min):d/(max+min);
+                switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}
+            return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
+        }
+
+        function hslToHex(h,s,l){
+            s/=100;l/=100;const a=s*Math.min(l,1-l);
+            const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c).toString(16).padStart(2,'0');};
+            return `#${f(0)}${f(8)}${f(4)}`;
+        }
+
+        function applyTheme(colors) {
+            const [ph,ps,pl]=hexToHsl(colors.primary);
+            root.style.setProperty('--primary-color',   colors.primary);
+            root.style.setProperty('--primary-hover',   hslToHex(ph,ps,Math.max(pl-8,10)));
+            root.style.setProperty('--secondary-color', hslToHex(ph,Math.max(ps-15,0),Math.min(pl+18,90)));
+            root.style.setProperty('--accent-color',    colors.accent);
+            root.style.setProperty('--highlight-color', `${colors.primary}18`);
+            const [nh,ns,nl]=hexToHsl(colors.nav);
+            nav.style.background=`linear-gradient(135deg,${colors.nav},${hslToHex(nh,ns,Math.min(nl+6,50))})`;
+            nav.style.boxShadow =`0 4px 24px ${colors.primary}40`;
+            document.getElementById('pick-primary').value=colors.primary;
+            document.getElementById('pick-accent').value =colors.accent;
+            document.getElementById('pick-nav').value    =colors.nav;
+            document.getElementById('swatch-primary').style.background=colors.primary;
+            document.getElementById('swatch-accent').style.background =colors.accent;
+            document.getElementById('swatch-nav').style.background    =colors.nav;
+            localStorage.setItem(STORAGE, JSON.stringify(colors));
+        }
+
+        const saved = JSON.parse(localStorage.getItem(STORAGE)||'null');
+        if (saved) applyTheme(saved);
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+                btn.classList.add('active');
+                applyTheme({primary:btn.dataset.primary, accent:btn.dataset.accent, nav:btn.dataset.nav});
             });
         });
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();
+        function onPickerChange() {
+            document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+            applyTheme({primary:document.getElementById('pick-primary').value, accent:document.getElementById('pick-accent').value, nav:document.getElementById('pick-nav').value});
+        }
+        ['pick-primary','pick-accent','pick-nav'].forEach(id=>document.getElementById(id).addEventListener('input',onPickerChange));
+
+        document.getElementById('customizer-reset').addEventListener('click',()=>{
+            document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+            ['--primary-color','--primary-hover','--secondary-color','--accent-color','--highlight-color'].forEach(p=>root.style.removeProperty(p));
+            nav.style.background=''; nav.style.boxShadow='';
+            localStorage.removeItem(STORAGE);
+            applyTheme(DEFAULTS);
+        });
+
+        const custToggle  = document.getElementById('customizer-toggle');
+        const custPanel   = document.getElementById('customizer-panel');
+        const custChevron = document.getElementById('customizer-chevron');
+        custToggle.addEventListener('click',()=>{
+            const open=custPanel.classList.toggle('open');
+            custChevron.style.transform=open?'rotate(180deg)':'rotate(0deg)';
         });
     </script>
 </body>
