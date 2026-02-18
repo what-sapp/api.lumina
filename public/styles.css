@@ -912,28 +912,71 @@ body.noscroll {
    LAYOUT WRAPPER
    ================================================ */
 .page-wrapper {
-    max-width: 48rem;
+    max-width: 44rem;
     margin: 0 auto;
-    padding: 2rem 2.5rem 3rem;
+    padding: 1.5rem 1.25rem 3rem;
 }
 
 /* ================================================
-   RESPONSIVE
+   RESPONSIVE — Tablet (<=768px)
    ================================================ */
 @media (max-width: 768px) {
-    .main-nav { padding: 0 1.25rem; }
-    .page-wrapper { padding: 1.5rem 1.25rem 2.5rem; }
-    .hero-banner { padding: 2rem 1.5rem; }
-    .feature-grid { grid-template-columns: 1fr; }
-    .hero-actions { flex-direction: column; }
+    .main-nav { padding: 0 1rem; }
+    .mobile-menu { width: 280px; }
+    .page-wrapper { padding: 1.25rem 1rem 2.5rem; }
+
+    .hero-banner {
+        padding: 1.5rem 1.25rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 1rem;
+    }
+    .hero-title { font-size: 1.75rem; margin-bottom: 0.75rem; }
+    .hero-desc  { font-size: 0.82rem; margin-bottom: 1.25rem; max-width: 100%; }
+    .hero-badge { font-size: 0.7rem; margin-bottom: 0.875rem; }
+
+    .hero-actions { flex-direction: column; gap: 0.625rem; }
     .btn-primary,
-    .btn-outline { width: 100%; justify-content: center; }
-    .main-footer { flex-direction: column; text-align: center; }
+    .btn-outline {
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem 1rem;
+    }
+
+    .feature-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .feature-card { padding: 1.1rem 1.25rem; }
+
+    .main-footer { flex-direction: column; text-align: center; gap: 0.35rem; }
 }
 
+/* ================================================
+   RESPONSIVE — Mobile (<=480px)
+   ================================================ */
 @media (max-width: 480px) {
-    .mobile-menu { width: 290px; }
-    body { background-image: radial-gradient(circle, rgba(79, 70, 229, 0.05) 1px, transparent 1px); }
+    .page-wrapper { padding: 1rem 0.875rem 2rem; }
+    .mobile-menu { width: calc(100vw - 48px); max-width: 280px; }
+    .nav-logo { font-size: 0.95rem; }
+
+    .hero-banner { padding: 1.25rem 1rem; }
+    .hero-title  { font-size: 1.5rem; line-height: 1.2; }
+    .hero-desc   { font-size: 0.8rem; line-height: 1.65; }
+    .corner-label { display: none; }
+
+    .feature-card { padding: 1rem; }
+    .feature-icon-box { width: 2.25rem; height: 2.25rem; }
+    .feature-title { font-size: 0.75rem; }
+    .feature-desc  { font-size: 0.75rem; }
+
+    .stats-value { font-size: 1rem; }
+    .ip-code { font-size: 0.85rem; }
+
+    body {
+        background-image: radial-gradient(circle, rgba(79, 70, 229, 0.04) 1px, transparent 1px);
+        background-size: 24px 24px;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
