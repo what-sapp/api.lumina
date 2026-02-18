@@ -56,53 +56,34 @@ document.addEventListener('DOMContentLoaded', async function () {
         const apiContent = document.getElementById('api-content');
         if (!apiContent) return;
 
-        data.endpoints.forEach((category, catIndex) => {
-            const section = document.createElement('div');
-            section.className = 'category-section';
-            section.style.animationDelay = `${catIndex * 0.08}s`;
+        // Simpan data kategori untuk lazy render
+        const categoryData = data.endpoints;
 
-            // Count items
-            const count = category.items.length;
-
-            section.innerHTML = `
-                <div class="category-header" data-category="${catIndex}">
-                    <div class="category-header-left">
-                        <div class="category-icon">
-                            <span class="material-icons" style="font-size:1.1rem; color:var(--primary-color);">folder</span>
-                        </div>
-                        <span class="category-name">${category.name}</span>
-                        <span class="category-count">${count}</span>
-                    </div>
-                    <span class="material-icons category-chevron">expand_more</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="endpoint-grid" id="grid-${catIndex}"></div>
-                </div>
-            `;
-
-            const grid = section.querySelector(`#grid-${catIndex}`);
-
-            category.items.forEach((itemData, itemIndex) => {
+        // ── Helper: render endpoint cards ke dalam grid ──
+        function renderCards(grid, items, catIndex) {
+            items.forEach((itemData, itemIndex) => {
                 const itemName = Object.keys(itemData)[0];
                 const item     = itemData[itemName];
 
                 const card = document.createElement('div');
-                card.className   = 'endpoint-card';
-                card.style.animationDelay = `${itemIndex * 0.04}s`;
-                card.dataset.name = itemName.toLowerCase();
-                card.dataset.desc = (item.desc || '').toLowerCase();
+                card.className = 'endpoint-card';
+                card.dataset.name     = itemName.toLowerCase();
+                card.dataset.desc     = (item.desc || '').toLowerCase();
                 card.dataset.category = catIndex;
 
-                // Determine status badge
-                const status     = item.status || 'ready';
-                const statusMap  = {
-                    ready  : { cls: 'status-ready',  icon: 'circle',  label: 'Ready'  },
-                    error  : { cls: 'status-error',  icon: 'cancel',  label: 'Error'  },
-                    update : { cls: 'status-update', icon: 'update',  label: 'Update' },
+                // Animasi stagger masuk
+                card.style.opacity   = '0';
+                card.style.transform = 'translateY(16px)';
+                card.style.transition= `opacity 0.3s ease ${itemIndex * 0.05}s, transform 0.3s ease ${itemIndex * 0.05}s`;
+
+                const status    = item.status || 'ready';
+                const statusMap = {
+                    ready  : { cls: 'status-ready',  icon: 'circle', label: 'Ready'  },
+                    error  : { cls: 'status-error',  icon: 'cancel', label: 'Error'  },
+                    update : { cls: 'status-update', icon: 'update', label: 'Update' },
                 };
                 const s = statusMap[status] || statusMap.ready;
 
-                // Method badge (default GET)
                 const method    = (item.method || 'GET').toUpperCase();
                 const methodCls = { GET:'method-get', POST:'method-post', PUT:'method-put', DELETE:'method-delete' }[method] || 'method-get';
 
@@ -131,15 +112,86 @@ document.addEventListener('DOMContentLoaded', async function () {
                 `;
 
                 grid.appendChild(card);
+
+                // Trigger animasi di next frame
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        card.style.opacity   = '1';
+                        card.style.transform = 'translateY(0)';
+                    });
+                });
             });
+        }
+
+        // ── Intersection Observer untuk lazy render ──
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const section  = entry.target;
+                const catIndex = Number(section.dataset.catIndex);
+                const grid     = section.querySelector('.endpoint-grid');
+
+                // Cek apakah sudah dirender (ada flag)
+                if (section.dataset.rendered === 'true') return;
+                section.dataset.rendered = 'true';
+
+                // Render cards sekarang
+                renderCards(grid, categoryData[catIndex].items, catIndex);
+
+                // Hentikan observasi section ini
+                observer.unobserve(section);
+            });
+        }, {
+            rootMargin: '100px 0px',  // mulai render 100px sebelum masuk viewport
+            threshold: 0
+        });
+
+        // ── Buat skeleton section dulu (tanpa cards) ──
+        categoryData.forEach((category, catIndex) => {
+            const section = document.createElement('div');
+            section.className        = 'category-section';
+            section.dataset.catIndex = catIndex;
+            section.dataset.rendered = 'false';
+            section.style.opacity    = '0';
+            section.style.transform  = 'translateY(12px)';
+            section.style.transition = `opacity 0.4s ease ${catIndex * 0.06}s, transform 0.4s ease ${catIndex * 0.06}s`;
+
+            const count = category.items.length;
+
+            section.innerHTML = `
+                <div class="category-header" data-category="${catIndex}">
+                    <div class="category-header-left">
+                        <div class="category-icon">
+                            <span class="material-icons" style="font-size:1.1rem; color:var(--primary-color);">folder</span>
+                        </div>
+                        <span class="category-name">${category.name}</span>
+                        <span class="category-count">${count}</span>
+                    </div>
+                    <span class="material-icons category-chevron">expand_more</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="endpoint-grid" id="grid-${catIndex}"></div>
+                </div>
+            `;
 
             apiContent.appendChild(section);
 
+            // Fade in section header
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    section.style.opacity   = '1';
+                    section.style.transform = 'translateY(0)';
+                });
+            });
+
+            // Start observing
+            observer.observe(section);
         });
 
-        // Accordion toggle
-        apiContent.querySelectorAll('.category-header').forEach(header => {
-            header.addEventListener('click', () => {
+        // ── Accordion toggle ──
+        apiContent.addEventListener('click', e => {
+            const header = e.target.closest('.category-header');
+            if (header) {
                 const content  = header.nextElementSibling;
                 const chevron  = header.querySelector('.category-chevron');
                 const icon     = header.querySelector('.category-icon .material-icons');
@@ -147,10 +199,20 @@ document.addEventListener('DOMContentLoaded', async function () {
                 header.classList.toggle('open', isOpen);
                 chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
                 if (icon) icon.textContent = isOpen ? 'folder_open' : 'folder';
-            });
+
+                // Kalau baru dibuka dan belum dirender, render sekarang juga
+                const section  = header.closest('.category-section');
+                const catIndex = Number(section.dataset.catIndex);
+                const grid     = section.querySelector('.endpoint-grid');
+                if (isOpen && section.dataset.rendered === 'false') {
+                    section.dataset.rendered = 'true';
+                    renderCards(grid, categoryData[catIndex].items, catIndex);
+                    observer.unobserve(section);
+                }
+            }
         });
 
-        // Try button click — delegate
+        // ── Try button — event delegation ──
         apiContent.addEventListener('click', e => {
             const btn = e.target.closest('.try-btn');
             if (btn && !btn.disabled) {
