@@ -516,7 +516,7 @@ body.noscroll {
     border-radius: var(--border-radius-lg);
     padding: 3rem;
     position: relative;
-    overflow: visible;
+    overflow: hidden;
     box-shadow: var(--card-shadow);
     margin-bottom: 1.5rem;
     animation: slideInUp 0.7s ease-out;
