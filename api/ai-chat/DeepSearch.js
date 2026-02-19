@@ -126,7 +126,7 @@ const linerAI = {
 module.exports = {
     name: "AI DeepSearch",
     desc: "Pencarian AI mendalam berbasis Liner AI",
-    category: "AI",
+    category: "AI CHAT",
     params: ["query"],
     async run(req, res) {
         try {
