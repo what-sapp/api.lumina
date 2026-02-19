@@ -66,7 +66,7 @@ const shortener = {
 module.exports = {
     name: "URL Shortener",
     desc: "Memperpendek URL menggunakan berbagai layanan (TinyURL, v.gd, Spoo.me, dll)",
-    category: "Tools",
+    category: "TOOLS",
     params: ["url", "_service", "alias"],
     async run(req, res) {
         try {
