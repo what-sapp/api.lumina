@@ -123,9 +123,9 @@ const searchPinterestAPI = async (query, limit) => {
 };
 
 module.exports = {
-  name: "PinterestSearch",
+  name: "Pinterest Search",
   desc: "Search image pins from Pinterest by keyword",
-  category: "Scraper",
+  category: "SEARCH",
   params: ["query", "limit"],
 
   async run(req, res) {
