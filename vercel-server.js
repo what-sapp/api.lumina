@@ -147,6 +147,10 @@ app.get('/luminaai', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'luminaai.html'));
 });
 
+app.get('/playground', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'playground.html'));
+});
+
 // ========================================
 // API Routes
 // ========================================
