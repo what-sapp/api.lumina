@@ -196,7 +196,7 @@ const handleImageGenerate = async (prompt, model = "fal-ai/flux-2") => {
 module.exports = {
     name: "Flux AI",
     desc: "AI Image Editing & Generation - Edit existing images or generate new ones",
-    category: "AI-IMAGE",
+    category: "AI IMAGE",
     params: ["action", "prompt", "_image", "_model"],
     async run(req, res) {
         try {
