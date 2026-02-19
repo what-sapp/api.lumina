@@ -7,7 +7,7 @@ const cheerio = require('cheerio');
 module.exports = {
     name: "Threads Downloader",
     desc: "Download video atau foto dari postingan Threads",
-    category: "DOWNLOADER",
+    category: "Downloader",
     params: ["url"],
     async run(req, res) {
         try {
