@@ -74,7 +74,7 @@ const checkNSFWStatus = async (imageUrl) => {
 module.exports = {
     name: "NSFW Checker",
     desc: "Cek apakah sebuah gambar mengandung konten dewasa (NSFW)",
-    category: "Tools",
+    category: "TOOLS",
     params: ["url"],
     async run(req, res) {
         try {
