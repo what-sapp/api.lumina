@@ -77,7 +77,7 @@ const handleImageGen = async (prompt, aspectRatio) => {
 module.exports = {
   name: "Gemmy AI Image Generator",
   desc: "Generate AI images with custom aspect ratio using Gemmy AI",
-  category: "AI-IMAGE",
+  category: "AI IMAGE",
   method: "GET",
   
   // ✅ PARAMETER SCHEMA (auto-generate form)
