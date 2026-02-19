@@ -425,49 +425,54 @@
         // ══════════════════════════════════════════
         //  TYPING ANIMATION
         // ══════════════════════════════════════════
-        const LINE1   = 'Build Faster with';
-        const LINE2   = 'Free REST APIs';
         const el1     = document.getElementById('typed-line-1');
         const el2     = document.getElementById('typed-line-2');
         const cursor  = document.getElementById('typing-cursor');
         const desc    = document.getElementById('hero-desc');
         const actions = document.getElementById('hero-actions');
 
-        function typeText(el, text, speed, callback) {
-            let i = 0;
-            el.textContent = '';
-            const interval = setInterval(() => {
-                el.textContent += text[i];
-                i++;
-                if (i >= text.length) {
-                    clearInterval(interval);
-                    if (callback) callback();
-                }
-            }, speed);
+        // Baris 1 langsung muncul dulu
+        el1.textContent = 'Build Faster with';
+
+        // Fade in desc + actions langsung (ga nunggu loop selesai)
+        setTimeout(() => {
+            desc.style.opacity    = '1';
+            actions.style.opacity = '1';
+        }, 1200);
+
+        // Typing loop baris 2
+        const phrases     = ['Free REST APIs', 'Open Source APIs', 'No Auth APIs', 'Fast & Free APIs'];
+        let phraseIndex   = 0;
+        let charIndex     = 0;
+        let isDeleting    = false;
+        let typingSpeed   = 100;
+
+        function typeLoop() {
+            const current = phrases[phraseIndex];
+
+            if (isDeleting) {
+                el2.textContent = current.substring(0, charIndex - 1);
+                charIndex--;
+                typingSpeed = 50;
+            } else {
+                el2.textContent = current.substring(0, charIndex + 1);
+                charIndex++;
+                typingSpeed = 100;
+            }
+
+            if (!isDeleting && charIndex === current.length) {
+                typingSpeed = 2000;
+                isDeleting  = true;
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting   = false;
+                phraseIndex  = (phraseIndex + 1) % phrases.length;
+                typingSpeed  = 500;
+            }
+
+            setTimeout(typeLoop, typingSpeed);
         }
 
-        // Start typing setelah loader selesai
-        setTimeout(() => {
-            // Baris 1
-            typeText(el1, LINE1, 55, () => {
-                // Jeda sebentar, lalu baris 2
-                setTimeout(() => {
-                    // Pindah cursor ke baris 2
-                    el1.textContent = LINE1;
-                    el1.insertAdjacentHTML('afterend', '<br>');
-                    typeText(el2, LINE2, 65, () => {
-                        // Sembunyiin cursor setelah selesai
-                        setTimeout(() => {
-                            cursor.style.animation = 'none';
-                            cursor.style.opacity   = '0';
-                            // Fade in desc + actions
-                            desc.style.opacity    = '1';
-                            actions.style.opacity = '1';
-                        }, 800);
-                    });
-                }, 200);
-            });
-        }, 600);
+        setTimeout(typeLoop, 1000);
 
         // ══════════════════════════════════════════
         //  GITHUB NOTIF BUBBLE
