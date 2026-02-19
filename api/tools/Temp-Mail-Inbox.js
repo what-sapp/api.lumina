@@ -9,7 +9,7 @@ const HEADERS = {
 module.exports = {
     name: "Temp Mail Inbox",
     desc: "Cek kotak masuk email sementara",
-    category: "Tools",
+    category: "TOOLS",
     params: ["email"],
     async run(req, res) {
         try {
