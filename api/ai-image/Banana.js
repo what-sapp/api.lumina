@@ -242,7 +242,7 @@ const processEnhancement = async (imageUrl, prompt) => {
 module.exports = {
     name: "NanoBanana",
     desc: "AI Image Editor - Edit images with prompt",
-    category: "AI-IMAGE",
+    category: "AI IMAGE",
     params: ["image", "prompt"],
     async run(req, res) {
         try {
