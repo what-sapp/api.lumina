@@ -6,7 +6,7 @@ const axios = require('axios');
 module.exports = {
     name: "Remove Watermark",
     desc: "Menghapus watermark atau objek pengganggu pada gambar secara otomatis",
-    category: "AI Tools",
+    category: "AI TOOLS",
     params: ["url"],
     async run(req, res) {
         try {
