@@ -9,7 +9,7 @@ module.exports = {
     author:   'Robin',
     owner: {
         name:   'Robin',
-        github: 'https://github.com/rynxzyy',
+        github: 'https://github.com/hiuraaaaa',
         wa:     'https://whatsapp.com/channel/0029Vb9MIdiDDmFXasVPVG1t',
         avatar: '/image/icon.png'
     },
