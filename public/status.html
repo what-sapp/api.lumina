@@ -522,6 +522,14 @@
                     <span class="menu-badge" style="background:rgba(79,70,229,0.12); color:#4f46e5;">New</span>
                 </a>
 
+                <a href="/playground" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(34,211,238,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--accent-color);">science</span>
+                    </div>
+                    <span>Playground</span>
+                    <span class="menu-badge" style="background:rgba(34,211,238,0.12); color:var(--accent-color);">New</span>
+                </a>
+
                 <a href="/status" class="menu-item active">
                     <div class="menu-icon-box" style="background:rgba(255,255,255,0.15);">
                         <span class="material-icons" style="font-size:1rem; color:white;">bar_chart</span>
@@ -848,12 +856,109 @@
                 const data = await res.json();
                 let count  = 0;
                 data.endpoints.forEach(cat => { count += cat.items.length; });
-                document.getElementById('total-endpoints').textContent     = count;
+                document.getElementById('total-endpoints').textContent      = count;
                 document.getElementById('menu-total-endpoints').textContent = count;
                 log(`Found ${count} endpoints`, 'info');
             } catch (err) {
                 log(`Error fetching endpoints: ${err.message}`, 'error');
             }
+        }
+
+        // ── Fetch real stats dari Firestore via /stats ──
+        async function fetchRealStats() {
+            try {
+                log('Fetching real traffic stats...', 'info');
+                const res  = await fetch('/stats');
+                const data = await res.json();
+
+                if (!data.status) throw new Error(data.message);
+
+                // Update metric cards
+                document.getElementById('success-rate').innerHTML      = `${data.successRate}<span>%</span>`;
+                document.getElementById('avg-response-time').innerHTML = `${data.avgDuration}<span>ms</span>`;
+                document.getElementById('uptime').innerHTML            = `${data.totalRequests}<span style="font-size:1rem"> req</span>`;
+                document.getElementById('menu-success-rate').textContent = `${data.successRate}%`;
+
+                // Counter strip
+                const okCount  = Math.round(data.totalRequests * data.successRate / 100);
+                const errCount = data.recentErrors;
+                document.getElementById('live-success').textContent = okCount;
+                document.getElementById('live-error').textContent   = errCount;
+                document.getElementById('live-pending').textContent  = data.totalRequests;
+
+                // Status banner
+                const circle = document.getElementById('status-circle');
+                const icon   = document.getElementById('status-icon');
+                const text   = document.getElementById('status-text');
+                const pulse  = document.getElementById('pulse-ring');
+
+                if (data.successRate >= 95) {
+                    circle.className = 'status-circle status-online';
+                    icon.textContent = 'check_circle';
+                    text.textContent = 'All Systems Operational';
+                    pulse.style.background = '#10b981';
+                } else if (data.successRate >= 70) {
+                    circle.className = 'status-circle status-degraded';
+                    icon.textContent = 'warning';
+                    text.textContent = 'Degraded Performance';
+                    pulse.style.background = '#f59e0b';
+                } else {
+                    circle.className = 'status-circle status-offline';
+                    icon.textContent = 'error';
+                    text.textContent = 'Major Outage Detected';
+                    pulse.style.background = '#f43f5e';
+                }
+
+                // Render top endpoints dari server
+                renderServerTopEndpoints(data.topEndpoints);
+
+                log(`Stats loaded — ${data.totalRequests} total requests, ${data.successRate}% success, ${data.last24h} last 24h`, 'success');
+            } catch (err) {
+                log(`Error fetching stats: ${err.message} — fallback to localStorage`, 'warning');
+                // Fallback ke localStorage kalau /stats gagal
+                updateMetrics();
+            }
+        }
+
+        // ── Render top endpoints dari server data ──
+        function renderServerTopEndpoints(topEndpoints) {
+            const container = document.getElementById('top-endpoints');
+            if (!topEndpoints?.length) return;
+
+            const placeholder = document.getElementById('top-endpoints-placeholder');
+            if (placeholder) placeholder.style.display = 'none';
+
+            const maxCount = topEndpoints[0].count;
+            container.innerHTML = '';
+
+            topEndpoints.forEach((ep, idx) => {
+                const barPct  = Math.round((ep.count / maxCount) * 100);
+                const rateCol = ep.successRate >= 95 ? 'var(--success-color)'
+                              : ep.successRate >= 70 ? 'var(--warning-color)'
+                              : 'var(--error-color)';
+
+                const row = document.createElement('div');
+                row.style.cssText = 'padding:0.875rem 1.25rem; border-bottom:1px solid var(--border-color); animation:slideInUp 0.3s ease both;';
+                row.style.animationDelay = `${idx * 0.04}s`;
+                row.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
+                        <span style="font-size:0.62rem; font-weight:800; color:var(--text-muted); width:1.25rem; text-align:center;">#${idx+1}</span>
+                        <code style="font-size:0.78rem; color:var(--primary-color); font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${ep.path}</code>
+                        <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
+                            <span style="font-size:0.62rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:100px; background:var(--highlight-color); color:var(--primary-color);">${ep.count} req</span>
+                            <span style="font-size:0.62rem; font-weight:700; color:${rateCol};">${ep.successRate}%</span>
+                            ${ep.avgDuration ? `<span style="font-size:0.6rem; color:var(--text-muted); font-family:'Courier New',monospace;">${ep.avgDuration}ms</span>` : ''}
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="width:1.25rem;"></span>
+                        <div style="flex:1; height:4px; background:var(--border-color); border-radius:100px; overflow:hidden;">
+                            <div style="height:100%; width:${barPct}%; background:linear-gradient(90deg,var(--primary-color),var(--accent-color)); border-radius:100px; transition:width 0.6s ease;"></div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
         }
 
         // ── Top Endpoints (from Live Activity) ──
@@ -993,7 +1098,11 @@
         }
 
         // ── Event listeners ──
-        document.getElementById('refresh-btn').addEventListener('click', () => window.location.reload());
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            fetchRealStats();
+            fetchEndpoints();
+            log('Manual refresh triggered', 'info');
+        });
         document.getElementById('test-all-btn').addEventListener('click', showLast24hStats);
         document.getElementById('clear-logs-btn').addEventListener('click', () => {
             document.getElementById('debug-logs').innerHTML = `<div style="color:var(--text-muted);">Logs cleared.</div>`;
@@ -1192,8 +1301,12 @@
 
         // ── Init ──
         fetchEndpoints();
+        fetchRealStats();
         renderTopEndpoints();
         updateLiveCounters();
+
+        // Auto refresh stats tiap 60 detik
+        setInterval(fetchRealStats, 60000);
     </script>
 </body>
 </html>
