@@ -4,6 +4,8 @@
 // ══════════════════════════════════════════
 
 (function() {
+    function initReport() {
+
     // Inject styles
     const style = document.createElement('style');
     style.textContent = `
@@ -403,12 +405,12 @@
     let selectedType = '';
     let cooldown     = false;
 
-    function openModal()  { modal.classList.add('open'); backdrop.classList.add('open'); }
-    function closeModal() { modal.classList.remove('open'); backdrop.classList.remove('open'); }
+    function openReportModal()  { modal.classList.add('open'); backdrop.classList.add('open'); }
+    function closeReportModal() { modal.classList.remove('open'); backdrop.classList.remove('open'); }
 
-    fab.addEventListener('click', openModal);
-    closeBtn.addEventListener('click', closeModal);
-    backdrop.addEventListener('click', closeModal);
+    fab.addEventListener('click', openReportModal);
+    closeBtn.addEventListener('click', closeReportModal);
+    backdrop.addEventListener('click', closeReportModal);
 
     // Type pills
     document.querySelectorAll('.report-type-btn').forEach(btn => {
@@ -483,11 +485,19 @@
     // Auto-fill endpoint dari URL kalau di docs
     const path = window.location.pathname;
     if (path === '/docs' || path.includes('docs')) {
-        // Observe kalau ada endpoint yang diklik di docs
         window.addEventListener('lumina-endpoint-selected', (e) => {
             if (e.detail?.path) {
                 document.getElementById('report-endpoint').value = e.detail.path;
             }
         });
+    }
+
+    } // end initReport
+
+    // Safe init — tunggu DOM siap
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(initReport));
+    } else {
+        requestAnimationFrame(initReport);
     }
 })();
