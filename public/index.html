@@ -76,6 +76,227 @@
             50%       { transform: scale(1.4); opacity: 0.6; }
         }
 
+        /* ── Server Status Card ── */
+        .server-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        @media (max-width: 540px) { .server-grid { grid-template-columns: 1fr; } }
+
+        .server-card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: var(--hover-transition);
+        }
+
+        .server-card:hover {
+            transform: var(--hover-transform);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(79,70,229,0.2);
+        }
+
+        .server-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        }
+
+        .server-card-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--text-muted);
+            margin-bottom: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .server-stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.72rem;
+        }
+
+        .server-stat-row:last-child { border-bottom: none; }
+
+        .server-stat-label { color: var(--text-muted); font-size: 0.65rem; }
+
+        .server-stat-value {
+            font-weight: 700;
+            color: var(--text-color);
+            font-family: 'Courier New', monospace;
+            font-size: 0.68rem;
+        }
+
+        /* Status dot inline */
+        .status-dot-inline {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--success-color);
+            display: inline-block;
+            margin-right: 4px;
+            box-shadow: 0 0 5px rgba(16,185,129,0.5);
+            animation: pulseDot 2s ease infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.4; }
+        }
+
+        /* Battery */
+        .battery-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .battery-bar-outer {
+            flex: 1;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .battery-bar-inner {
+            height: 100%;
+            border-radius: 100px;
+            transition: width 0.6s ease, background 0.3s ease;
+            background: var(--success-color);
+        }
+
+        .battery-pct {
+            font-size: 0.65rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: var(--text-color);
+            min-width: 2.5rem;
+            text-align: right;
+        }
+
+        /* Mem bar */
+        .mem-bar-outer {
+            flex: 1;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .mem-bar-inner {
+            height: 100%;
+            border-radius: 100px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            transition: width 0.6s ease;
+        }
+
+        /* ── Owner Card ── */
+        .owner-card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: var(--hover-transition);
+        }
+
+        .owner-card:hover {
+            transform: var(--hover-transform);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(79,70,229,0.2);
+        }
+
+        .owner-avatar {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+            flex-shrink: 0;
+            box-shadow: 0 0 0 4px var(--highlight-color);
+        }
+
+        .owner-avatar-fallback {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: white;
+            border: 2px solid var(--primary-color);
+        }
+
+        .owner-info { flex: 1; min-width: 0; }
+
+        .owner-name {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-color);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.2rem;
+        }
+
+        .owner-role {
+            font-size: 0.62rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .owner-links {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .owner-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.25rem 0.625rem;
+            border-radius: 100px;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+            background: var(--background-color);
+        }
+
+        .owner-link:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--highlight-color);
+        }
+
         /* ── Typing animation ── */
         .hero-title {
             min-height: 4.5rem; /* prevent layout shift */
@@ -374,9 +595,92 @@
             </div>
         </div>
 
+        <!-- Server Status + Battery -->
+        <div class="server-grid">
+            <!-- Server Status -->
+            <div class="server-card">
+                <div class="server-card-title">
+                    <span class="material-icons" style="font-size:0.8rem; color:var(--primary-color);">dns</span>
+                    Server Status
+                </div>
+                <div class="server-stat-row">
+                    <span class="server-stat-label">Status</span>
+                    <span class="server-stat-value"><span class="status-dot-inline"></span>Online</span>
+                </div>
+                <div class="server-stat-row">
+                    <span class="server-stat-label">Provider</span>
+                    <span class="server-stat-value" id="srv-provider">--</span>
+                </div>
+                <div class="server-stat-row">
+                    <span class="server-stat-label">Region</span>
+                    <span class="server-stat-value" id="srv-region">--</span>
+                </div>
+                <div class="server-stat-row">
+                    <span class="server-stat-label">Node.js</span>
+                    <span class="server-stat-value" id="srv-node">--</span>
+                </div>
+                <div class="server-stat-row">
+                    <span class="server-stat-label">Uptime</span>
+                    <span class="server-stat-value" id="srv-uptime">--</span>
+                </div>
+                <div class="server-stat-row" style="border-bottom:none; margin-top:0.5rem;">
+                    <span class="server-stat-label">Memory</span>
+                    <div class="battery-wrap" style="flex:1; margin-left:0.75rem;">
+                        <div class="mem-bar-outer">
+                            <div class="mem-bar-inner" id="mem-bar" style="width:0%"></div>
+                        </div>
+                        <span class="battery-pct" id="mem-pct">--%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Battery -->
+            <div class="server-card">
+                <div class="server-card-title">
+                    <span class="material-icons" style="font-size:0.8rem; color:var(--accent-color);">devices</span>
+                    Your Device
+                </div>
+                <div class="server-stat-row">
+                    <span class="server-stat-label">Battery</span>
+                    <span class="server-stat-value" id="batt-pct">--</span>
+                </div>
+                <div class="server-stat-row">
+                    <span class="server-stat-label">Charging</span>
+                    <span class="server-stat-value" id="batt-charging">--</span>
+                </div>
+                <div class="server-stat-row" style="border-bottom:none; padding-top:0.6rem;">
+                    <div class="battery-wrap" style="width:100%;">
+                        <div class="battery-bar-outer">
+                            <div class="battery-bar-inner" id="batt-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="height:0.75rem;"></div>
+                <div class="server-stat-row">
+                    <span class="server-stat-label">Platform</span>
+                    <span class="server-stat-value" id="srv-platform">--</span>
+                </div>
+                <div class="server-stat-row">
+                    <span class="server-stat-label">Version</span>
+                    <span class="server-stat-value" id="srv-version">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Owner Card -->
+        <div class="owner-card">
+            <div class="owner-avatar-fallback" id="owner-avatar-fallback">R</div>
+            <img id="owner-avatar-img" class="owner-avatar" style="display:none;" alt="Owner">
+            <div class="owner-info">
+                <div class="owner-name" id="owner-name">--</div>
+                <div class="owner-role">API Owner &amp; Developer</div>
+                <div class="owner-links" id="owner-links"></div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="main-footer">
-            <span class="footer-copy">© 2025 Robin • All Rights Reserved</span>
+            <span class="footer-copy" id="footer-copy">© 2025 Robin • All Rights Reserved</span>
             <span class="footer-id">ID::LUM-HOME</span>
         </div>
 
@@ -393,6 +697,97 @@
                 }, 300);
             }
         });
+
+        // ── Server Info ──
+        async function fetchServerInfo() {
+            try {
+                const res  = await fetch('/server-info');
+                const data = await res.json();
+                if (!data.status) return;
+
+                const s = data.server;
+                const o = data.owner;
+
+                document.getElementById('srv-provider').textContent = s.provider || '--';
+                document.getElementById('srv-region').textContent   = s.region   || '--';
+                document.getElementById('srv-node').textContent     = s.nodeVersion || '--';
+                document.getElementById('srv-version').textContent  = s.version  || '--';
+                document.getElementById('srv-platform').textContent = s.platform + ' ' + s.arch || '--';
+
+                // Uptime counter
+                let uptimeSec = s.uptimeSeconds || 0;
+                function updateUptime() {
+                    uptimeSec++;
+                    const h = Math.floor(uptimeSec / 3600);
+                    const m = Math.floor((uptimeSec % 3600) / 60);
+                    const sec = uptimeSec % 60;
+                    document.getElementById('srv-uptime').textContent =
+                        `${h}h ${String(m).padStart(2,'0')}m ${String(sec).padStart(2,'0')}s`;
+                }
+                updateUptime();
+                setInterval(updateUptime, 1000);
+
+                // Memory bar
+                const memPct = s.memUsed || 0;
+                document.getElementById('mem-bar').style.width = memPct + '%';
+                document.getElementById('mem-pct').textContent = memPct + '%';
+                const memBar = document.getElementById('mem-bar');
+                if (memPct > 80) memBar.style.background = '#f43f5e';
+                else if (memPct > 60) memBar.style.background = '#f59e0b';
+
+                // Owner
+                document.getElementById('owner-name').textContent = o.name || '--';
+                const fallback = document.getElementById('owner-avatar-fallback');
+                fallback.textContent = (o.name || 'R').charAt(0).toUpperCase();
+
+                if (o.avatar) {
+                    const img = document.getElementById('owner-avatar-img');
+                    img.src = o.avatar;
+                    img.onload  = () => { img.style.display = 'block'; fallback.style.display = 'none'; };
+                    img.onerror = () => {};
+                }
+
+                // Owner links
+                const linksEl = document.getElementById('owner-links');
+                const links = [];
+                if (o.github) links.push({ label: 'GitHub', icon: 'fab fa-github', url: o.github });
+                if (o.wa)     links.push({ label: 'WhatsApp', icon: 'fab fa-whatsapp', url: o.wa });
+                linksEl.innerHTML = links.map(l =>
+                    `<a href="${l.url}" target="_blank" class="owner-link">
+                        <i class="${l.icon}"></i> ${l.label}
+                    </a>`
+                ).join('');
+
+            } catch (e) {
+                console.error('server-info error:', e);
+            }
+        }
+        fetchServerInfo();
+
+        // ── Battery API ──
+        async function fetchBattery() {
+            if (!navigator.getBattery) {
+                document.getElementById('batt-pct').textContent      = 'N/A';
+                document.getElementById('batt-charging').textContent = 'N/A';
+                return;
+            }
+            const battery = await navigator.getBattery();
+            function updateBattery() {
+                const pct      = Math.round(battery.level * 100);
+                const charging = battery.charging;
+                document.getElementById('batt-pct').textContent      = pct + '%';
+                document.getElementById('batt-charging').textContent = charging ? '⚡ Yes' : 'No';
+                const bar = document.getElementById('batt-bar');
+                bar.style.width = pct + '%';
+                bar.style.background = pct <= 20 ? '#f43f5e'
+                                     : pct <= 50 ? '#f59e0b'
+                                     : '#10b981';
+            }
+            updateBattery();
+            battery.addEventListener('levelchange',   updateBattery);
+            battery.addEventListener('chargingchange', updateBattery);
+        }
+        fetchBattery();
 
         // ── Endpoint Count ──
         async function fetchEndpointCount() {
