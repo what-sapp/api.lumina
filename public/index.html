@@ -297,6 +297,140 @@
             background: var(--highlight-color);
         }
 
+        /* ── Server Status Strip ── */
+        .hero-status-strip {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            flex-wrap: wrap;
+        }
+
+        .hss-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .hss-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--success-color);
+            box-shadow: 0 0 5px rgba(16,185,129,0.6);
+            animation: pulseDot 2s ease infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.4; transform: scale(1.3); }
+        }
+
+        .hss-value {
+            color: var(--text-color);
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            font-size: 0.68rem;
+        }
+
+        .hss-divider {
+            width: 1px;
+            height: 12px;
+            background: var(--border-color);
+            flex-shrink: 0;
+        }
+
+        /* ── Owner Card (simplified) ── */
+        .owner-card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: var(--hover-transition);
+        }
+
+        .owner-card:hover {
+            transform: var(--hover-transform);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(79,70,229,0.2);
+        }
+
+        .owner-avatar {
+            width: 3.25rem; height: 3.25rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+            flex-shrink: 0;
+            box-shadow: 0 0 0 4px var(--highlight-color);
+        }
+
+        .owner-avatar-fallback {
+            width: 3.25rem; height: 3.25rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: white;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 0 0 4px var(--highlight-color);
+        }
+
+        .owner-info { flex: 1; min-width: 0; }
+
+        .owner-name {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-color);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.15rem;
+        }
+
+        .owner-role {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .owner-links { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+        .owner-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.62rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 100px;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+            background: var(--background-color);
+        }
+
+        .owner-link:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--highlight-color);
+        }
+
         /* ── Typing animation ── */
         .hero-title {
             min-height: 4.5rem; /* prevent layout shift */
@@ -560,6 +694,37 @@
                     API Status
                 </a>
             </div>
+
+            <!-- Server Status Strip -->
+            <div class="hero-status-strip">
+                <div class="hss-item">
+                    <span class="hss-dot"></span>
+                    <span>Online</span>
+                </div>
+                <div class="hss-divider"></div>
+                <div class="hss-item">
+                    <span class="material-icons" style="font-size:0.75rem; color:var(--accent-color);">memory</span>
+                    <span>Node</span>
+                    <span class="hss-value" id="strip-node">--</span>
+                </div>
+                <div class="hss-divider"></div>
+                <div class="hss-item">
+                    <span class="material-icons" style="font-size:0.75rem; color:var(--primary-color);">schedule</span>
+                    <span>Uptime</span>
+                    <span class="hss-value" id="strip-uptime">--</span>
+                </div>
+                <div class="hss-divider"></div>
+                <div class="hss-item">
+                    <span class="material-icons" style="font-size:0.75rem; color:var(--success-color);">dns</span>
+                    <span class="hss-value" id="strip-provider">--</span>
+                </div>
+                <div class="hss-divider"></div>
+                <div class="hss-item">
+                    <span class="material-icons" style="font-size:0.75rem; color:var(--text-muted);">storage</span>
+                    <span>Mem</span>
+                    <span class="hss-value" id="strip-mem">--%</span>
+                </div>
+            </div>
         </div>
 
         <!-- Feature Cards -->
@@ -592,78 +757,6 @@
                     </button>
                 </div>
                 <span id="copy-feedback" class="copy-feedback">Copied!</span>
-            </div>
-        </div>
-
-        <!-- Server Status + Battery -->
-        <div class="server-grid">
-            <!-- Server Status -->
-            <div class="server-card">
-                <div class="server-card-title">
-                    <span class="material-icons" style="font-size:0.8rem; color:var(--primary-color);">dns</span>
-                    Server Status
-                </div>
-                <div class="server-stat-row">
-                    <span class="server-stat-label">Status</span>
-                    <span class="server-stat-value"><span class="status-dot-inline"></span>Online</span>
-                </div>
-                <div class="server-stat-row">
-                    <span class="server-stat-label">Provider</span>
-                    <span class="server-stat-value" id="srv-provider">--</span>
-                </div>
-                <div class="server-stat-row">
-                    <span class="server-stat-label">Region</span>
-                    <span class="server-stat-value" id="srv-region">--</span>
-                </div>
-                <div class="server-stat-row">
-                    <span class="server-stat-label">Node.js</span>
-                    <span class="server-stat-value" id="srv-node">--</span>
-                </div>
-                <div class="server-stat-row">
-                    <span class="server-stat-label">Uptime</span>
-                    <span class="server-stat-value" id="srv-uptime">--</span>
-                </div>
-                <div class="server-stat-row" style="border-bottom:none; margin-top:0.5rem;">
-                    <span class="server-stat-label">Memory</span>
-                    <div class="battery-wrap" style="flex:1; margin-left:0.75rem;">
-                        <div class="mem-bar-outer">
-                            <div class="mem-bar-inner" id="mem-bar" style="width:0%"></div>
-                        </div>
-                        <span class="battery-pct" id="mem-pct">--%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Device Battery -->
-            <div class="server-card">
-                <div class="server-card-title">
-                    <span class="material-icons" style="font-size:0.8rem; color:var(--accent-color);">devices</span>
-                    Your Device
-                </div>
-                <div class="server-stat-row">
-                    <span class="server-stat-label">Battery</span>
-                    <span class="server-stat-value" id="batt-pct">--</span>
-                </div>
-                <div class="server-stat-row">
-                    <span class="server-stat-label">Charging</span>
-                    <span class="server-stat-value" id="batt-charging">--</span>
-                </div>
-                <div class="server-stat-row" style="border-bottom:none; padding-top:0.6rem;">
-                    <div class="battery-wrap" style="width:100%;">
-                        <div class="battery-bar-outer">
-                            <div class="battery-bar-inner" id="batt-bar" style="width:0%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div style="height:0.75rem;"></div>
-                <div class="server-stat-row">
-                    <span class="server-stat-label">Platform</span>
-                    <span class="server-stat-value" id="srv-platform">--</span>
-                </div>
-                <div class="server-stat-row">
-                    <span class="server-stat-label">Version</span>
-                    <span class="server-stat-value" id="srv-version">--</span>
-                </div>
             </div>
         </div>
 
@@ -708,32 +801,26 @@
                 const s = data.server;
                 const o = data.owner;
 
-                document.getElementById('srv-provider').textContent = s.provider || '--';
-                document.getElementById('srv-region').textContent   = s.region   || '--';
-                document.getElementById('srv-node').textContent     = s.nodeVersion || '--';
-                document.getElementById('srv-version').textContent  = s.version  || '--';
-                document.getElementById('srv-platform').textContent = s.platform + ' ' + s.arch || '--';
+                // Update strip di hero
+                document.getElementById('strip-node').textContent     = s.nodeVersion || '--';
+                document.getElementById('strip-provider').textContent = s.provider    || '--';
+                document.getElementById('strip-mem').textContent      = (s.memUsed || 0) + '%';
 
-                // Uptime counter
+                // Uptime counter — update strip
                 let uptimeSec = s.uptimeSeconds || 0;
                 function updateUptime() {
                     uptimeSec++;
-                    const h = Math.floor(uptimeSec / 3600);
-                    const m = Math.floor((uptimeSec % 3600) / 60);
+                    const h   = Math.floor(uptimeSec / 3600);
+                    const m   = Math.floor((uptimeSec % 3600) / 60);
                     const sec = uptimeSec % 60;
-                    document.getElementById('srv-uptime').textContent =
-                        `${h}h ${String(m).padStart(2,'0')}m ${String(sec).padStart(2,'0')}s`;
+                    const str = h > 0
+                        ? `${h}h ${String(m).padStart(2,'0')}m`
+                        : `${String(m).padStart(2,'0')}m ${String(sec).padStart(2,'0')}s`;
+                    const el = document.getElementById('strip-uptime');
+                    if (el) el.textContent = str;
                 }
                 updateUptime();
                 setInterval(updateUptime, 1000);
-
-                // Memory bar
-                const memPct = s.memUsed || 0;
-                document.getElementById('mem-bar').style.width = memPct + '%';
-                document.getElementById('mem-pct').textContent = memPct + '%';
-                const memBar = document.getElementById('mem-bar');
-                if (memPct > 80) memBar.style.background = '#f43f5e';
-                else if (memPct > 60) memBar.style.background = '#f59e0b';
 
                 // Owner
                 document.getElementById('owner-name').textContent = o.name || '--';
@@ -764,30 +851,7 @@
         }
         fetchServerInfo();
 
-        // ── Battery API ──
-        async function fetchBattery() {
-            if (!navigator.getBattery) {
-                document.getElementById('batt-pct').textContent      = 'N/A';
-                document.getElementById('batt-charging').textContent = 'N/A';
-                return;
-            }
-            const battery = await navigator.getBattery();
-            function updateBattery() {
-                const pct      = Math.round(battery.level * 100);
-                const charging = battery.charging;
-                document.getElementById('batt-pct').textContent      = pct + '%';
-                document.getElementById('batt-charging').textContent = charging ? '⚡ Yes' : 'No';
-                const bar = document.getElementById('batt-bar');
-                bar.style.width = pct + '%';
-                bar.style.background = pct <= 20 ? '#f43f5e'
-                                     : pct <= 50 ? '#f59e0b'
-                                     : '#10b981';
-            }
-            updateBattery();
-            battery.addEventListener('levelchange',   updateBattery);
-            battery.addEventListener('chargingchange', updateBattery);
-        }
-        fetchBattery();
+
 
         // ── Endpoint Count ──
         async function fetchEndpointCount() {
