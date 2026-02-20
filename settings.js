@@ -1,16 +1,33 @@
 module.exports = {
     name: {
-        main: 'Lumina Api`s',
-        copyright: 'ROBIN'
+        main:      'Lumina APIs',
+        short:     'Lumina',
+        copyright: 'Robin'
     },
     description: 'Integrated API solution for your modern application development needs. Fast, secure, and reliable access.',
-    icon: '/image/icon.png',
-    author: 'ROBIN',
+    icon:     '/image/icon.png',
+    author:   'Robin',
+    owner: {
+        name:   'Robin',
+        github: 'https://github.com/rynxzyy',
+        wa:     'https://whatsapp.com/channel/0029Vb9MIdiDDmFXasVPVG1t',
+        avatar: '/image/icon.png'
+    },
+    server: {
+        region:   'Asia-Southeast (Singapore)',
+        provider: 'Vercel',
+        version:  'v1.0.0',
+        nodeVersion: process.version
+    },
     info_url: 'https://whatsapp.com/channel/0029Vb9MIdiDDmFXasVPVG1t',
     links: [
         {
             name: 'WhatsApp Information Ch.',
-            url: 'https://whatsapp.com/channel/0029Vb9MIdiDDmFXasVPVG1t'
+            url:  'https://whatsapp.com/channel/0029Vb9MIdiDDmFXasVPVG1t'
+        },
+        {
+            name: 'GitHub',
+            url:  'https://github.com/hiuraaaaa/Hiuraa-API-Base'
         }
     ]
 };
