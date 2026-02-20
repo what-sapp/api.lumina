@@ -988,7 +988,7 @@
     </div>
 
     <script src="/script.js"></script>
-    <script src="/report-component.js"></script>
+    <script src="/report-component.js" defer></script>
     <script>
         // ── Page Loader ──
         window.addEventListener('load', () => {
@@ -1053,6 +1053,9 @@
             document.body.classList.add('noscroll');
         }
 
+        // Expose sebagai openDocsModal (bukan openApiModal biar ga conflict sama script.js)
+        window.openDocsModal = openModal;
+
         function closeModal() {
             modalBackdrop.classList.remove('open');
             modalBox.classList.remove('open');
@@ -1066,7 +1069,7 @@
         closeModalBtn.addEventListener('click', closeModal);
 
         // Expose for script.js
-        window.openApiModal  = openModal;
+        // window.openApiModal handled by openDocsModal above
         window.closeApiModal = closeModal;
 
         // ── Safety Net: pastiin noscroll ga stuck ──
@@ -1157,6 +1160,6 @@
         });
     </script>
     <!-- Report Component -->
-    <script src="/report-component.js"></script>
+    <script src="/report-component.js" defer></script>
 </body>
 </html>
