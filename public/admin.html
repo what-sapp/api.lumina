@@ -418,6 +418,87 @@
 
         .logout-btn:hover { background: rgba(244,63,94,0.15); }
 
+        /* ── Reports panel ── */
+        .report-status-badge {
+            font-size: 0.58rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.2rem 0.55rem;
+            border-radius: 100px;
+            white-space: nowrap;
+        }
+        .rs-open        { background: rgba(244,63,94,0.12);  color: #f43f5e; }
+        .rs-in_progress { background: rgba(245,158,11,0.12); color: #f59e0b; }
+        .rs-resolved    { background: rgba(16,185,129,0.12); color: #10b981; }
+        .rs-dismissed   { background: rgba(100,116,139,0.12);color: #64748b; }
+
+        .report-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: 0.875rem 1rem;
+            margin-bottom: 0.625rem;
+            background: var(--background-color);
+            animation: slideInUp 0.2s ease;
+            transition: var(--transition);
+        }
+        .report-card:hover { border-color: rgba(79,70,229,0.25); }
+        .report-card:last-child { margin-bottom: 0; }
+
+        .report-type-chip {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.15rem 0.5rem;
+            border-radius: 100px;
+            background: var(--highlight-color);
+            color: var(--primary-color);
+        }
+
+        .report-status-select {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--card-background);
+            color: var(--text-color);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .report-scroll {
+            max-height: 420px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) transparent;
+        }
+
+        .report-filter-bar {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-pill {
+            font-size: 0.62rem;
+            font-weight: 700;
+            padding: 0.3rem 0.75rem;
+            border-radius: 100px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .filter-pill.active, .filter-pill:hover {
+            background: var(--highlight-color);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        .filter-pill.active { font-weight: 800; }
+
         /* ── Empty state ── */
         .empty-state {
             text-align: center;
@@ -738,6 +819,40 @@
             </div>
         </div>
 
+        <!-- Reports Panel -->
+        <div class="admin-panel" style="margin-bottom:1.25rem;" id="reports-panel">
+            <div class="admin-panel-header">
+                <div class="admin-panel-title">
+                    <span class="material-icons" style="font-size:0.9rem; color:#f43f5e;">flag</span>
+                    User Reports
+                    <span id="reports-badge" style="display:none; font-size:0.6rem; font-weight:800; padding:0.1rem 0.45rem; border-radius:100px; background:rgba(244,63,94,0.12); color:#f43f5e; margin-left:0.25rem;">0</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <button class="admin-btn admin-btn-primary" onclick="loadReports()" style="font-size:0.65rem; padding:0.35rem 0.65rem;">
+                        <span class="material-icons" style="font-size:0.8rem;">refresh</span>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter bar -->
+            <div style="padding:0.75rem 1.25rem; border-bottom:1px solid var(--border-color); background:var(--background-color);">
+                <div class="report-filter-bar">
+                    <button class="filter-pill active" data-filter="all" onclick="filterReports('all', this)">All</button>
+                    <button class="filter-pill" data-filter="open" onclick="filterReports('open', this)">🔴 Open</button>
+                    <button class="filter-pill" data-filter="in_progress" onclick="filterReports('in_progress', this)">🟡 In Progress</button>
+                    <button class="filter-pill" data-filter="resolved" onclick="filterReports('resolved', this)">🟢 Resolved</button>
+                    <button class="filter-pill" data-filter="dismissed" onclick="filterReports('dismissed', this)">⚫ Dismissed</button>
+                </div>
+            </div>
+
+            <div class="admin-panel-body">
+                <div class="report-scroll" id="reports-list">
+                    <div class="empty-state">Loading reports...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="main-footer">
             <span class="footer-copy">© 2025 Robin • Admin Panel</span>
@@ -763,7 +878,7 @@
             appId:             "1:637345497070:web:62c84a71b6a415206d18ff"
         };
 
-        const ADMIN_EMAIL = 'hiura0012@gmail.com'; // ← ganti sama email lu
+        const ADMIN_EMAIL = 'robin@gmail.com'; // ← ganti sama email lu
 
         const firebaseApp = initializeApp(firebaseConfig);
         const auth        = getAuth(firebaseApp);
@@ -798,6 +913,7 @@
                 loadTraffic();
                 loadBlacklist();
                 loadEndpointsList();
+                loadReports();
 
             } else if (user) {
                 // ❌ Email bukan admin
@@ -1179,6 +1295,130 @@
             } catch (e) { console.error(e); }
         }
 
+        // ══════════════════════════════════════════
+        //  REPORTS
+        // ══════════════════════════════════════════
+        let allReports   = [];
+        let currentFilter = 'all';
+
+        async function loadReports() {
+            const container = document.getElementById('reports-list');
+            container.innerHTML = '<div class="empty-state">Loading...</div>';
+            try {
+                const res  = await adminFetch('/admin/reports');
+                const data = await res.json();
+                allReports = data.reports || [];
+
+                // Update badge
+                const openCount = allReports.filter(r => r.status === 'open').length;
+                const badge     = document.getElementById('reports-badge');
+                if (openCount > 0) {
+                    badge.textContent  = openCount;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                renderReports(currentFilter);
+            } catch (e) {
+                container.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+            }
+        }
+
+        function filterReports(filter, el) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            renderReports(filter);
+        }
+
+        function renderReports(filter) {
+            const container = document.getElementById('reports-list');
+            const filtered  = filter === 'all' ? allReports : allReports.filter(r => r.status === filter);
+
+            if (!filtered.length) {
+                container.innerHTML = `<div class="empty-state">No ${filter === 'all' ? '' : filter} reports</div>`;
+                return;
+            }
+
+            const typeLabel = {
+                timeout:        '⏱ Timeout',
+                error_response: '⚠ Error Response',
+                wrong_response: '🔀 Wrong Response',
+                slow:           '🐢 Too Slow',
+                down:           '🔴 API Down',
+                other:          '❓ Other'
+            };
+
+            container.innerHTML = filtered.map(r => {
+                const ts  = r.timestamp?.seconds ? new Date(r.timestamp.seconds * 1000).toLocaleString('id-ID') : '--';
+                const cls = `rs-${r.status}`;
+                return `
+                    <div class="report-card" id="rcard-${r.id}">
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.75rem; margin-bottom:0.5rem;">
+                            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                                <span class="report-type-chip">${typeLabel[r.type] || r.type}</span>
+                                <span class="report-status-badge ${cls}">${r.status.replace('_',' ')}</span>
+                            </div>
+                            <button class="admin-btn admin-btn-danger" onclick="deleteReport('${r.id}')" style="padding:0.25rem 0.5rem; font-size:0.6rem; flex-shrink:0;">
+                                <span class="material-icons" style="font-size:0.75rem;">delete</span>
+                            </button>
+                        </div>
+
+                        <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--primary-color); font-weight:600; margin-bottom:0.35rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            ${r.endpoint}
+                        </div>
+
+                        ${r.description ? `<div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.5rem; line-height:1.5;">${r.description}</div>` : ''}
+
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+                            <div style="display:flex; align-items:center; gap:0.75rem;">
+                                <span style="font-size:0.6rem; color:var(--text-muted); font-family:'Courier New',monospace;">${r.ip}</span>
+                                ${r.email ? `<span style="font-size:0.6rem; color:var(--accent-color);">✉ ${r.email}</span>` : ''}
+                                <span style="font-size:0.6rem; color:var(--text-muted);">${ts}</span>
+                            </div>
+                            <select class="report-status-select" onchange="updateReportStatus('${r.id}', this.value)">
+                                <option value="open"        ${r.status==='open'?'selected':''}>🔴 Open</option>
+                                <option value="in_progress" ${r.status==='in_progress'?'selected':''}>🟡 In Progress</option>
+                                <option value="resolved"    ${r.status==='resolved'?'selected':''}>🟢 Resolved</option>
+                                <option value="dismissed"   ${r.status==='dismissed'?'selected':''}>⚫ Dismissed</option>
+                            </select>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        async function updateReportStatus(id, status) {
+            try {
+                const res  = await adminFetch(`/admin/reports/${id}`, {
+                    method: 'PATCH',
+                    body:   JSON.stringify({ status })
+                });
+                const data = await res.json();
+                if (data.status) {
+                    // Update local cache
+                    const r = allReports.find(r => r.id === id);
+                    if (r) r.status = status;
+                    // Re-render badge
+                    const openCount = allReports.filter(r => r.status === 'open').length;
+                    const badge     = document.getElementById('reports-badge');
+                    badge.textContent   = openCount;
+                    badge.style.display = openCount > 0 ? 'inline' : 'none';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function deleteReport(id) {
+            try {
+                const res  = await adminFetch(`/admin/reports/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.status) {
+                    allReports = allReports.filter(r => r.id !== id);
+                    renderReports(currentFilter);
+                }
+            } catch (e) { console.error(e); }
+        }
+
         // Expose functions globally
         window.loadTraffic       = loadTraffic;
         window.loadBlacklist     = loadBlacklist;
@@ -1187,6 +1427,10 @@
         window.loadEndpointsList = loadEndpointsList;
         window.toggleEndpoint    = toggleEndpoint;
         window.forceReloadCache  = forceReloadCache;
+        window.loadReports        = loadReports;
+        window.filterReports      = filterReports;
+        window.updateReportStatus = updateReportStatus;
+        window.deleteReport       = deleteReport;
 
         // ── Hamburger ──
         const hamburger     = document.getElementById('hamburger');
