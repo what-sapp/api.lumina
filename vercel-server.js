@@ -225,6 +225,85 @@ app.get('/set', (req, res) => {
 });
 
 // ════════════════════════════════════════
+//  PUBLIC STATS ROUTE (no auth needed)
+// ════════════════════════════════════════
+app.get('/stats', async (req, res) => {
+    try {
+        const snap    = await db.collection('traffic').orderBy('timestamp', 'desc').limit(500).get();
+        const traffic = snap.docs.map(d => d.data());
+
+        if (!traffic.length) {
+            return res.json({
+                status:       true,
+                totalRequests: 0,
+                successRate:   100,
+                avgDuration:   0,
+                topEndpoints:  [],
+                recentErrors:  0,
+                last24h:       0
+            });
+        }
+
+        // Total requests
+        const total = traffic.length;
+
+        // Success rate
+        const ok    = traffic.filter(t => t.status >= 200 && t.status < 400);
+        const rate  = ((ok.length / total) * 100).toFixed(1);
+
+        // Avg duration
+        const withDur = traffic.filter(t => t.duration);
+        const avgDur  = withDur.length
+            ? Math.round(withDur.reduce((s, t) => s + t.duration, 0) / withDur.length)
+            : 0;
+
+        // Top endpoints
+        const pathMap = {};
+        traffic.forEach(t => {
+            if (!t.path) return;
+            if (!pathMap[t.path]) pathMap[t.path] = { count: 0, ok: 0, totalDur: 0 };
+            pathMap[t.path].count++;
+            if (t.status >= 200 && t.status < 400) {
+                pathMap[t.path].ok++;
+                pathMap[t.path].totalDur += (t.duration || 0);
+            }
+        });
+
+        const topEndpoints = Object.entries(pathMap)
+            .sort((a, b) => b[1].count - a[1].count)
+            .slice(0, 10)
+            .map(([path, d]) => ({
+                path,
+                count:       d.count,
+                successRate: ((d.ok / d.count) * 100).toFixed(0),
+                avgDuration: d.ok ? Math.round(d.totalDur / d.ok) : 0
+            }));
+
+        // Last 24h
+        const now   = Date.now();
+        const last24h = traffic.filter(t => {
+            if (!t.timestamp?.seconds) return false;
+            return (now - t.timestamp.seconds * 1000) <= 24 * 60 * 60 * 1000;
+        }).length;
+
+        // Recent errors
+        const recentErrors = traffic.filter(t => t.status >= 400).length;
+
+        res.json({
+            status:        true,
+            totalRequests: total,
+            successRate:   parseFloat(rate),
+            avgDuration:   avgDur,
+            topEndpoints,
+            recentErrors,
+            last24h
+        });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
+});
+
+// ════════════════════════════════════════
 //  ADMIN ROUTES
 // ════════════════════════════════════════
 
