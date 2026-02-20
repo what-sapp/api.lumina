@@ -216,13 +216,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         apiContent.addEventListener('click', e => {
             const btn = e.target.closest('.try-btn');
             if (btn && !btn.disabled) {
-                openApiModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc, btn.dataset.method);
+                openDocsModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc, btn.dataset.method);
             }
         });
     }
 
     // --- 4. MODAL ---
-    function openApiModal(name, endpoint, description, method = 'GET') {
+    function openDocsModal(name, endpoint, description, method = 'GET') {
         const paramsContainer   = document.getElementById('params-container');
         const responseContainer = document.getElementById('response-container');
         const responseData      = document.getElementById('response-data');
@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         sendBtn.onclick = () => handleApiRequest(endpoint, paramsContainer);
 
         // Open modal
-        if (window.openApiModal) window.openApiModal();
+        if (window.openDocsModal) window.openDocsModal();
     }
 
     // --- 5. LIVE ACTIVITY LOGGER ---
