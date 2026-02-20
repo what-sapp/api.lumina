@@ -107,7 +107,7 @@ app.use((req, res, next) => {
             const responseData = { status: data.status, statusCode, creator: set.author.toLowerCase(), ...data };
 
             // Log traffic (skip admin & utility routes)
-            const skip = ['/admin', '/endpoints', '/set'].some(p => req.path.startsWith(p));
+            const skip = ['/admin', '/endpoints', '/set', '/stats'].some(p => req.path.startsWith(p));
             if (!skip) {
                 db.collection('traffic').add({
                     path:      req.path,
@@ -304,6 +304,60 @@ app.get('/stats', async (req, res) => {
 });
 
 // ════════════════════════════════════════
+//  REPORT ROUTES
+// ════════════════════════════════════════
+
+// Rate limit khusus report — max 5 per jam per IP
+const reportRateMap = new Map();
+function checkReportLimit(ip) {
+    const now   = Date.now();
+    const entry = reportRateMap.get(ip);
+    if (!entry || now > entry.resetAt) {
+        reportRateMap.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 });
+        return true;
+    }
+    entry.count++;
+    return entry.count <= 5;
+}
+
+// POST /report — submit report dari user
+app.post('/report', async (req, res) => {
+    const ip = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
+
+    if (!checkReportLimit(ip)) {
+        return res.status(429).json({ status: false, message: 'Too many reports. Please wait before submitting again.' });
+    }
+
+    const { endpoint, type, description, email } = req.body;
+
+    if (!endpoint || endpoint.trim().length < 2) {
+        return res.status(400).json({ status: false, message: 'Endpoint URL is required.' });
+    }
+
+    if (!type) {
+        return res.status(400).json({ status: false, message: 'Issue type is required.' });
+    }
+
+    try {
+        await db.collection('reports').add({
+            endpoint:    endpoint.trim(),
+            type,
+            description: description?.trim() || '',
+            email:       email?.trim() || '',
+            ip,
+            status:      'open',
+            timestamp:   admin.firestore.FieldValue.serverTimestamp(),
+            ua:          req.headers['user-agent'] || ''
+        });
+
+        res.json({ status: true, message: 'Report submitted successfully. Thank you!' });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
+});
+
+// GET /admin/reports — list semua report (admin only)
+// ════════════════════════════════════════
 //  ADMIN ROUTES
 // ════════════════════════════════════════
 
@@ -321,6 +375,46 @@ async function verifyAdmin(req, res, next) {
         return res.status(401).json({ status: false, message: 'Invalid token' });
     }
 }
+
+// GET /admin/reports — list semua report
+app.get('/admin/reports', verifyAdmin, async (req, res) => {
+    try {
+        const status = req.query.status || null;
+        let query    = db.collection('reports').orderBy('timestamp', 'desc').limit(100);
+        if (status) query = db.collection('reports').where('status', '==', status).orderBy('timestamp', 'desc').limit(100);
+        const snap   = await query.get();
+        const reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        res.json({ status: true, count: reports.length, reports });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
+});
+
+// PATCH /admin/reports/:id — update status report
+app.patch('/admin/reports/:id', verifyAdmin, async (req, res) => {
+    const { id }     = req.params;
+    const { status } = req.body;
+    if (!['open','in_progress','resolved','dismissed'].includes(status)) {
+        return res.status(400).json({ status: false, message: 'Invalid status' });
+    }
+    try {
+        await db.collection('reports').doc(id).update({ status, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        res.json({ status: true, message: `Report ${id} → ${status}` });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
+});
+
+// DELETE /admin/reports/:id — hapus report
+app.delete('/admin/reports/:id', verifyAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await db.collection('reports').doc(id).delete();
+        res.json({ status: true, message: `Report ${id} deleted` });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
+});
 
 // Force reload cache
 app.post('/admin/cache/reload', verifyAdmin, async (req, res) => {
