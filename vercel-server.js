@@ -107,7 +107,7 @@ app.use((req, res, next) => {
             const responseData = { status: data.status, statusCode, creator: set.author.toLowerCase(), ...data };
 
             // Log traffic (skip admin & utility routes)
-            const skip = ['/admin', '/endpoints', '/set', '/stats'].some(p => req.path.startsWith(p));
+            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info'].some(p => req.path.startsWith(p));
             if (!skip) {
                 db.collection('traffic').add({
                     path:      req.path,
@@ -222,6 +222,46 @@ app.get('/endpoints', (req, res) => {
 
 app.get('/set', (req, res) => {
     res.json({ status: true, ...set });
+});
+
+// ════════════════════════════════════════
+//  SERVER INFO ROUTE (public)
+// ════════════════════════════════════════
+app.get('/server-info', (req, res) => {
+    const os      = require('os');
+    const uptime  = process.uptime();
+    const hours   = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = Math.floor(uptime % 60);
+
+    // CPU usage simple
+    const cpus    = os.cpus();
+    const mem     = os.totalmem();
+    const freeMem = os.freemem();
+    const memUsed = Math.round(((mem - freeMem) / mem) * 100);
+
+    res.json({
+        status:  true,
+        server: {
+            region:      set.server?.region      || 'Asia-Southeast',
+            provider:    set.server?.provider    || 'Vercel',
+            version:     set.server?.version     || 'v1.0.0',
+            nodeVersion: process.version,
+            uptime:      `${hours}h ${minutes}m ${seconds}s`,
+            uptimeSeconds: Math.floor(uptime),
+            memUsed:     memUsed,
+            platform:    os.platform(),
+            arch:        os.arch()
+        },
+        owner: {
+            name:   set.owner?.name   || set.author,
+            github: set.owner?.github || '',
+            wa:     set.owner?.wa     || set.info_url,
+            avatar: set.owner?.avatar || set.icon
+        },
+        name:        set.name?.main || set.name,
+        description: set.description
+    });
 });
 
 // ════════════════════════════════════════
