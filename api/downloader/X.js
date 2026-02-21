@@ -7,7 +7,7 @@ const cheerio = require('cheerio');
 module.exports = {
     name: "X/Twitter Downloader",
     desc: "Download video atau foto dari postingan X (Twitter) dengan kualitas terbaik",
-    category: "DOWNLOADER",
+    category: "Downloader",
     params: ["url"],
     async run(req, res) {
         try {
