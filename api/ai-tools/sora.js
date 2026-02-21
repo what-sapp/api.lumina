@@ -72,7 +72,7 @@ const soraAuth = {
 module.exports = {
     name: "Sora AI Video",
     desc: "Generate video dari teks (Text-to-Video) menggunakan model Sora 2",
-    category: "AI TOOLS",
+    category: "AI VIDEO",
     params: ["prompt", "aspect"], // aspect: landscape / portrait
     async run(req, res) {
         try {
