@@ -4,7 +4,7 @@ const FormData = require('form-data');
 module.exports = {
     name: 'HydroMind',
     desc: 'For models, you can check mind.hydrooo.web.id',
-    category: 'AI',
+    category: 'AI CHAT',
     params: ['text', 'model'],
     async run(req, res) {
         try {
