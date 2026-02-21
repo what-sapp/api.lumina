@@ -22,7 +22,7 @@ async function muslimAI(text) {
 module.exports = {
   name: "MuslimAI",
   desc: "JSON Response | Islamic AI based on Quran",
-  category: "AI",
+  category: "AI CHAT",
   params: ["query"],
 
   async run(req, res) {
