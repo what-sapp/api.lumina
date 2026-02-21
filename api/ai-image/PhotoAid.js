@@ -232,7 +232,7 @@ class PhotoAidEnlarger {
 module.exports = {
     name: "PhotoAid AI Enlarger",
     desc: "AI Image Enlarger - Enhance and upscale images using AI",
-    category: "AI-IMAGE",
+    category: "AI IMAGE",
     params: ["image"],
     async run(req, res) {
         try {
