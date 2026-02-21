@@ -18,7 +18,7 @@ async function deepseekR1(text) {
 module.exports = {
   name: "DeepSeekR1",
   desc: "JSON Response | Cloudflare AI | LLM",
-  category: "AI",
+  category: "AI CHAT",
   params: ["text"],
 
   async run(req, res) {
