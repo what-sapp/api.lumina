@@ -328,7 +328,7 @@ const handleLive3DGenerate = async (imageInput, options = {}) => {
 module.exports = {
     name: "Live3D AI Fix",
     desc: "AI Cloth Remover Generator - Remove clothes from images",
-    category: "Style Changer",
+    category: "AI IMAGE",
     params: ["image", "_prompt", "_cloth_type"],
     async run(req, res) {
         try {
