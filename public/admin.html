@@ -521,6 +521,33 @@
         .mx-post   { background: rgba(79,70,229,0.12);  color: var(--primary-color); }
         .mx-put    { background: rgba(245,158,11,0.12); color: #d97706; }
         .mx-delete { background: rgba(244,63,94,0.12);  color: #e11d48; }
+
+        /* ── Admin Nav Links ── */
+        .admin-nav-links {
+            display: flex; align-items: center; gap: 0.25rem;
+            position: absolute; left: 50%; transform: translateX(-50%);
+        }
+        .admin-nav-item {
+            display: flex; align-items: center; gap: 0.35rem;
+            padding: 0.4rem 0.75rem; font-size: 0.7rem; font-weight: 600;
+            color: rgba(255,255,255,0.55); text-decoration: none;
+            border-radius: 6px; transition: all 0.2s ease;
+            white-space: nowrap; position: relative;
+        }
+        .admin-nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .admin-nav-item.active { color: white; background: rgba(255,255,255,0.15); }
+        .admin-nav-item.active::after {
+            content: ''; position: absolute; bottom: -3px;
+            left: 50%; transform: translateX(-50%);
+            width: 20px; height: 2px; background: #22d3ee; border-radius: 2px;
+        }
+        .admin-nav-badge {
+            min-width: 16px; height: 16px; padding: 0 4px;
+            border-radius: 100px; background: #f43f5e; color: white;
+            font-size: 0.55rem; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+        }
+        @media (max-width: 860px) { .admin-nav-links { display: none; } }
     </style>
 </head>
 <body>
@@ -551,6 +578,25 @@
         <a href="/" class="nav-logo">
             Lumina <span class="nav-logo-accent">Admin</span>
         </a>
+        <!-- Desktop nav links -->
+        <div class="admin-nav-links" id="admin-nav-links">
+            <a href="#section-charts"    class="admin-nav-item active" data-section="section-charts">
+                <span class="material-icons" style="font-size:0.9rem;">bar_chart</span> Traffic
+            </a>
+            <a href="#section-blacklist" class="admin-nav-item" data-section="section-blacklist">
+                <span class="material-icons" style="font-size:0.9rem;">block</span> Blacklist
+            </a>
+            <a href="#section-endpoints" class="admin-nav-item" data-section="section-endpoints">
+                <span class="material-icons" style="font-size:0.9rem;">api</span> Endpoints
+            </a>
+            <a href="#section-reports"   class="admin-nav-item" data-section="section-reports">
+                <span class="material-icons" style="font-size:0.9rem;">flag</span> Reports
+                <span class="admin-nav-badge" id="nav-reports-badge" style="display:none;"></span>
+            </a>
+            <a href="#section-changelog" class="admin-nav-item" data-section="section-changelog">
+                <span class="material-icons" style="font-size:0.9rem;">new_releases</span> Changelog
+            </a>
+        </div>
         <div class="hamburger" id="hamburger">
             <div class="hamburger-inner"><span></span><span></span><span></span></div>
         </div>
@@ -573,37 +619,44 @@
             </div>
 
             <nav style="display:flex; flex-direction:column; gap:0.25rem;">
-                <a href="/" class="menu-item">
-                    <div class="menu-icon-box" style="background:rgba(100,116,139,0.1);">
-                        <span class="material-icons" style="font-size:1rem; color:var(--text-muted);">home</span>
+                <a href="#section-charts" class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)">
+                    <div class="menu-icon-box" style="background:rgba(79,70,229,0.15);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">bar_chart</span>
                     </div>
-                    <span>Home</span>
+                    <span>Traffic & Charts</span>
                 </a>
-                <a href="/docs" class="menu-item">
-                    <div class="menu-icon-box" style="background:rgba(59,130,246,0.1);">
-                        <span class="material-icons" style="font-size:1rem; color:#3b82f6;">description</span>
+                <a href="#section-blacklist" class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)">
+                    <div class="menu-icon-box" style="background:rgba(244,63,94,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:#f43f5e;">block</span>
                     </div>
-                    <span>Documentation</span>
+                    <span>Blacklist IP</span>
                 </a>
-                <a href="/playground" class="menu-item">
+                <a href="#section-endpoints" class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)">
                     <div class="menu-icon-box" style="background:rgba(34,211,238,0.1);">
-                        <span class="material-icons" style="font-size:1rem; color:var(--accent-color);">science</span>
+                        <span class="material-icons" style="font-size:1rem; color:var(--accent-color);">api</span>
                     </div>
-                    <span>Playground</span>
+                    <span>Endpoints</span>
                 </a>
-                <a href="/status" class="menu-item">
+                <a href="#section-reports" class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)">
+                    <div class="menu-icon-box" style="background:rgba(245,158,11,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:#f59e0b;">flag</span>
+                    </div>
+                    <span>Reports</span>
+                </a>
+                <a href="#section-changelog" class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)">
                     <div class="menu-icon-box" style="background:rgba(16,185,129,0.1);">
-                        <span class="material-icons" style="font-size:1rem; color:var(--success-color);">bar_chart</span>
+                        <span class="material-icons" style="font-size:1rem; color:var(--success-color);">new_releases</span>
                     </div>
-                    <span>API Status</span>
+                    <span>Changelog</span>
                 </a>
-                <a href="/admin" class="menu-item active">
-                    <div class="menu-icon-box" style="background:rgba(255,255,255,0.15);">
-                        <span class="material-icons" style="font-size:1rem; color:white;">shield</span>
-                    </div>
-                    <span>Admin</span>
-                    <span class="menu-badge menu-badge-current">Current</span>
-                </a>
+                <div style="margin-top:0.5rem; padding-top:0.75rem; border-top:1px solid var(--border-color);">
+                    <a href="/" class="menu-item" style="opacity:0.6;">
+                        <div class="menu-icon-box" style="background:rgba(100,116,139,0.1);">
+                            <span class="material-icons" style="font-size:1rem; color:var(--text-muted);">home</span>
+                        </div>
+                        <span>Back to Home</span>
+                    </a>
+                </div>
             </nav>
 
             <div class="menu-section-divider">
@@ -709,7 +762,7 @@
         </div>
 
         <!-- Charts -->
-        <div class="chart-grid">
+        <div class="chart-grid" id="section-charts">
             <div class="chart-panel">
                 <div class="admin-panel-header">
                     <div class="admin-panel-title">
@@ -740,7 +793,7 @@
         <div class="admin-grid">
 
             <!-- Traffic -->
-            <div class="admin-panel">
+            <div class="admin-panel" id="section-traffic">
                 <div class="admin-panel-header">
                     <div class="admin-panel-title">
                         <span class="material-icons" style="font-size:0.9rem; color:var(--accent-color);">timeline</span>
@@ -778,7 +831,7 @@
             </div>
 
             <!-- Blacklist IP -->
-            <div class="admin-panel">
+            <div class="admin-panel" id="section-blacklist">
                 <div class="admin-panel-header">
                     <div class="admin-panel-title">
                         <span class="material-icons" style="font-size:0.9rem; color:var(--error-color);">block</span>
@@ -804,7 +857,7 @@
         </div>
 
         <!-- Endpoints Manager -->
-        <div class="admin-panel" style="margin-bottom:1.25rem;">
+        <div class="admin-panel" id="section-endpoints" style="margin-bottom:1.25rem;">
             <div class="admin-panel-header">
                 <div class="admin-panel-title">
                     <span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">toggle_on</span>
@@ -820,7 +873,7 @@
         </div>
 
         <!-- Reports Panel -->
-        <div class="admin-panel" style="margin-bottom:1.25rem;" id="reports-panel">
+        <div class="admin-panel" style="margin-bottom:1.25rem;" id="section-reports">
             <div class="admin-panel-header">
                 <div class="admin-panel-title">
                     <span class="material-icons" style="font-size:0.9rem; color:#f43f5e;">flag</span>
@@ -853,6 +906,62 @@
             </div>
         </div>
 
+        <!-- ── Changelog Panel ── -->
+        <div class="admin-panel" style="margin-bottom:1.25rem;" id="section-changelog">
+            <div class="admin-panel-header">
+                <div class="admin-panel-title">
+                    <span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">new_releases</span>
+                    Changelog
+                    <span id="changelog-count" style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:100px; background:var(--highlight-color); color:var(--primary-color);">0</span>
+                </div>
+                <button onclick="showChangelogForm()" style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.68rem; font-weight:700; padding:0.4rem 0.875rem; border-radius:var(--border-radius-sm); background:linear-gradient(135deg,var(--primary-color),var(--secondary-color)); color:white; border:none; cursor:pointer;">
+                    <span class="material-icons" style="font-size:0.85rem;">add</span> New Entry
+                </button>
+            </div>
+
+            <!-- Form tambah/edit entry -->
+            <div id="changelog-form" style="display:none; padding:1rem 1.25rem; border-bottom:1px solid var(--border-color); background:var(--highlight-color);">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+                    <div>
+                        <label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Version *</label>
+                        <input id="cl-version" type="text" placeholder="e.g. v1.2.0" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Type</label>
+                        <select id="cl-type" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; cursor:pointer; box-sizing:border-box;">
+                            <option value="feature">✨ Feature</option>
+                            <option value="fix">🐛 Fix</option>
+                            <option value="update">🔄 Update</option>
+                            <option value="security">🔒 Security</option>
+                            <option value="breaking">⚠️ Breaking</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:0.75rem;">
+                    <label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Title *</label>
+                    <input id="cl-title" type="text" placeholder="e.g. Added Report System" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:0.875rem;">
+                    <label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Notes * <span style="opacity:0.6; text-transform:none; letter-spacing:0;">(satu baris = satu item)</span></label>
+                    <textarea id="cl-notes" rows="4" placeholder="Added floating report button&#10;Fixed modal conflict in docs&#10;Improved performance" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; resize:vertical; line-height:1.6; box-sizing:border-box;"></textarea>
+                </div>
+                <div style="display:flex; gap:0.5rem;">
+                    <button onclick="submitChangelog()" style="flex:1; padding:0.6rem; background:linear-gradient(135deg,var(--primary-color),var(--secondary-color)); color:white; border:none; border-radius:var(--border-radius-sm); font-family:inherit; font-size:0.75rem; font-weight:700; cursor:pointer;" id="cl-submit-btn">
+                        Submit Entry
+                    </button>
+                    <button onclick="hideChangelogForm()" style="padding:0.6rem 1rem; background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); font-family:inherit; font-size:0.75rem; cursor:pointer;">
+                        Cancel
+                    </button>
+                </div>
+                <input type="hidden" id="cl-edit-id" value="">
+            </div>
+
+            <!-- List entries -->
+            <div id="changelog-list" style="max-height:420px; overflow-y:auto;">
+                <div class="empty-state">Loading...</div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="main-footer">
             <span class="footer-copy">© 2025 Robin • Admin Panel</span>
@@ -878,7 +987,7 @@
             appId:             "1:637345497070:web:62c84a71b6a415206d18ff"
         };
 
-        const ADMIN_EMAIL = 'hiura0012@gmail.com'; // ← ganti sama email lu
+        const ADMIN_EMAIL = 'robin@gmail.com'; // ← ganti sama email lu
 
         const firebaseApp = initializeApp(firebaseConfig);
         const auth        = getAuth(firebaseApp);
@@ -914,6 +1023,7 @@
                 loadBlacklist();
                 loadEndpointsList();
                 loadReports();
+                loadChangelog();
 
             } else if (user) {
                 // ❌ Email bukan admin
@@ -1298,6 +1408,117 @@
         // ══════════════════════════════════════════
         //  REPORTS
         // ══════════════════════════════════════════
+
+        // ── Changelog functions ──
+        let clEditId = null;
+
+        async function loadChangelog() {
+            const container = document.getElementById('changelog-list');
+            if (!container) return;
+            container.innerHTML = '<div class="empty-state">Loading...</div>';
+            try {
+                const res  = await fetch('/changelog');
+                const data = await res.json();
+                const entries = data.entries || [];
+                document.getElementById('changelog-count').textContent = entries.length;
+                if (!entries.length) { container.innerHTML = '<div class="empty-state">Belum ada changelog. Klik "New Entry" untuk mulai.</div>'; return; }
+                const typeMap = {
+                    feature:  { icon: '✨', color: 'var(--primary-color)', bg: 'rgba(79,70,229,0.1)' },
+                    fix:      { icon: '🐛', color: 'var(--error-color)',   bg: 'rgba(244,63,94,0.1)' },
+                    update:   { icon: '🔄', color: 'var(--accent-color)',  bg: 'rgba(34,211,238,0.1)' },
+                    security: { icon: '🔒', color: 'var(--warning-color)', bg: 'rgba(245,158,11,0.1)' },
+                    breaking: { icon: '⚠️', color: 'var(--warning-color)', bg: 'rgba(245,158,11,0.1)' },
+                };
+                container.innerHTML = entries.map(e => {
+                    const t    = typeMap[e.type] || typeMap.update;
+                    const date = e.timestamp ? new Date(e.timestamp).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '—';
+                    const notes = (e.notes || []).map(n => `<li style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.2rem;">• ${n}</li>`).join('');
+                    return `<div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border-color);">
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+                            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; flex:1; min-width:0;">
+                                <span style="font-size:0.6rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:100px; background:${t.bg}; color:${t.color}; white-space:nowrap;">${t.icon} ${e.type}</span>
+                                <span style="font-size:0.72rem; font-weight:700; color:var(--primary-color);">${e.version || ''}</span>
+                                <span style="font-size:0.82rem; font-weight:600; color:var(--text-color);">${e.title}</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:0.4rem;">
+                                <span style="font-size:0.6rem; color:var(--text-muted);">${date}</span>
+                                <button onclick="editChangelog('${e.id}')" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:none;color:var(--text-muted);cursor:pointer;"><span class="material-icons" style="font-size:0.85rem;">edit</span></button>
+                                <button onclick="deleteChangelog('${e.id}')" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:none;color:var(--error-color);cursor:pointer;"><span class="material-icons" style="font-size:0.85rem;">delete</span></button>
+                            </div>
+                        </div>
+                        <ul style="margin:0;padding:0;list-style:none;">${notes}</ul>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                container.innerHTML = `<div class="empty-state" style="color:var(--error-color);">Error: ${err.message}</div>`;
+            }
+        }
+
+        function showChangelogForm() {
+            document.getElementById('changelog-form').style.display = 'block';
+            ['cl-version','cl-title','cl-notes','cl-edit-id'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('cl-type').value = 'feature';
+            document.getElementById('cl-submit-btn').textContent = 'Submit Entry';
+            clEditId = null;
+        }
+
+        function hideChangelogForm() {
+            document.getElementById('changelog-form').style.display = 'none';
+            clEditId = null;
+        }
+
+        async function editChangelog(id) {
+            try {
+                const res = await fetch('/changelog');
+                const data = await res.json();
+                const e = data.entries.find(x => x.id === id);
+                if (!e) return;
+                showChangelogForm();
+                document.getElementById('cl-version').value = e.version || '';
+                document.getElementById('cl-title').value   = e.title   || '';
+                document.getElementById('cl-type').value    = e.type    || 'update';
+                document.getElementById('cl-notes').value   = (e.notes || []).join('
+');
+                document.getElementById('cl-edit-id').value = e.id;
+                document.getElementById('cl-submit-btn').textContent = 'Update Entry';
+                clEditId = e.id;
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function submitChangelog() {
+            const version = document.getElementById('cl-version').value.trim();
+            const title   = document.getElementById('cl-title').value.trim();
+            const type    = document.getElementById('cl-type').value;
+            const notes   = document.getElementById('cl-notes').value.trim().split('
+').filter(n => n.trim());
+            if (!version || !title || !notes.length) { alert('Version, title, dan minimal 1 note wajib diisi!'); return; }
+            const btn = document.getElementById('cl-submit-btn');
+            btn.textContent = 'Saving...'; btn.disabled = true;
+            try {
+                const token = window._idToken || '';
+                const res   = await fetch(clEditId ? `/admin/changelog/${clEditId}` : '/admin/changelog', {
+                    method: clEditId ? 'PATCH' : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ version, title, notes, type })
+                });
+                const data = await res.json();
+                if (data.status) { hideChangelogForm(); loadChangelog(); }
+                else alert('Error: ' + data.message);
+            } catch (err) { alert('Network error: ' + err.message); }
+            btn.textContent = clEditId ? 'Update Entry' : 'Submit Entry'; btn.disabled = false;
+        }
+
+        async function deleteChangelog(id) {
+            if (!confirm('Hapus entry ini?')) return;
+            try {
+                const token = window._idToken || '';
+                const res   = await fetch(`/admin/changelog/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                const data  = await res.json();
+                if (data.status) loadChangelog();
+                else alert('Error: ' + data.message);
+            } catch (err) { alert('Network error: ' + err.message); }
+        }
+
         let allReports   = [];
         let currentFilter = 'all';
 
@@ -1431,6 +1652,61 @@
         window.filterReports      = filterReports;
         window.updateReportStatus = updateReportStatus;
         window.deleteReport       = deleteReport;
+
+        // ── Admin Nav Scrollspy ──
+        function closeMobileAndScroll(el) {
+            // Tutup mobile menu dulu
+            const menu    = document.getElementById('mobile-menu');
+            const overlay = document.getElementById('mobile-overlay');
+            const hb      = document.getElementById('hamburger');
+            if (menu?.classList.contains('active')) {
+                menu.classList.remove('active');
+                overlay?.classList.remove('active');
+                hb?.classList.remove('active');
+                document.body.classList.remove('noscroll');
+            }
+            // Scroll ke section
+            const href    = el.getAttribute('href');
+            const target  = document.querySelector(href);
+            if (target) {
+                setTimeout(() => {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 200);
+            }
+        }
+
+        // Scrollspy — update active nav item saat scroll
+        function initScrollspy() {
+            const sections = [
+                'section-charts',
+                'section-blacklist',
+                'section-endpoints',
+                'section-reports',
+                'section-changelog'
+            ];
+            const navItems = document.querySelectorAll('.admin-nav-item');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.id;
+                        navItems.forEach(item => {
+                            item.classList.toggle('active', item.dataset.section === id);
+                        });
+                    }
+                });
+            }, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
+
+            sections.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) observer.observe(el);
+            });
+        }
+
+        // Init scrollspy setelah login
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initScrollspy, 1000);
+        });
 
         // ── Hamburger ──
         const hamburger     = document.getElementById('hamburger');
