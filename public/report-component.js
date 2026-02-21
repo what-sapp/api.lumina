@@ -4,6 +4,10 @@
 // ══════════════════════════════════════════
 
 (function() {
+    // Guard: cegah double init
+    if (window.__reportComponentLoaded) return;
+    window.__reportComponentLoaded = true;
+
     function initReport() {
 
     // Inject styles
@@ -92,9 +96,12 @@
         /* ── Modal ── */
         .report-modal {
             position: fixed;
-            bottom: 5.5rem;
-            right: 1.5rem;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -48%) scale(0.9);
             width: min(380px, calc(100vw - 2rem));
+            max-height: 90vh;
+            overflow-y: auto;
             background: var(--card-background, #1e293b);
             border: 1px solid var(--border-color, rgba(100,116,139,0.2));
             border-radius: 16px;
@@ -108,7 +115,7 @@
         }
 
         .report-modal.open {
-            transform: scale(1) translateY(0);
+            transform: translate(-50%, -50%) scale(1);
             opacity: 1;
             pointer-events: all;
         }
@@ -405,8 +412,18 @@
     let selectedType = '';
     let cooldown     = false;
 
-    function openReportModal()  { modal.classList.add('open'); backdrop.classList.add('open'); }
-    function closeReportModal() { modal.classList.remove('open'); backdrop.classList.remove('open'); }
+    function openReportModal() {
+        modal.classList.add('open');
+        backdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        document.body.style.touchAction = 'none';
+    }
+    function closeReportModal() {
+        modal.classList.remove('open');
+        backdrop.classList.remove('open');
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
+    }
 
     fab.addEventListener('click', openReportModal);
     closeBtn.addEventListener('click', closeReportModal);
