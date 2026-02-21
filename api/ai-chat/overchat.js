@@ -9,7 +9,7 @@ const crypto = require('crypto');
 module.exports = {
     name: "Overchat AI",
     desc: "Akses berbagai model AI premium (DeepSeek V3.2, GPT-4o, Claude Haiku 4.5)",
-    category: "AI",
+    category: "AI CHAT",
     params: ["q", "_model"],
     async run(req, res) {
         try {
