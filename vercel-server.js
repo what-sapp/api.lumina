@@ -107,7 +107,7 @@ app.use((req, res, next) => {
             const responseData = { status: data.status, statusCode, creator: set.author.toLowerCase(), ...data };
 
             // Log traffic (skip admin & utility routes)
-            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info'].some(p => req.path.startsWith(p));
+            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info', '/changelog'].some(p => req.path.startsWith(p));
             if (!skip) {
                 db.collection('traffic').add({
                     path:      req.path,
@@ -234,11 +234,12 @@ app.get('/server-info', (req, res) => {
     const minutes = Math.floor((uptime % 3600) / 60);
     const seconds = Math.floor(uptime % 60);
 
-    // CPU usage simple
-    const cpus    = os.cpus();
-    const mem     = os.totalmem();
-    const freeMem = os.freemem();
-    const memUsed = Math.round(((mem - freeMem) / mem) * 100);
+    // Memory — pakai process.memoryUsage() lebih reliable di serverless
+    const memUsage = process.memoryUsage();
+    const heapUsed  = Math.round(memUsage.heapUsed / 1024 / 1024);
+    const heapTotal = Math.round(memUsage.heapTotal / 1024 / 1024);
+    const rss       = Math.round(memUsage.rss / 1024 / 1024);
+    const memUsed   = Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100);
 
     res.json({
         status:  true,
@@ -250,6 +251,7 @@ app.get('/server-info', (req, res) => {
             uptime:      `${hours}h ${minutes}m ${seconds}s`,
             uptimeSeconds: Math.floor(uptime),
             memUsed:     memUsed,
+            memDetail:   `${heapUsed}MB / ${heapTotal}MB heap (${rss}MB RSS)`,
             platform:    os.platform(),
             arch:        os.arch()
         },
@@ -451,6 +453,73 @@ app.delete('/admin/reports/:id', verifyAdmin, async (req, res) => {
     try {
         await db.collection('reports').doc(id).delete();
         res.json({ status: true, message: `Report ${id} deleted` });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
+});
+
+// ════════════════════════════════════════
+//  CHANGELOG ROUTES
+// ════════════════════════════════════════
+
+// GET /changelog — public
+app.get('/changelog', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 20;
+        const snap  = await db.collection('changelog')
+            .orderBy('timestamp', 'desc')
+            .limit(limit)
+            .get();
+        const entries = snap.docs.map(d => ({
+            id: d.id,
+            ...d.data(),
+            timestamp: d.data().timestamp?.toDate?.()?.toISOString() || null
+        }));
+        res.json({ status: true, count: entries.length, entries });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
+});
+
+// POST /admin/changelog — tambah entry
+app.post('/admin/changelog', verifyAdmin, async (req, res) => {
+    try {
+        const { version, title, notes, type } = req.body;
+        if (!version || !title || !notes?.length)
+            return res.status(400).json({ status: false, message: 'version, title, notes wajib diisi' });
+        const ref = await db.collection('changelog').add({
+            version, title,
+            notes: Array.isArray(notes) ? notes : [notes],
+            type: type || 'update',
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+        res.json({ status: true, id: ref.id });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
+});
+
+// PATCH /admin/changelog/:id — edit entry
+app.patch('/admin/changelog/:id', verifyAdmin, async (req, res) => {
+    try {
+        const { version, title, notes, type } = req.body;
+        const update = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+        if (version) update.version = version;
+        if (title)   update.title   = title;
+        if (notes)   update.notes   = Array.isArray(notes) ? notes : [notes];
+        if (type)    update.type    = type;
+        await db.collection('changelog').doc(req.params.id).update(update);
+        res.json({ status: true });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
+});
+
+// DELETE /admin/changelog/:id — hapus entry
+app.delete('/admin/changelog/:id', verifyAdmin, async (req, res) => {
+    try {
+        await db.collection('changelog').doc(req.params.id).delete();
+        res.json({ status: true });
     } catch (e) {
         res.status(500).json({ status: false, message: e.message });
     }
