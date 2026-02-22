@@ -987,7 +987,7 @@
             appId:             "1:637345497070:web:62c84a71b6a415206d18ff"
         };
 
-        const ADMIN_EMAIL = 'hiura0012@gmail.com'; // ← ganti sama email lu
+        const ADMIN_EMAIL = 'robin@gmail.com'; // ← ganti sama email lu
 
         const firebaseApp = initializeApp(firebaseConfig);
         const auth        = getAuth(firebaseApp);
@@ -1054,10 +1054,20 @@
 
     <script>
         // ── Page Loader ──
-        window.addEventListener('load', () => {
+        function hideLoader() {
             const loader = document.getElementById('page-loader');
-            if (loader) { setTimeout(() => { loader.style.opacity='0'; setTimeout(()=>loader.style.display='none',400); },300); }
+            if (loader && loader.style.display !== 'none') {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 400);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            setTimeout(hideLoader, 300);
         });
+
+        // Fallback: paksa hide setelah 4 detik apapun yang terjadi
+        setTimeout(hideLoader, 4000);
 
         // ══════════════════════════════════════════
         //  API HELPER
