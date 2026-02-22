@@ -7,7 +7,6 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -74,136 +73,6 @@
         @keyframes notifPulse {
             0%, 100% { transform: scale(1); opacity: 1; }
             50%       { transform: scale(1.4); opacity: 0.6; }
-        }
-
-        /* ── Server Status Card ── */
-        .server-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1.25rem;
-        }
-
-        @media (max-width: 540px) { .server-grid { grid-template-columns: 1fr; } }
-
-        .server-card {
-            background: var(--card-background);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 1.25rem;
-            box-shadow: var(--card-shadow);
-            position: relative;
-            overflow: hidden;
-            transition: var(--hover-transition);
-        }
-
-        .server-card:hover {
-            transform: var(--hover-transform);
-            box-shadow: var(--hover-shadow);
-            border-color: rgba(79,70,229,0.2);
-        }
-
-        .server-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-        }
-
-        .server-card-title {
-            font-size: 0.6rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.14em;
-            color: var(--text-muted);
-            margin-bottom: 0.875rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .server-stat-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.4rem 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.72rem;
-        }
-
-        .server-stat-row:last-child { border-bottom: none; }
-
-        .server-stat-label { color: var(--text-muted); font-size: 0.65rem; }
-
-        .server-stat-value {
-            font-weight: 700;
-            color: var(--text-color);
-            font-family: 'Courier New', monospace;
-            font-size: 0.68rem;
-        }
-
-        /* Status dot inline */
-        .status-dot-inline {
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            background: var(--success-color);
-            display: inline-block;
-            margin-right: 4px;
-            box-shadow: 0 0 5px rgba(16,185,129,0.5);
-            animation: pulseDot 2s ease infinite;
-        }
-
-        @keyframes pulseDot {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.4; }
-        }
-
-        /* Battery */
-        .battery-wrap {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .battery-bar-outer {
-            flex: 1;
-            height: 8px;
-            background: var(--border-color);
-            border-radius: 100px;
-            overflow: hidden;
-        }
-
-        .battery-bar-inner {
-            height: 100%;
-            border-radius: 100px;
-            transition: width 0.6s ease, background 0.3s ease;
-            background: var(--success-color);
-        }
-
-        .battery-pct {
-            font-size: 0.65rem;
-            font-weight: 700;
-            font-family: 'Courier New', monospace;
-            color: var(--text-color);
-            min-width: 2.5rem;
-            text-align: right;
-        }
-
-        /* Mem bar */
-        .mem-bar-outer {
-            flex: 1;
-            height: 6px;
-            background: var(--border-color);
-            border-radius: 100px;
-            overflow: hidden;
-        }
-
-        .mem-bar-inner {
-            height: 100%;
-            border-radius: 100px;
-            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-            transition: width 0.6s ease;
         }
 
         /* ── Changelog Widget ── */
@@ -340,145 +209,6 @@
         }
 
         .owner-avatar {
-            width: 3.5rem;
-            height: 3.5rem;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--primary-color);
-            flex-shrink: 0;
-            box-shadow: 0 0 0 4px var(--highlight-color);
-        }
-
-        .owner-avatar-fallback {
-            width: 3.5rem;
-            height: 3.5rem;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: white;
-            border: 2px solid var(--primary-color);
-        }
-
-        .owner-info { flex: 1; min-width: 0; }
-
-        .owner-name {
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: var(--text-color);
-            letter-spacing: -0.02em;
-            margin-bottom: 0.2rem;
-        }
-
-        .owner-role {
-            font-size: 0.62rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-
-        .owner-links {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .owner-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            font-size: 0.65rem;
-            font-weight: 600;
-            padding: 0.25rem 0.625rem;
-            border-radius: 100px;
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: var(--transition);
-            background: var(--background-color);
-        }
-
-        .owner-link:hover {
-            border-color: var(--primary-color);
-            color: var(--primary-color);
-            background: var(--highlight-color);
-        }
-
-        /* ── Server Status Strip ── */
-        .hero-status-strip {
-            display: flex;
-            align-items: center;
-            gap: 0.875rem;
-            margin-top: 1.25rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255,255,255,0.07);
-            flex-wrap: wrap;
-        }
-
-        .hss-item {
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-            font-size: 0.65rem;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
-        .hss-dot {
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            background: var(--success-color);
-            box-shadow: 0 0 5px rgba(16,185,129,0.6);
-            animation: pulseDot 2s ease infinite;
-            flex-shrink: 0;
-        }
-
-        @keyframes pulseDot {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50%       { opacity: 0.4; transform: scale(1.3); }
-        }
-
-        .hss-value {
-            color: var(--text-color);
-            font-weight: 700;
-            font-family: 'Courier New', monospace;
-            font-size: 0.68rem;
-        }
-
-        .hss-divider {
-            width: 1px;
-            height: 12px;
-            background: var(--border-color);
-            flex-shrink: 0;
-        }
-
-        /* ── Owner Card (simplified) ── */
-        .owner-card {
-            background: var(--card-background);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 1.25rem;
-            box-shadow: var(--card-shadow);
-            margin-bottom: 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            transition: var(--hover-transition);
-        }
-
-        .owner-card:hover {
-            transform: var(--hover-transform);
-            box-shadow: var(--hover-shadow);
-            border-color: rgba(79,70,229,0.2);
-        }
-
-        .owner-avatar {
             width: 3.25rem; height: 3.25rem;
             border-radius: 50%;
             object-fit: cover;
@@ -544,18 +274,58 @@
             background: var(--highlight-color);
         }
 
+        /* ── Server Status Strip ── */
+        .hero-status-strip {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            flex-wrap: wrap;
+        }
+
+        .hss-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .hss-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--success-color);
+            box-shadow: 0 0 5px rgba(16,185,129,0.6);
+            animation: pulseDot 2s ease infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.4; transform: scale(1.3); }
+        }
+
+        .hss-value {
+            color: var(--text-color);
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            font-size: 0.68rem;
+        }
+
+        .hss-divider {
+            width: 1px;
+            height: 12px;
+            background: var(--border-color);
+            flex-shrink: 0;
+        }
+
         /* ── Typing animation ── */
-        .hero-title {
-            min-height: 4.5rem; /* prevent layout shift */
-        }
-
-        .typed-line {
-            display: block;
-        }
-
-        .typed-gradient {
-            display: inline-block;
-        }
+        .hero-title { min-height: 4.5rem; }
+        .typed-line { display: block; }
+        .typed-gradient { display: inline-block; }
 
         .typing-cursor {
             display: inline-block;
@@ -571,6 +341,194 @@
         @keyframes cursorBlink {
             0%, 100% { opacity: 1; }
             50%       { opacity: 0; }
+        }
+
+        /* ── Rate Limit Card ── */
+        .rate-limit-card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.25rem;
+            position: relative;
+            overflow: hidden;
+            transition: var(--hover-transition);
+            animation: slideInUp 0.5s ease-out 0.2s both;
+        }
+
+        .rate-limit-card:hover {
+            transform: var(--hover-transform);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(79,70,229,0.2);
+        }
+
+        .rate-limit-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        }
+
+        .rate-limit-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(79,70,229,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79,70,229,0.025) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+
+        .rl-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .rl-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-color);
+        }
+
+        .rl-badge {
+            font-size: 0.6rem;
+            font-weight: 800;
+            padding: 0.2rem 0.6rem;
+            border-radius: 100px;
+            background: rgba(16,185,129,0.12);
+            color: var(--success-color);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid rgba(16,185,129,0.2);
+        }
+
+        .rl-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (max-width: 400px) {
+            .rl-stats { grid-template-columns: 1fr 1fr; }
+        }
+
+        .rl-stat {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: 0.875rem 1rem;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .rl-stat:hover {
+            border-color: var(--primary-color);
+            background: var(--highlight-color);
+        }
+
+        .rl-stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: var(--primary-color);
+            font-family: 'Courier New', monospace;
+            line-height: 1;
+            margin-bottom: 0.3rem;
+        }
+
+        .rl-stat-label {
+            font-size: 0.58rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .rl-progress-wrap {
+            margin-bottom: 0.75rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .rl-progress-labels {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.35rem;
+        }
+
+        .rl-progress-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .rl-progress-pct {
+            font-size: 0.6rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: var(--success-color);
+        }
+
+        .rl-bar-outer {
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .rl-bar-inner {
+            height: 100%;
+            border-radius: 100px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            transition: width 1s ease;
+            width: 0%;
+        }
+
+        .rl-info-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color);
+            position: relative;
+            z-index: 1;
+        }
+
+        .rl-info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .rl-info-item strong {
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.4; }
         }
     </style>
 </head>
@@ -588,20 +546,16 @@
         </a>
         <div class="hamburger" id="hamburger">
             <div class="hamburger-inner">
-                <span></span>
-                <span></span>
-                <span></span>
+                <span></span><span></span><span></span>
             </div>
         </div>
     </nav>
 
-    <!-- ── OVERLAY ── -->
     <div class="mobile-overlay" id="mobile-overlay"></div>
 
     <!-- ── MOBILE MENU ── -->
     <div class="mobile-menu" id="mobile-menu">
         <div style="padding: 1.5rem;">
-
             <div class="menu-header">
                 <div class="menu-header-icon">
                     <span class="material-icons" style="color: white; font-size: 1.1rem;">apps</span>
@@ -621,29 +575,25 @@
                     <span>Home</span>
                     <span class="menu-badge menu-badge-current">Current</span>
                 </a>
-
                 <a href="/docs" class="menu-item">
                     <div class="menu-icon-box" style="background: rgba(59,130,246,0.1);">
                         <span class="material-icons" style="font-size: 1rem; color: #3b82f6;">description</span>
                     </div>
                     <span>Documentation</span>
                 </a>
-
                 <a href="/contributors" class="menu-item">
                     <div class="menu-icon-box" style="background: var(--highlight-color);">
                         <span class="material-icons" style="font-size: 1rem; color: var(--primary-color);">people</span>
                     </div>
                     <span>Contributors</span>
                 </a>
-
                 <a href="/luminaai" class="menu-item">
-                    <div class="menu-icon-box" style="background: rgba(79, 70, 229, 0.1);">
+                    <div class="menu-icon-box" style="background: rgba(79,70,229,0.1);">
                         <span class="material-icons" style="font-size: 1rem; color: #4f46e5;">auto_awesome</span>
                     </div>
                     <span>Lumina AI</span>
-                    <span class="menu-badge" style="background: rgba(79, 70, 229, 0.12); color: #4f46e5;">New</span>
+                    <span class="menu-badge" style="background: rgba(79,70,229,0.12); color: #4f46e5;">New</span>
                 </a>
-
                 <a href="/playground" class="menu-item">
                     <div class="menu-icon-box" style="background: rgba(34,211,238,0.1);">
                         <span class="material-icons" style="font-size: 1rem; color: var(--accent-color);">science</span>
@@ -651,7 +601,6 @@
                     <span>Playground</span>
                     <span class="menu-badge" style="background: rgba(34,211,238,0.12); color: var(--accent-color);">New</span>
                 </a>
-
                 <a href="/status" class="menu-item">
                     <div class="menu-icon-box" style="background: rgba(16,185,129,0.1);">
                         <span class="material-icons" style="font-size: 1rem; color: var(--success-color);">bar_chart</span>
@@ -706,57 +655,23 @@
                     <div class="customizer-panel" id="customizer-panel">
                         <div class="customizer-section-label">Quick Presets</div>
                         <div class="preset-grid">
-                            <button class="preset-btn active" data-primary="#4f46e5" data-accent="#22d3ee" data-nav="#1e1b4b" title="Indigo + Cyan">
-                                <span style="background:#4f46e5"></span><span style="background:#22d3ee"></span>
-                            </button>
-                            <button class="preset-btn" data-primary="#7c3aed" data-accent="#a29bfe" data-nav="#1a1035" title="Purple">
-                                <span style="background:#7c3aed"></span><span style="background:#a29bfe"></span>
-                            </button>
-                            <button class="preset-btn" data-primary="#0ea5e9" data-accent="#06b6d4" data-nav="#0c1a2e" title="Sky Blue">
-                                <span style="background:#0ea5e9"></span><span style="background:#06b6d4"></span>
-                            </button>
-                            <button class="preset-btn" data-primary="#10b981" data-accent="#34d399" data-nav="#0a1f18" title="Emerald">
-                                <span style="background:#10b981"></span><span style="background:#34d399"></span>
-                            </button>
-                            <button class="preset-btn" data-primary="#f59e0b" data-accent="#fbbf24" data-nav="#1c1505" title="Amber">
-                                <span style="background:#f59e0b"></span><span style="background:#fbbf24"></span>
-                            </button>
-                            <button class="preset-btn" data-primary="#f43f5e" data-accent="#fb7185" data-nav="#1f0a10" title="Rose">
-                                <span style="background:#f43f5e"></span><span style="background:#fb7185"></span>
-                            </button>
+                            <button class="preset-btn active" data-primary="#4f46e5" data-accent="#22d3ee" data-nav="#1e1b4b"><span style="background:#4f46e5"></span><span style="background:#22d3ee"></span></button>
+                            <button class="preset-btn" data-primary="#7c3aed" data-accent="#a29bfe" data-nav="#1a1035"><span style="background:#7c3aed"></span><span style="background:#a29bfe"></span></button>
+                            <button class="preset-btn" data-primary="#0ea5e9" data-accent="#06b6d4" data-nav="#0c1a2e"><span style="background:#0ea5e9"></span><span style="background:#06b6d4"></span></button>
+                            <button class="preset-btn" data-primary="#10b981" data-accent="#34d399" data-nav="#0a1f18"><span style="background:#10b981"></span><span style="background:#34d399"></span></button>
+                            <button class="preset-btn" data-primary="#f59e0b" data-accent="#fbbf24" data-nav="#1c1505"><span style="background:#f59e0b"></span><span style="background:#fbbf24"></span></button>
+                            <button class="preset-btn" data-primary="#f43f5e" data-accent="#fb7185" data-nav="#1f0a10"><span style="background:#f43f5e"></span><span style="background:#fb7185"></span></button>
                         </div>
                         <div class="customizer-section-label" style="margin-top:0.875rem;">Custom</div>
                         <div class="picker-row">
-                            <label class="picker-label">
-                                <span>Primary</span>
-                                <div class="picker-wrap">
-                                    <input type="color" id="pick-primary" class="color-picker" value="#4f46e5">
-                                    <span class="picker-swatch" id="swatch-primary" style="background:#4f46e5"></span>
-                                </div>
-                            </label>
-                            <label class="picker-label">
-                                <span>Accent</span>
-                                <div class="picker-wrap">
-                                    <input type="color" id="pick-accent" class="color-picker" value="#22d3ee">
-                                    <span class="picker-swatch" id="swatch-accent" style="background:#22d3ee"></span>
-                                </div>
-                            </label>
-                            <label class="picker-label">
-                                <span>Navbar</span>
-                                <div class="picker-wrap">
-                                    <input type="color" id="pick-nav" class="color-picker" value="#1e1b4b">
-                                    <span class="picker-swatch" id="swatch-nav" style="background:#1e1b4b"></span>
-                                </div>
-                            </label>
+                            <label class="picker-label"><span>Primary</span><div class="picker-wrap"><input type="color" id="pick-primary" class="color-picker" value="#4f46e5"><span class="picker-swatch" id="swatch-primary" style="background:#4f46e5"></span></div></label>
+                            <label class="picker-label"><span>Accent</span><div class="picker-wrap"><input type="color" id="pick-accent" class="color-picker" value="#22d3ee"><span class="picker-swatch" id="swatch-accent" style="background:#22d3ee"></span></div></label>
+                            <label class="picker-label"><span>Navbar</span><div class="picker-wrap"><input type="color" id="pick-nav" class="color-picker" value="#1e1b4b"><span class="picker-swatch" id="swatch-nav" style="background:#1e1b4b"></span></div></label>
                         </div>
-                        <button class="customizer-reset" id="customizer-reset">
-                            <span class="material-icons" style="font-size:0.85rem;">refresh</span>
-                            Reset to Default
-                        </button>
+                        <button class="customizer-reset" id="customizer-reset"><span class="material-icons" style="font-size:0.85rem;">refresh</span>Reset to Default</button>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -765,10 +680,8 @@
 
         <!-- Hero Banner -->
         <div class="hero-banner">
-            <div class="corner-dot tl"></div>
-            <div class="corner-dot tr"></div>
-            <div class="corner-dot bl"></div>
-            <div class="corner-dot br"></div>
+            <div class="corner-dot tl"></div><div class="corner-dot tr"></div>
+            <div class="corner-dot bl"></div><div class="corner-dot br"></div>
             <div class="corner-label tl">SYS::HOME</div>
             <div class="corner-label tr">v1.0</div>
 
@@ -786,7 +699,6 @@
                 </span>
             </div>
 
-            <!-- Hero title — typing animation target -->
             <h1 class="hero-title" id="hero-title" aria-label="Build Faster with Free REST APIs">
                 <span class="typed-line" id="typed-line-1"></span>
                 <span class="typed-gradient gradient-text" id="typed-line-2"></span><span class="typing-cursor" id="typing-cursor"></span>
@@ -849,7 +761,6 @@
                 <div class="feature-title">Lightning Fast</div>
                 <p class="feature-desc">Latency rendah di bawah 100ms untuk setiap request.</p>
             </div>
-
             <div class="feature-card">
                 <div class="feature-icon-box">
                     <span class="material-icons" style="color:var(--primary-color); font-size:1.3rem;">no_encryption</span>
@@ -857,7 +768,6 @@
                 <div class="feature-title">No Auth Required</div>
                 <p class="feature-desc">Langsung panggil endpoint tanpa API Key.</p>
             </div>
-
             <div class="feature-card">
                 <div class="feature-icon-box">
                     <span class="material-icons" style="color:var(--primary-color); font-size:1.3rem;">language</span>
@@ -881,6 +791,57 @@
                 <div class="owner-name" id="owner-name">--</div>
                 <div class="owner-role">API Owner &amp; Developer</div>
                 <div class="owner-links" id="owner-links"></div>
+            </div>
+        </div>
+
+        <!-- ── Rate Limit Card ── -->
+        <div class="rate-limit-card">
+            <div class="rl-header">
+                <div class="rl-title">
+                    <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">speed</span>
+                    Rate Limit
+                </div>
+                <span class="rl-badge">Free &amp; No Auth</span>
+            </div>
+
+            <div class="rl-stats">
+                <div class="rl-stat">
+                    <div class="rl-stat-value">1K</div>
+                    <div class="rl-stat-label">Req / 24h</div>
+                </div>
+                <div class="rl-stat">
+                    <div class="rl-stat-value" id="rl-endpoints-count">--</div>
+                    <div class="rl-stat-label">Endpoints</div>
+                </div>
+                <div class="rl-stat">
+                    <div class="rl-stat-value">0</div>
+                    <div class="rl-stat-label">API Key</div>
+                </div>
+            </div>
+
+            <div class="rl-progress-wrap">
+                <div class="rl-progress-labels">
+                    <span class="rl-progress-label">Estimasi sisa jatah harian</span>
+                    <span class="rl-progress-pct" id="rl-pct">1000 / 1000</span>
+                </div>
+                <div class="rl-bar-outer">
+                    <div class="rl-bar-inner" id="rl-bar"></div>
+                </div>
+            </div>
+
+            <div class="rl-info-row">
+                <div class="rl-info-item">
+                    <span class="material-icons" style="font-size:0.8rem;">schedule</span>
+                    Reset tiap <strong>24 jam</strong>
+                </div>
+                <div class="rl-info-item">
+                    <span class="material-icons" style="font-size:0.8rem;">public</span>
+                    Per <strong>IP Address</strong>
+                </div>
+                <div class="rl-info-item">
+                    <span class="material-icons" style="font-size:0.8rem;">block</span>
+                    Lebih → <strong>429 Error</strong>
+                </div>
             </div>
         </div>
 
@@ -916,6 +877,46 @@
             }
         });
 
+        // ── Rate Limit Display ──
+        // Pakai /rate-status dari server untuk data real per IP
+        async function initRateLimit() {
+            const LIMIT = 1000;
+            const bar   = document.getElementById('rl-bar');
+            const pct   = document.getElementById('rl-pct');
+
+            try {
+                const res  = await fetch('/rate-status');
+                const data = await res.json();
+
+                if (data.status) {
+                    const remaining = data.remaining;
+                    const used      = data.used;
+                    const barPct    = (remaining / LIMIT) * 100;
+
+                    pct.textContent = `${remaining.toLocaleString()} / ${LIMIT.toLocaleString()}`;
+
+                    setTimeout(() => {
+                        bar.style.width = barPct + '%';
+                        if (barPct > 50)      bar.style.background = 'linear-gradient(90deg, var(--primary-color), var(--accent-color))';
+                        else if (barPct > 20) bar.style.background = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
+                        else                  bar.style.background = 'linear-gradient(90deg, #f43f5e, #fb7185)';
+
+                        // Update warna pct teks
+                        if (barPct > 50)      pct.style.color = 'var(--success-color)';
+                        else if (barPct > 20) pct.style.color = '#f59e0b';
+                        else                  pct.style.color = 'var(--error-color)';
+                    }, 300);
+                }
+            } catch (_) {
+                // Fallback: tampilkan full bar jika endpoint belum ada
+                setTimeout(() => {
+                    bar.style.width = '100%';
+                }, 300);
+            }
+        }
+
+        initRateLimit();
+
         // ── Changelog Widget ──
         async function fetchChangelog() {
             try {
@@ -936,9 +937,9 @@
                 };
 
                 container.innerHTML = data.entries.map((e, i) => {
-                    const t    = typeMap[e.type] || typeMap.update;
-                    const date = e.timestamp ? new Date(e.timestamp).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '';
-                    const notes = (e.notes || []).slice(0, 3).map(n => `<li>${n}</li>`).join('');
+                    const t      = typeMap[e.type] || typeMap.update;
+                    const date   = e.timestamp ? new Date(e.timestamp).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '';
+                    const notes  = (e.notes || []).slice(0, 3).map(n => `<li>${n}</li>`).join('');
                     const isLast = i === data.entries.length - 1;
                     return `
                         <div class="changelog-entry">
@@ -955,10 +956,9 @@
                                 </div>
                                 <ul class="changelog-notes">${notes}</ul>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 }).join('');
-            } catch (_) { /* silent fail */ }
+            } catch (_) {}
         }
 
         // ── Server Info ──
@@ -971,12 +971,10 @@
                 const s = data.server;
                 const o = data.owner;
 
-                // Update strip di hero
                 document.getElementById('strip-node').textContent     = s.nodeVersion || '--';
                 document.getElementById('strip-provider').textContent = s.provider    || '--';
                 document.getElementById('strip-mem').textContent      = (s.memUsed || 0) + '%';
 
-                // Uptime counter — update strip
                 let uptimeSec = s.uptimeSeconds || 0;
                 function updateUptime() {
                     uptimeSec++;
@@ -992,7 +990,6 @@
                 updateUptime();
                 setInterval(updateUptime, 1000);
 
-                // Owner
                 document.getElementById('owner-name').textContent = o.name || '--';
                 const fallback = document.getElementById('owner-avatar-fallback');
                 fallback.textContent = (o.name || 'R').charAt(0).toUpperCase();
@@ -1004,25 +1001,16 @@
                     img.onerror = () => {};
                 }
 
-                // Owner links
                 const linksEl = document.getElementById('owner-links');
                 const links = [];
-                if (o.github) links.push({ label: 'GitHub', icon: 'fab fa-github', url: o.github });
-                if (o.wa)     links.push({ label: 'WhatsApp', icon: 'fab fa-whatsapp', url: o.wa });
+                if (o.github) links.push({ label: 'GitHub',    icon: 'fab fa-github',    url: o.github });
+                if (o.wa)     links.push({ label: 'WhatsApp',  icon: 'fab fa-whatsapp',  url: o.wa });
                 linksEl.innerHTML = links.map(l =>
-                    `<a href="${l.url}" target="_blank" class="owner-link">
-                        <i class="${l.icon}"></i> ${l.label}
-                    </a>`
+                    `<a href="${l.url}" target="_blank" class="owner-link"><i class="${l.icon}"></i> ${l.label}</a>`
                 ).join('');
 
-            } catch (e) {
-                console.error('server-info error:', e);
-            }
+            } catch (e) { console.error('server-info error:', e); }
         }
-        fetchServerInfo();
-        fetchChangelog();
-
-
 
         // ── Endpoint Count ──
         async function fetchEndpointCount() {
@@ -1032,10 +1020,12 @@
                 if (data.status && data.count) {
                     const w = document.getElementById('total-endpoints-widget');
                     if (w) w.textContent = data.count + '+';
+                    // Update juga di rate limit card
+                    const rlEp = document.getElementById('rl-endpoints-count');
+                    if (rlEp) rlEp.textContent = data.count + '+';
                 }
             } catch (e) {}
         }
-        fetchEndpointCount();
 
         // ── Your IP ──
         async function fetchYourIp() {
@@ -1047,6 +1037,11 @@
                 if (el) el.textContent = 'Unavailable';
             }
         }
+
+        // Init semua
+        fetchServerInfo();
+        fetchChangelog();
+        fetchEndpointCount();
         fetchYourIp();
 
         // ── Copy IP ──
@@ -1060,98 +1055,50 @@
             });
         });
 
-        // ══════════════════════════════════════════
-        //  TYPING ANIMATION
-        // ══════════════════════════════════════════
+        // ── Typing Animation ──
         const el1     = document.getElementById('typed-line-1');
         const el2     = document.getElementById('typed-line-2');
-        const cursor  = document.getElementById('typing-cursor');
         const desc    = document.getElementById('hero-desc');
         const actions = document.getElementById('hero-actions');
 
-        // Baris 1 langsung muncul dulu
         el1.textContent = 'Build Faster with';
+        setTimeout(() => { desc.style.opacity = '1'; actions.style.opacity = '1'; }, 1200);
 
-        // Fade in desc + actions langsung (ga nunggu loop selesai)
-        setTimeout(() => {
-            desc.style.opacity    = '1';
-            actions.style.opacity = '1';
-        }, 1200);
-
-        // Typing loop baris 2
-        const phrases     = ['Free REST APIs', 'Open Source APIs', 'No Auth APIs', 'Fast & Free APIs'];
-        let phraseIndex   = 0;
-        let charIndex     = 0;
-        let isDeleting    = false;
-        let typingSpeed   = 100;
+        const phrases   = ['Free REST APIs', 'Open Source APIs', 'No Auth APIs', 'Fast & Free APIs'];
+        let phraseIndex = 0, charIndex = 0, isDeleting = false, typingSpeed = 100;
 
         function typeLoop() {
             const current = phrases[phraseIndex];
-
-            if (isDeleting) {
-                el2.textContent = current.substring(0, charIndex - 1);
-                charIndex--;
-                typingSpeed = 50;
-            } else {
-                el2.textContent = current.substring(0, charIndex + 1);
-                charIndex++;
-                typingSpeed = 100;
-            }
-
-            if (!isDeleting && charIndex === current.length) {
-                typingSpeed = 2000;
-                isDeleting  = true;
-            } else if (isDeleting && charIndex === 0) {
-                isDeleting   = false;
-                phraseIndex  = (phraseIndex + 1) % phrases.length;
-                typingSpeed  = 500;
-            }
-
+            if (isDeleting) { el2.textContent = current.substring(0, charIndex - 1); charIndex--; typingSpeed = 50; }
+            else            { el2.textContent = current.substring(0, charIndex + 1); charIndex++; typingSpeed = 100; }
+            if (!isDeleting && charIndex === current.length) { typingSpeed = 2000; isDeleting = true; }
+            else if (isDeleting && charIndex === 0) { isDeleting = false; phraseIndex = (phraseIndex + 1) % phrases.length; typingSpeed = 500; }
             setTimeout(typeLoop, typingSpeed);
         }
-
         setTimeout(typeLoop, 1000);
 
-        // ══════════════════════════════════════════
-        //  GITHUB NOTIF BUBBLE
-        // ══════════════════════════════════════════
+        // ── GitHub Notif Bubble ──
         const NOTIF_MESSAGES = [
-            "etto... arigatou ne! >.< 🙏",
-            "makasih udah mampir~ ⭐",
-            "jangan lupa star repo nya! (◕‿◕)",
-            "free forever! (งツ)ว",
-            "made with ❤️ by Robin",
-            "uwu API go brrrr~",
-            "open source & gratis!",
-            "you're awesome! (ﾉ◕ヮ◕)ﾉ",
-            "kamu keren banget tau~ 🌸",
-            "arigatou gozaimasu!! ✨",
-            "ngoding bareng yuk~ 💻",
-            "api gratis, hati nggak~ 🥺",
-            "⭐ the repo onegaishimasu!",
-            "konnichiwa developer! 👋",
-            "yosh! let's build something~ 🚀",
-            "sugoi ne~ API nya! (≧◡≦)",
-            "nani?! masih belum star? 👀",
-            "daisuki~ thank you! 💖",
+            "etto... arigatou ne! >.< 🙏","makasih udah mampir~ ⭐","jangan lupa star repo nya! (◕‿◕)",
+            "free forever! (งツ)ว","made with ❤️ by Robin","uwu API go brrrr~","open source & gratis!",
+            "you're awesome! (ﾉ◕ヮ◕)ﾉ","kamu keren banget tau~ 🌸","arigatou gozaimasu!! ✨",
+            "ngoding bareng yuk~ 💻","api gratis, hati nggak~ 🥺","⭐ the repo onegaishimasu!",
+            "konnichiwa developer! 👋","yosh! let's build something~ 🚀","sugoi ne~ API nya! (≧◡≦)",
+            "nani?! masih belum star? 👀","daisuki~ thank you! 💖",
         ];
 
-        const notifBubble = document.createElement('div');
+        const notifBubble  = document.createElement('div');
         notifBubble.className = 'github-notif-bubble';
         document.body.appendChild(notifBubble);
 
         const notifAnchor  = document.getElementById('github-notif-anchor');
-        let lastMsgIdx     = -1;
-        let notifTimer     = null;
-        let notifHideTimer = null;
+        let lastMsgIdx = -1, notifTimer = null, notifHideTimer = null;
 
         function positionBubble() {
-            const rect    = notifAnchor.getBoundingClientRect();
-            const bubbleW = notifBubble.offsetWidth || 160;
-            const left    = rect.left + rect.width / 2 - bubbleW / 2;
-            const top     = rect.top  - notifBubble.offsetHeight - 12;
-            notifBubble.style.left = Math.max(8, left) + 'px';
-            notifBubble.style.top  = Math.max(8, top)  + 'px';
+            const rect  = notifAnchor.getBoundingClientRect();
+            const bw    = notifBubble.offsetWidth || 160;
+            notifBubble.style.left = Math.max(8, rect.left + rect.width / 2 - bw / 2) + 'px';
+            notifBubble.style.top  = Math.max(8, rect.top - notifBubble.offsetHeight - 12) + 'px';
         }
 
         function showNotifBubble() {
@@ -1166,15 +1113,13 @@
         }
 
         function scheduleNotif() {
-            const delay = 6000 + Math.random() * 8000;
             clearTimeout(notifTimer);
-            notifTimer = setTimeout(() => { showNotifBubble(); scheduleNotif(); }, delay);
+            notifTimer = setTimeout(() => { showNotifBubble(); scheduleNotif(); }, 6000 + Math.random() * 8000);
         }
 
-        // Mulai notif setelah typing selesai (~3 detik) + 1 detik jeda
         setTimeout(() => { showNotifBubble(); scheduleNotif(); }, 4000);
 
-        // ── Hamburger / Mobile Menu ──
+        // ── Hamburger ──
         const hamburger     = document.getElementById('hamburger');
         const mobileMenu    = document.getElementById('mobile-menu');
         const mobileOverlay = document.getElementById('mobile-overlay');
@@ -1188,90 +1133,29 @@
 
         hamburger.addEventListener('click', toggleMenu);
         mobileOverlay.addEventListener('click', toggleMenu);
-        mobileMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (mobileMenu.classList.contains('active')) toggleMenu();
-            });
-        });
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();
-        });
+        mobileMenu.querySelectorAll('a').forEach(l => l.addEventListener('click', () => { if (mobileMenu.classList.contains('active')) toggleMenu(); }));
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu(); });
 
-        // ══════════════════════════════════════════
-        //  COLOR CUSTOMIZER
-        // ══════════════════════════════════════════
+        // ── Color Customizer ──
         const root    = document.documentElement;
         const nav     = document.getElementById('main-nav');
         const STORAGE = 'lumina-theme';
         const DEFAULTS = { primary:'#4f46e5', accent:'#22d3ee', nav:'#1e1b4b' };
 
-        function hexToHsl(hex) {
-            let r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
-            const max=Math.max(r,g,b), min=Math.min(r,g,b);
-            let h, s, l=(max+min)/2;
-            if(max===min){h=s=0;}
-            else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);
-                switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}
-            return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
-        }
+        function hexToHsl(hex){let r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}return[Math.round(h*360),Math.round(s*100),Math.round(l*100)];}
+        function hslToHex(h,s,l){s/=100;l/=100;const a=s*Math.min(l,1-l);const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c).toString(16).padStart(2,'0');};return`#${f(0)}${f(8)}${f(4)}`;}
 
-        function hslToHex(h,s,l){
-            s/=100;l/=100;const a=s*Math.min(l,1-l);
-            const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c).toString(16).padStart(2,'0');};
-            return `#${f(0)}${f(8)}${f(4)}`;
-        }
-
-        function applyTheme(colors) {
-            const [ph,ps,pl]=hexToHsl(colors.primary);
-            root.style.setProperty('--primary-color',   colors.primary);
-            root.style.setProperty('--primary-hover',   hslToHex(ph,ps,Math.max(pl-8,10)));
-            root.style.setProperty('--secondary-color', hslToHex(ph,Math.max(ps-15,0),Math.min(pl+18,90)));
-            root.style.setProperty('--accent-color',    colors.accent);
-            root.style.setProperty('--highlight-color', `${colors.primary}18`);
-            const [nh,ns,nl]=hexToHsl(colors.nav);
-            nav.style.background=`linear-gradient(135deg,${colors.nav},${hslToHex(nh,ns,Math.min(nl+6,50))})`;
-            nav.style.boxShadow =`0 4px 24px ${colors.primary}40`;
-            document.getElementById('pick-primary').value=colors.primary;
-            document.getElementById('pick-accent').value =colors.accent;
-            document.getElementById('pick-nav').value    =colors.nav;
-            document.getElementById('swatch-primary').style.background=colors.primary;
-            document.getElementById('swatch-accent').style.background =colors.accent;
-            document.getElementById('swatch-nav').style.background    =colors.nav;
-            localStorage.setItem(STORAGE,JSON.stringify(colors));
-        }
+        function applyTheme(c){const[ph,ps,pl]=hexToHsl(c.primary);root.style.setProperty('--primary-color',c.primary);root.style.setProperty('--primary-hover',hslToHex(ph,ps,Math.max(pl-8,10)));root.style.setProperty('--secondary-color',hslToHex(ph,Math.max(ps-15,0),Math.min(pl+18,90)));root.style.setProperty('--accent-color',c.accent);root.style.setProperty('--highlight-color',`${c.primary}18`);const[nh,ns,nl]=hexToHsl(c.nav);nav.style.background=`linear-gradient(135deg,${c.nav},${hslToHex(nh,ns,Math.min(nl+6,50))})`;nav.style.boxShadow=`0 4px 24px ${c.primary}40`;document.getElementById('pick-primary').value=c.primary;document.getElementById('pick-accent').value=c.accent;document.getElementById('pick-nav').value=c.nav;document.getElementById('swatch-primary').style.background=c.primary;document.getElementById('swatch-accent').style.background=c.accent;document.getElementById('swatch-nav').style.background=c.nav;localStorage.setItem(STORAGE,JSON.stringify(c));}
 
         const saved=JSON.parse(localStorage.getItem(STORAGE)||'null');
         if(saved) applyTheme(saved);
 
-        document.querySelectorAll('.preset-btn').forEach(btn=>{
-            btn.addEventListener('click',()=>{
-                document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
-                btn.classList.add('active');
-                applyTheme({primary:btn.dataset.primary,accent:btn.dataset.accent,nav:btn.dataset.nav});
-            });
-        });
-
-        function onPickerChange(){
-            document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
-            applyTheme({primary:document.getElementById('pick-primary').value,accent:document.getElementById('pick-accent').value,nav:document.getElementById('pick-nav').value});
-        }
+        document.querySelectorAll('.preset-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyTheme({primary:btn.dataset.primary,accent:btn.dataset.accent,nav:btn.dataset.nav});});});
+        function onPickerChange(){document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));applyTheme({primary:document.getElementById('pick-primary').value,accent:document.getElementById('pick-accent').value,nav:document.getElementById('pick-nav').value});}
         ['pick-primary','pick-accent','pick-nav'].forEach(id=>document.getElementById(id).addEventListener('input',onPickerChange));
-
-        document.getElementById('customizer-reset').addEventListener('click',()=>{
-            document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
-            ['--primary-color','--primary-hover','--secondary-color','--accent-color','--highlight-color'].forEach(p=>root.style.removeProperty(p));
-            nav.style.background='';nav.style.boxShadow='';
-            localStorage.removeItem(STORAGE);
-            applyTheme(DEFAULTS);
-        });
-
-        const custToggle =document.getElementById('customizer-toggle');
-        const custPanel  =document.getElementById('customizer-panel');
-        const custChevron=document.getElementById('customizer-chevron');
-        custToggle.addEventListener('click',()=>{
-            const open=custPanel.classList.toggle('open');
-            custChevron.style.transform=open?'rotate(180deg)':'rotate(0deg)';
-        });
+        document.getElementById('customizer-reset').addEventListener('click',()=>{document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===0));['--primary-color','--primary-hover','--secondary-color','--accent-color','--highlight-color'].forEach(p=>root.style.removeProperty(p));nav.style.background='';nav.style.boxShadow='';localStorage.removeItem(STORAGE);applyTheme(DEFAULTS);});
+        const custToggle=document.getElementById('customizer-toggle'),custPanel=document.getElementById('customizer-panel'),custChevron=document.getElementById('customizer-chevron');
+        custToggle.addEventListener('click',()=>{const open=custPanel.classList.toggle('open');custChevron.style.transform=open?'rotate(180deg)':'rotate(0deg)';});
     </script>
 </body>
 </html>
