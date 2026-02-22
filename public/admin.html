@@ -526,6 +526,10 @@
         .admin-nav-links {
             display: flex; align-items: center; gap: 0.25rem;
             position: absolute; left: 50%; transform: translateX(-50%);
+            pointer-events: none;
+        }
+        .admin-nav-links .admin-nav-item {
+            pointer-events: auto;
         }
         .admin-nav-item {
             display: flex; align-items: center; gap: 0.35rem;
@@ -982,7 +986,7 @@
             appId:             "1:637345497070:web:62c84a71b6a415206d18ff"
         };
 
-        const ADMIN_EMAIL = 'hiura0012@gmail.com'; // ← ganti sama email lu
+        const ADMIN_EMAIL = 'robin@gmail.com'; // ← ganti sama email lu
 
         const firebaseApp = initializeApp(firebaseConfig);
         const auth        = getAuth(firebaseApp);
@@ -1631,27 +1635,7 @@
             } catch (e) { console.error(e); }
         }
 
-        // Expose semua fungsi ke window
-        window.closeMobileAndScroll = closeMobileAndScroll;
-        window.loadChangelog        = loadChangelog;
-        window.showChangelogForm    = showChangelogForm;
-        window.hideChangelogForm    = hideChangelogForm;
-        window.submitChangelog      = submitChangelog;
-        window.editChangelog        = editChangelog;
-        window.deleteChangelog      = deleteChangelog;
 
-        // Expose functions globally
-        window.loadTraffic       = loadTraffic;
-        window.loadBlacklist     = loadBlacklist;
-        window.addBlacklist      = addBlacklist;
-        window.removeBlacklist   = removeBlacklist;
-        window.loadEndpointsList = loadEndpointsList;
-        window.toggleEndpoint    = toggleEndpoint;
-        window.forceReloadCache  = forceReloadCache;
-        window.loadReports        = loadReports;
-        window.filterReports      = filterReports;
-        window.updateReportStatus = updateReportStatus;
-        window.deleteReport       = deleteReport;
 
         // ── Admin Nav Scrollspy ──
         function closeMobileAndScroll(el) {
@@ -1707,6 +1691,26 @@
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(initScrollspy, 1000);
         });
+
+        // ── Expose semua fungsi ke window (setelah semua fungsi didefinisikan) ──
+        window.closeMobileAndScroll = closeMobileAndScroll;
+        window.loadChangelog        = loadChangelog;
+        window.showChangelogForm    = showChangelogForm;
+        window.hideChangelogForm    = hideChangelogForm;
+        window.submitChangelog      = submitChangelog;
+        window.editChangelog        = editChangelog;
+        window.deleteChangelog      = deleteChangelog;
+        window.loadTraffic          = loadTraffic;
+        window.loadBlacklist        = loadBlacklist;
+        window.addBlacklist         = addBlacklist;
+        window.removeBlacklist      = removeBlacklist;
+        window.loadEndpointsList    = loadEndpointsList;
+        window.toggleEndpoint       = toggleEndpoint;
+        window.forceReloadCache     = forceReloadCache;
+        window.loadReports          = loadReports;
+        window.filterReports        = filterReports;
+        window.updateReportStatus   = updateReportStatus;
+        window.deleteReport         = deleteReport;
 
         // ── Hamburger ──
         const hamburger     = document.getElementById('hamburger');
