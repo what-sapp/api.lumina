@@ -552,11 +552,6 @@
 </head>
 <body>
 
-    <!-- Page Loader -->
-    <div id="page-loader" class="page-loader">
-        <div class="loader-ring"></div>
-    </div>
-
     <!-- ── LOGIN SCREEN ── -->
     <div class="login-screen" id="login-screen">
         <div class="login-card">
@@ -1053,21 +1048,7 @@
     </script>
 
     <script>
-        // ── Page Loader ──
-        function hideLoader() {
-            const loader = document.getElementById('page-loader');
-            if (loader && loader.style.display !== 'none') {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.display = 'none', 400);
-            }
-        }
 
-        window.addEventListener('load', () => {
-            setTimeout(hideLoader, 300);
-        });
-
-        // Fallback: paksa hide setelah 4 detik apapun yang terjadi
-        setTimeout(hideLoader, 4000);
 
         // ══════════════════════════════════════════
         //  API HELPER
