@@ -206,6 +206,119 @@
             transition: width 0.6s ease;
         }
 
+        /* ── Changelog Widget ── */
+        .changelog-widget {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.5rem;
+            animation: slideInUp 0.6s ease-out 0.3s both;
+        }
+
+        .changelog-widget-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--highlight-color);
+        }
+
+        .changelog-entry {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .changelog-entry:last-child { border-bottom: none; }
+        .changelog-entry:hover { background: var(--highlight-color); }
+
+        .changelog-timeline {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+            padding-top: 0.2rem;
+        }
+
+        .changelog-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .changelog-line {
+            width: 2px;
+            flex: 1;
+            background: var(--border-color);
+            margin-top: 4px;
+            min-height: 20px;
+        }
+
+        .changelog-body { flex: 1; min-width: 0; }
+
+        .changelog-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.4rem;
+        }
+
+        .changelog-type-badge {
+            font-size: 0.58rem;
+            font-weight: 800;
+            padding: 0.15rem 0.5rem;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+        }
+
+        .changelog-version {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            font-family: 'Courier New', monospace;
+        }
+
+        .changelog-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .changelog-date {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+
+        .changelog-notes {
+            list-style: none;
+            margin: 0; padding: 0;
+        }
+
+        .changelog-notes li {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            padding-left: 0.75rem;
+            position: relative;
+        }
+
+        .changelog-notes li::before {
+            content: '·';
+            position: absolute;
+            left: 0;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
         /* ── Owner Card ── */
         .owner-card {
             background: var(--card-background);
@@ -771,6 +884,18 @@
             </div>
         </div>
 
+        <!-- Changelog Widget -->
+        <div class="changelog-widget" id="changelog-widget" style="display:none;">
+            <div class="changelog-widget-header">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">new_releases</span>
+                    <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-color);">What's New</span>
+                </div>
+                <a href="/changelog" style="font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--primary-color); text-decoration:none; opacity:0.7;">View All →</a>
+            </div>
+            <div id="changelog-entries"></div>
+        </div>
+
         <!-- Footer -->
         <div class="main-footer">
             <span class="footer-copy" id="footer-copy">© 2025 Robin • All Rights Reserved</span>
@@ -790,6 +915,51 @@
                 }, 300);
             }
         });
+
+        // ── Changelog Widget ──
+        async function fetchChangelog() {
+            try {
+                const res  = await fetch('/changelog?limit=5');
+                const data = await res.json();
+                if (!data.status || !data.entries?.length) return;
+
+                const widget    = document.getElementById('changelog-widget');
+                const container = document.getElementById('changelog-entries');
+                widget.style.display = 'block';
+
+                const typeMap = {
+                    feature:  { icon: '✨', color: 'var(--primary-color)', bg: 'rgba(79,70,229,0.1)',  dot: '#4f46e5' },
+                    fix:      { icon: '🐛', color: 'var(--error-color)',   bg: 'rgba(244,63,94,0.1)',  dot: '#f43f5e' },
+                    update:   { icon: '🔄', color: 'var(--accent-color)',  bg: 'rgba(34,211,238,0.1)', dot: '#22d3ee' },
+                    security: { icon: '🔒', color: '#f59e0b',              bg: 'rgba(245,158,11,0.1)', dot: '#f59e0b' },
+                    breaking: { icon: '⚠️', color: '#f59e0b',              bg: 'rgba(245,158,11,0.1)', dot: '#f59e0b' },
+                };
+
+                container.innerHTML = data.entries.map((e, i) => {
+                    const t    = typeMap[e.type] || typeMap.update;
+                    const date = e.timestamp ? new Date(e.timestamp).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '';
+                    const notes = (e.notes || []).slice(0, 3).map(n => `<li>${n}</li>`).join('');
+                    const isLast = i === data.entries.length - 1;
+                    return `
+                        <div class="changelog-entry">
+                            <div class="changelog-timeline">
+                                <div class="changelog-dot" style="background:${t.dot};"></div>
+                                ${!isLast ? '<div class="changelog-line"></div>' : ''}
+                            </div>
+                            <div class="changelog-body">
+                                <div class="changelog-meta">
+                                    <span class="changelog-type-badge" style="background:${t.bg}; color:${t.color};">${t.icon} ${e.type}</span>
+                                    <span class="changelog-version">${e.version || ''}</span>
+                                    <span class="changelog-title">${e.title}</span>
+                                    <span class="changelog-date">${date}</span>
+                                </div>
+                                <ul class="changelog-notes">${notes}</ul>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (_) { /* silent fail */ }
+        }
 
         // ── Server Info ──
         async function fetchServerInfo() {
@@ -850,6 +1020,7 @@
             }
         }
         fetchServerInfo();
+        fetchChangelog();
 
 
 
