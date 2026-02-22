@@ -7,121 +7,604 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 
     <style>
-        .github-notif-wrap { position: relative; display: inline-flex; align-items: center; }
-        .github-notif-bubble {
-            position: fixed; background: var(--card-background); border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 0.45rem 0.9rem; white-space: nowrap; font-size: 0.75rem;
-            font-weight: 600; color: var(--text-color);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.12), 0 0 0 1px var(--border-color);
-            pointer-events: none; opacity: 0; transform: scale(0.85) translateY(4px);
-            transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1); z-index: 9999;
+        /* ── GitHub notif bubble ── */
+        .github-notif-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
         }
-        .github-notif-bubble::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:var(--border-color); }
-        .github-notif-bubble::before { content:''; position:absolute; top:calc(100% - 1px); left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:var(--card-background); z-index:1; }
-        .github-notif-bubble.show { opacity:1; transform:scale(1) translateY(0); }
-        .github-notif-dot { position:absolute; top:-3px; right:-4px; width:7px; height:7px; border-radius:50%; background:var(--accent-color); border:1.5px solid var(--card-background); animation:notifPulse 2s ease infinite; }
-        @keyframes notifPulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.4);opacity:0.6;} }
 
-        /* Changelog */
-        .changelog-widget { background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); overflow:hidden; box-shadow:var(--card-shadow); margin-bottom:1.5rem; animation:slideInUp 0.6s ease-out 0.3s both; }
-        .changelog-widget-header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid var(--border-color); background:var(--highlight-color); }
-        .changelog-entry { display:flex; gap:1rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border-color); transition:var(--transition); }
-        .changelog-entry:last-child { border-bottom:none; }
-        .changelog-entry:hover { background:var(--highlight-color); }
-        .changelog-timeline { display:flex; flex-direction:column; align-items:center; flex-shrink:0; padding-top:0.2rem; }
-        .changelog-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-        .changelog-line { width:2px; flex:1; background:var(--border-color); margin-top:4px; min-height:20px; }
-        .changelog-body { flex:1; min-width:0; }
-        .changelog-meta { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.4rem; }
-        .changelog-type-badge { font-size:0.58rem; font-weight:800; padding:0.15rem 0.5rem; border-radius:100px; text-transform:uppercase; letter-spacing:0.08em; white-space:nowrap; }
-        .changelog-version { font-size:0.68rem; font-weight:700; color:var(--primary-color); font-family:'Courier New',monospace; }
-        .changelog-title { font-size:0.82rem; font-weight:600; color:var(--text-color); }
-        .changelog-date { font-size:0.6rem; color:var(--text-muted); margin-left:auto; }
-        .changelog-notes { list-style:none; margin:0; padding:0; }
-        .changelog-notes li { font-size:0.72rem; color:var(--text-muted); line-height:1.6; padding-left:0.75rem; position:relative; }
-        .changelog-notes li::before { content:'·'; position:absolute; left:0; color:var(--primary-color); font-weight:700; }
+        .github-notif-bubble {
+            position: fixed;
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.45rem 0.9rem;
+            white-space: nowrap;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-color);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12), 0 0 0 1px var(--border-color);
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.85) translateY(4px);
+            transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            z-index: 9999;
+        }
 
-        /* Owner Card */
-        .owner-card { background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius); padding:1.25rem; box-shadow:var(--card-shadow); margin-bottom:1.25rem; display:flex; align-items:center; gap:1rem; transition:var(--hover-transition); }
-        .owner-card:hover { transform:var(--hover-transform); box-shadow:var(--hover-shadow); border-color:rgba(79,70,229,0.2); }
-        .owner-avatar { width:3.25rem; height:3.25rem; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color); flex-shrink:0; box-shadow:0 0 0 4px var(--highlight-color); }
-        .owner-avatar-fallback { width:3.25rem; height:3.25rem; border-radius:50%; background:linear-gradient(135deg,var(--primary-color),var(--secondary-color)); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1.2rem; font-weight:800; color:white; border:2px solid var(--primary-color); box-shadow:0 0 0 4px var(--highlight-color); }
-        .owner-info { flex:1; min-width:0; }
-        .owner-name { font-size:0.95rem; font-weight:800; color:var(--text-color); letter-spacing:-0.02em; margin-bottom:0.15rem; }
-        .owner-role { font-size:0.6rem; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:var(--primary-color); margin-bottom:0.5rem; }
-        .owner-links { display:flex; gap:0.4rem; flex-wrap:wrap; }
-        .owner-link { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.62rem; font-weight:600; padding:0.2rem 0.6rem; border-radius:100px; border:1px solid var(--border-color); color:var(--text-muted); text-decoration:none; transition:var(--transition); background:var(--background-color); }
-        .owner-link:hover { border-color:var(--primary-color); color:var(--primary-color); background:var(--highlight-color); }
+        .github-notif-bubble::after {
+            content: '';
+            position: absolute;
+            top: 100%; left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--border-color);
+        }
+        .github-notif-bubble::before {
+            content: '';
+            position: absolute;
+            top: calc(100% - 1px); left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--card-background);
+            z-index: 1;
+        }
 
-        /* Hero Status Strip */
-        .hero-status-strip { display:flex; align-items:center; gap:0.875rem; margin-top:1.25rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.07); flex-wrap:wrap; }
-        .hss-item { display:flex; align-items:center; gap:0.35rem; font-size:0.65rem; font-weight:600; color:var(--text-muted); }
-        .hss-dot { width:6px; height:6px; border-radius:50%; background:var(--success-color); box-shadow:0 0 5px rgba(16,185,129,0.6); animation:pulseDot 2s ease infinite; flex-shrink:0; }
-        @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.4;transform:scale(1.3);} }
-        .hss-value { color:var(--text-color); font-weight:700; font-family:'Courier New',monospace; font-size:0.68rem; }
-        .hss-divider { width:1px; height:12px; background:var(--border-color); flex-shrink:0; }
+        .github-notif-bubble.show {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
 
-        /* Typing */
-        .hero-title { min-height:4.5rem; }
-        .typed-line { display:block; }
-        .typed-gradient { display:inline-block; }
-        .typing-cursor { display:inline-block; width:3px; height:1em; background:var(--primary-color); margin-left:2px; vertical-align:text-bottom; border-radius:2px; animation:cursorBlink 0.8s ease infinite; }
-        @keyframes cursorBlink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+        .github-notif-dot {
+            position: absolute;
+            top: -3px; right: -4px;
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            border: 1.5px solid var(--card-background);
+            animation: notifPulse 2s ease infinite;
+        }
 
-        /* Rate Limit Card */
-        .rate-limit-card {
+        @keyframes notifPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50%       { transform: scale(1.4); opacity: 0.6; }
+        }
+
+        /* ── Server Status Card ── */
+        .server-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        @media (max-width: 540px) { .server-grid { grid-template-columns: 1fr; } }
+
+        .server-card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: var(--hover-transition);
+        }
+
+        .server-card:hover {
+            transform: var(--hover-transform);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(79,70,229,0.2);
+        }
+
+        .server-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        }
+
+        .server-card-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--text-muted);
+            margin-bottom: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .server-stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.72rem;
+        }
+
+        .server-stat-row:last-child { border-bottom: none; }
+
+        .server-stat-label { color: var(--text-muted); font-size: 0.65rem; }
+
+        .server-stat-value {
+            font-weight: 700;
+            color: var(--text-color);
+            font-family: 'Courier New', monospace;
+            font-size: 0.68rem;
+        }
+
+        /* Status dot inline */
+        .status-dot-inline {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--success-color);
+            display: inline-block;
+            margin-right: 4px;
+            box-shadow: 0 0 5px rgba(16,185,129,0.5);
+            animation: pulseDot 2s ease infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.4; }
+        }
+
+        /* Battery */
+        .battery-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .battery-bar-outer {
+            flex: 1;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .battery-bar-inner {
+            height: 100%;
+            border-radius: 100px;
+            transition: width 0.6s ease, background 0.3s ease;
+            background: var(--success-color);
+        }
+
+        .battery-pct {
+            font-size: 0.65rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: var(--text-color);
+            min-width: 2.5rem;
+            text-align: right;
+        }
+
+        /* Mem bar */
+        .mem-bar-outer {
+            flex: 1;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .mem-bar-inner {
+            height: 100%;
+            border-radius: 100px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            transition: width 0.6s ease;
+        }
+
+        /* ── Changelog Widget ── */
+        .changelog-widget {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.5rem;
+            animation: slideInUp 0.6s ease-out 0.3s both;
+        }
+
+        .changelog-widget-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--highlight-color);
+        }
+
+        .changelog-entry {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .changelog-entry:last-child { border-bottom: none; }
+        .changelog-entry:hover { background: var(--highlight-color); }
+
+        .changelog-timeline {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+            padding-top: 0.2rem;
+        }
+
+        .changelog-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .changelog-line {
+            width: 2px;
+            flex: 1;
+            background: var(--border-color);
+            margin-top: 4px;
+            min-height: 20px;
+        }
+
+        .changelog-body { flex: 1; min-width: 0; }
+
+        .changelog-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.4rem;
+        }
+
+        .changelog-type-badge {
+            font-size: 0.58rem;
+            font-weight: 800;
+            padding: 0.15rem 0.5rem;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+        }
+
+        .changelog-version {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            font-family: 'Courier New', monospace;
+        }
+
+        .changelog-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .changelog-date {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+
+        .changelog-notes {
+            list-style: none;
+            margin: 0; padding: 0;
+        }
+
+        .changelog-notes li {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            padding-left: 0.75rem;
+            position: relative;
+        }
+
+        .changelog-notes li::before {
+            content: '·';
+            position: absolute;
+            left: 0;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        /* ── Owner Card ── */
+        .owner-card {
             background: var(--card-background);
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
             padding: 1.25rem;
             box-shadow: var(--card-shadow);
             margin-bottom: 1.25rem;
-            position: relative;
-            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
             transition: var(--hover-transition);
         }
-        .rate-limit-card:hover { transform:var(--hover-transform); box-shadow:var(--hover-shadow); border-color:rgba(79,70,229,0.2); }
-        .rate-limit-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--primary-color),var(--accent-color)); }
-        .rate-limit-card::after { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(79,70,229,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(79,70,229,0.025) 1px,transparent 1px); background-size:24px 24px; pointer-events:none; }
 
-        .rl-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem; position:relative; z-index:1; }
-        .rl-title { display:flex; align-items:center; gap:0.5rem; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-color); }
-        .rl-badge { font-size:0.6rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:100px; background:rgba(16,185,129,0.12); color:var(--success-color); text-transform:uppercase; letter-spacing:0.08em; border:1px solid rgba(16,185,129,0.2); }
+        .owner-card:hover {
+            transform: var(--hover-transform);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(79,70,229,0.2);
+        }
 
-        .rl-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; margin-bottom:1rem; position:relative; z-index:1; }
-        @media(max-width:400px){ .rl-stats{grid-template-columns:1fr 1fr;} }
+        .owner-avatar {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+            flex-shrink: 0;
+            box-shadow: 0 0 0 4px var(--highlight-color);
+        }
 
-        .rl-stat { background:var(--background-color); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); padding:0.875rem 1rem; text-align:center; transition:var(--transition); }
-        .rl-stat:hover { border-color:var(--primary-color); background:var(--highlight-color); }
-        .rl-stat-value { font-size:1.5rem; font-weight:800; letter-spacing:-0.04em; color:var(--primary-color); font-family:'Courier New',monospace; line-height:1; margin-bottom:0.3rem; }
-        .rl-stat-label { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); }
+        .owner-avatar-fallback {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: white;
+            border: 2px solid var(--primary-color);
+        }
 
-        .rl-info-row { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; padding-top:0.75rem; border-top:1px solid var(--border-color); position:relative; z-index:1; }
-        .rl-info-item { display:flex; align-items:center; gap:0.35rem; font-size:0.65rem; color:var(--text-muted); }
-        .rl-info-item strong { color:var(--text-color); font-weight:700; }
+        .owner-info { flex: 1; min-width: 0; }
+
+        .owner-name {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-color);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.2rem;
+        }
+
+        .owner-role {
+            font-size: 0.62rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .owner-links {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .owner-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.25rem 0.625rem;
+            border-radius: 100px;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+            background: var(--background-color);
+        }
+
+        .owner-link:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--highlight-color);
+        }
+
+        /* ── Server Status Strip ── */
+        .hero-status-strip {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            flex-wrap: wrap;
+        }
+
+        .hss-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .hss-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--success-color);
+            box-shadow: 0 0 5px rgba(16,185,129,0.6);
+            animation: pulseDot 2s ease infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.4; transform: scale(1.3); }
+        }
+
+        .hss-value {
+            color: var(--text-color);
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            font-size: 0.68rem;
+        }
+
+        .hss-divider {
+            width: 1px;
+            height: 12px;
+            background: var(--border-color);
+            flex-shrink: 0;
+        }
+
+        /* ── Owner Card (simplified) ── */
+        .owner-card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: var(--hover-transition);
+        }
+
+        .owner-card:hover {
+            transform: var(--hover-transform);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(79,70,229,0.2);
+        }
+
+        .owner-avatar {
+            width: 3.25rem; height: 3.25rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+            flex-shrink: 0;
+            box-shadow: 0 0 0 4px var(--highlight-color);
+        }
+
+        .owner-avatar-fallback {
+            width: 3.25rem; height: 3.25rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: white;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 0 0 4px var(--highlight-color);
+        }
+
+        .owner-info { flex: 1; min-width: 0; }
+
+        .owner-name {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-color);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.15rem;
+        }
+
+        .owner-role {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .owner-links { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+        .owner-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.62rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 100px;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+            background: var(--background-color);
+        }
+
+        .owner-link:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--highlight-color);
+        }
+
+        /* ── Typing animation ── */
+        .hero-title {
+            min-height: 4.5rem; /* prevent layout shift */
+        }
+
+        .typed-line {
+            display: block;
+        }
+
+        .typed-gradient {
+            display: inline-block;
+        }
+
+        .typing-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1em;
+            background: var(--primary-color);
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            border-radius: 2px;
+            animation: cursorBlink 0.8s ease infinite;
+        }
+
+        @keyframes cursorBlink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="page-loader" class="page-loader"><div class="loader-ring"></div></div>
+    <!-- ── Page Loader ── -->
+    <div id="page-loader" class="page-loader">
+        <div class="loader-ring"></div>
+    </div>
 
+    <!-- ── NAVBAR ── -->
     <nav class="main-nav" id="main-nav">
-        <a href="/" class="nav-logo">Lumina <span class="nav-logo-accent">API's</span></a>
-        <div class="hamburger" id="hamburger"><div class="hamburger-inner"><span></span><span></span><span></span></div></div>
+        <a href="/" class="nav-logo">
+            Lumina <span class="nav-logo-accent">API's</span>
+        </a>
+        <div class="hamburger" id="hamburger">
+            <div class="hamburger-inner">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
     </nav>
 
+    <!-- ── OVERLAY ── -->
     <div class="mobile-overlay" id="mobile-overlay"></div>
 
+    <!-- ── MOBILE MENU ── -->
     <div class="mobile-menu" id="mobile-menu">
-        <div style="padding:1.5rem;">
+        <div style="padding: 1.5rem;">
+
             <div class="menu-header">
                 <div class="menu-header-icon">
-                    <span class="material-icons" style="color:white;font-size:1.1rem;">apps</span>
+                    <span class="material-icons" style="color: white; font-size: 1.1rem;">apps</span>
                     <div class="menu-header-dot"></div>
                 </div>
                 <div>
@@ -130,145 +613,261 @@
                 </div>
             </div>
 
-            <nav style="display:flex;flex-direction:column;gap:0.25rem;">
+            <nav style="display: flex; flex-direction: column; gap: 0.25rem;">
                 <a href="/" class="menu-item active">
-                    <div class="menu-icon-box" style="background:rgba(255,255,255,0.15);"><span class="material-icons" style="font-size:1rem;color:white;">home</span></div>
-                    <span>Home</span><span class="menu-badge menu-badge-current">Current</span>
+                    <div class="menu-icon-box" style="background: rgba(255,255,255,0.15);">
+                        <span class="material-icons" style="font-size: 1rem; color: white;">home</span>
+                    </div>
+                    <span>Home</span>
+                    <span class="menu-badge menu-badge-current">Current</span>
                 </a>
+
                 <a href="/docs" class="menu-item">
-                    <div class="menu-icon-box" style="background:rgba(59,130,246,0.1);"><span class="material-icons" style="font-size:1rem;color:#3b82f6;">description</span></div>
+                    <div class="menu-icon-box" style="background: rgba(59,130,246,0.1);">
+                        <span class="material-icons" style="font-size: 1rem; color: #3b82f6;">description</span>
+                    </div>
                     <span>Documentation</span>
                 </a>
+
                 <a href="/contributors" class="menu-item">
-                    <div class="menu-icon-box" style="background:var(--highlight-color);"><span class="material-icons" style="font-size:1rem;color:var(--primary-color);">people</span></div>
+                    <div class="menu-icon-box" style="background: var(--highlight-color);">
+                        <span class="material-icons" style="font-size: 1rem; color: var(--primary-color);">people</span>
+                    </div>
                     <span>Contributors</span>
                 </a>
+
                 <a href="/luminaai" class="menu-item">
-                    <div class="menu-icon-box" style="background:rgba(79,70,229,0.1);"><span class="material-icons" style="font-size:1rem;color:#4f46e5;">auto_awesome</span></div>
-                    <span>Lumina AI</span><span class="menu-badge" style="background:rgba(79,70,229,0.12);color:#4f46e5;">New</span>
+                    <div class="menu-icon-box" style="background: rgba(79, 70, 229, 0.1);">
+                        <span class="material-icons" style="font-size: 1rem; color: #4f46e5;">auto_awesome</span>
+                    </div>
+                    <span>Lumina AI</span>
+                    <span class="menu-badge" style="background: rgba(79, 70, 229, 0.12); color: #4f46e5;">New</span>
                 </a>
+
                 <a href="/playground" class="menu-item">
-                    <div class="menu-icon-box" style="background:rgba(34,211,238,0.1);"><span class="material-icons" style="font-size:1rem;color:var(--accent-color);">science</span></div>
-                    <span>Playground</span><span class="menu-badge" style="background:rgba(34,211,238,0.12);color:var(--accent-color);">New</span>
+                    <div class="menu-icon-box" style="background: rgba(34,211,238,0.1);">
+                        <span class="material-icons" style="font-size: 1rem; color: var(--accent-color);">science</span>
+                    </div>
+                    <span>Playground</span>
+                    <span class="menu-badge" style="background: rgba(34,211,238,0.12); color: var(--accent-color);">New</span>
                 </a>
+
                 <a href="/status" class="menu-item">
-                    <div class="menu-icon-box" style="background:rgba(16,185,129,0.1);"><span class="material-icons" style="font-size:1rem;color:var(--success-color);">bar_chart</span></div>
+                    <div class="menu-icon-box" style="background: rgba(16,185,129,0.1);">
+                        <span class="material-icons" style="font-size: 1rem; color: var(--success-color);">bar_chart</span>
+                    </div>
                     <span>API Status</span>
-                    <span style="margin-left:auto;display:flex;align-items:center;gap:0.35rem;"><span class="live-dot"></span><span class="live-label">Live</span></span>
+                    <span style="margin-left: auto; display: flex; align-items: center; gap: 0.35rem;">
+                        <span class="live-dot"></span>
+                        <span class="live-label">Live</span>
+                    </span>
                 </a>
             </nav>
 
             <div class="menu-section-divider">
                 <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link">
-                    <div class="github-link-icon"><i class="fab fa-github" style="color:white;font-size:0.95rem;"></i></div>
-                    <div style="flex:1;"><span style="display:block;font-size:0.82rem;">View on GitHub</span><span style="font-size:0.6rem;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.12em;">Open Source</span></div>
-                    <span class="material-icons" style="font-size:1rem;color:rgba(255,255,255,0.4);">arrow_forward</span>
+                    <div class="github-link-icon">
+                        <i class="fab fa-github" style="color: white; font-size: 0.95rem;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <span style="display: block; font-size: 0.82rem;">View on GitHub</span>
+                        <span style="font-size: 0.6rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.12em;">Open Source</span>
+                    </div>
+                    <span class="material-icons" style="font-size: 1rem; color: rgba(255,255,255,0.4);">arrow_forward</span>
                 </a>
             </div>
 
             <div class="stats-card">
-                <div class="stats-card-header"><span class="material-icons" style="font-size:0.9rem;color:var(--primary-color);">insights</span>Quick Stats</div>
+                <div class="stats-card-header">
+                    <span class="material-icons" style="font-size: 0.9rem; color: var(--primary-color);">insights</span>
+                    Quick Stats
+                </div>
                 <div class="stats-grid">
-                    <div class="stats-item"><div id="total-endpoints-widget" class="stats-value">--</div><div class="stats-label">Endpoints</div></div>
-                    <div class="stats-item"><div class="stats-value" style="color:var(--success-color);">99.9%</div><div class="stats-label">Uptime</div></div>
+                    <div class="stats-item">
+                        <div id="total-endpoints-widget" class="stats-value">--</div>
+                        <div class="stats-label">Endpoints</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-value" style="color: var(--success-color);">99.9%</div>
+                        <div class="stats-label">Uptime</div>
+                    </div>
                 </div>
             </div>
 
-            <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border-color);">
+            <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
                 <div class="color-customizer">
                     <div class="customizer-header" id="customizer-toggle">
-                        <div style="display:flex;align-items:center;gap:0.5rem;"><span class="material-icons" style="font-size:1rem;color:var(--primary-color);">palette</span><span class="customizer-title">Theme Colors</span></div>
-                        <span class="material-icons" id="customizer-chevron" style="font-size:1rem;color:var(--text-muted);transition:transform 0.3s ease;">expand_more</span>
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">palette</span>
+                            <span class="customizer-title">Theme Colors</span>
+                        </div>
+                        <span class="material-icons" id="customizer-chevron" style="font-size:1rem; color:var(--text-muted); transition: transform 0.3s ease;">expand_more</span>
                     </div>
                     <div class="customizer-panel" id="customizer-panel">
                         <div class="customizer-section-label">Quick Presets</div>
                         <div class="preset-grid">
-                            <button class="preset-btn active" data-primary="#4f46e5" data-accent="#22d3ee" data-nav="#1e1b4b"><span style="background:#4f46e5"></span><span style="background:#22d3ee"></span></button>
-                            <button class="preset-btn" data-primary="#7c3aed" data-accent="#a29bfe" data-nav="#1a1035"><span style="background:#7c3aed"></span><span style="background:#a29bfe"></span></button>
-                            <button class="preset-btn" data-primary="#0ea5e9" data-accent="#06b6d4" data-nav="#0c1a2e"><span style="background:#0ea5e9"></span><span style="background:#06b6d4"></span></button>
-                            <button class="preset-btn" data-primary="#10b981" data-accent="#34d399" data-nav="#0a1f18"><span style="background:#10b981"></span><span style="background:#34d399"></span></button>
-                            <button class="preset-btn" data-primary="#f59e0b" data-accent="#fbbf24" data-nav="#1c1505"><span style="background:#f59e0b"></span><span style="background:#fbbf24"></span></button>
-                            <button class="preset-btn" data-primary="#f43f5e" data-accent="#fb7185" data-nav="#1f0a10"><span style="background:#f43f5e"></span><span style="background:#fb7185"></span></button>
+                            <button class="preset-btn active" data-primary="#4f46e5" data-accent="#22d3ee" data-nav="#1e1b4b" title="Indigo + Cyan">
+                                <span style="background:#4f46e5"></span><span style="background:#22d3ee"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#7c3aed" data-accent="#a29bfe" data-nav="#1a1035" title="Purple">
+                                <span style="background:#7c3aed"></span><span style="background:#a29bfe"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#0ea5e9" data-accent="#06b6d4" data-nav="#0c1a2e" title="Sky Blue">
+                                <span style="background:#0ea5e9"></span><span style="background:#06b6d4"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#10b981" data-accent="#34d399" data-nav="#0a1f18" title="Emerald">
+                                <span style="background:#10b981"></span><span style="background:#34d399"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#f59e0b" data-accent="#fbbf24" data-nav="#1c1505" title="Amber">
+                                <span style="background:#f59e0b"></span><span style="background:#fbbf24"></span>
+                            </button>
+                            <button class="preset-btn" data-primary="#f43f5e" data-accent="#fb7185" data-nav="#1f0a10" title="Rose">
+                                <span style="background:#f43f5e"></span><span style="background:#fb7185"></span>
+                            </button>
                         </div>
                         <div class="customizer-section-label" style="margin-top:0.875rem;">Custom</div>
                         <div class="picker-row">
-                            <label class="picker-label"><span>Primary</span><div class="picker-wrap"><input type="color" id="pick-primary" class="color-picker" value="#4f46e5"><span class="picker-swatch" id="swatch-primary" style="background:#4f46e5"></span></div></label>
-                            <label class="picker-label"><span>Accent</span><div class="picker-wrap"><input type="color" id="pick-accent" class="color-picker" value="#22d3ee"><span class="picker-swatch" id="swatch-accent" style="background:#22d3ee"></span></div></label>
-                            <label class="picker-label"><span>Navbar</span><div class="picker-wrap"><input type="color" id="pick-nav" class="color-picker" value="#1e1b4b"><span class="picker-swatch" id="swatch-nav" style="background:#1e1b4b"></span></div></label>
+                            <label class="picker-label">
+                                <span>Primary</span>
+                                <div class="picker-wrap">
+                                    <input type="color" id="pick-primary" class="color-picker" value="#4f46e5">
+                                    <span class="picker-swatch" id="swatch-primary" style="background:#4f46e5"></span>
+                                </div>
+                            </label>
+                            <label class="picker-label">
+                                <span>Accent</span>
+                                <div class="picker-wrap">
+                                    <input type="color" id="pick-accent" class="color-picker" value="#22d3ee">
+                                    <span class="picker-swatch" id="swatch-accent" style="background:#22d3ee"></span>
+                                </div>
+                            </label>
+                            <label class="picker-label">
+                                <span>Navbar</span>
+                                <div class="picker-wrap">
+                                    <input type="color" id="pick-nav" class="color-picker" value="#1e1b4b">
+                                    <span class="picker-swatch" id="swatch-nav" style="background:#1e1b4b"></span>
+                                </div>
+                            </label>
                         </div>
-                        <button class="customizer-reset" id="customizer-reset"><span class="material-icons" style="font-size:0.85rem;">refresh</span>Reset to Default</button>
+                        <button class="customizer-reset" id="customizer-reset">
+                            <span class="material-icons" style="font-size:0.85rem;">refresh</span>
+                            Reset to Default
+                        </button>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
+    <!-- ── MAIN CONTENT ── -->
     <div class="page-wrapper">
 
+        <!-- Hero Banner -->
         <div class="hero-banner">
-            <div class="corner-dot tl"></div><div class="corner-dot tr"></div>
-            <div class="corner-dot bl"></div><div class="corner-dot br"></div>
+            <div class="corner-dot tl"></div>
+            <div class="corner-dot tr"></div>
+            <div class="corner-dot bl"></div>
+            <div class="corner-dot br"></div>
             <div class="corner-label tl">SYS::HOME</div>
             <div class="corner-label tr">v1.0</div>
 
             <div class="hero-badge">
                 <div class="github-notif-wrap" id="github-notif-anchor">
-                    <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" style="display:flex;align-items:center;gap:0.4rem;text-decoration:none;color:inherit;">
-                        <i class="fab fa-github"></i><span>Lumina API's</span>
+                    <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" style="display:flex; align-items:center; gap:0.4rem; text-decoration:none; color:inherit;">
+                        <i class="fab fa-github"></i>
+                        <span>Lumina API's</span>
                     </a>
                     <span class="github-notif-dot"></span>
                 </div>
-                <span style="display:flex;align-items:center;gap:0.35rem;margin-left:0.5rem;">
-                    <span class="live-dot"></span><span class="live-label">Online</span>
+                <span style="display:flex; align-items:center; gap:0.35rem; margin-left:0.5rem;">
+                    <span class="live-dot"></span>
+                    <span class="live-label">Online</span>
                 </span>
             </div>
 
+            <!-- Hero title — typing animation target -->
             <h1 class="hero-title" id="hero-title" aria-label="Build Faster with Free REST APIs">
                 <span class="typed-line" id="typed-line-1"></span>
                 <span class="typed-gradient gradient-text" id="typed-line-2"></span><span class="typing-cursor" id="typing-cursor"></span>
             </h1>
 
-            <p class="hero-desc" id="hero-desc" style="opacity:0;transition:opacity 0.5s ease;">
+            <p class="hero-desc" id="hero-desc" style="opacity:0; transition: opacity 0.5s ease;">
                 Akses koleksi RESTful API publik berkualitas tinggi tanpa hambatan autentikasi.
                 Dibuat untuk mempercepat alur kerja pengembangan aplikasi Anda.
             </p>
 
-            <div class="hero-actions" id="hero-actions" style="opacity:0;transition:opacity 0.5s ease;">
-                <a href="/docs" class="btn-primary">Get Started <span class="material-icons" style="font-size:1rem;">arrow_forward</span></a>
-                <a href="/status" class="btn-outline"><span class="material-icons" style="font-size:1rem;">bar_chart</span>API Status</a>
+            <div class="hero-actions" id="hero-actions" style="opacity:0; transition: opacity 0.5s ease;">
+                <a href="/docs" class="btn-primary">
+                    Get Started
+                    <span class="material-icons" style="font-size:1rem;">arrow_forward</span>
+                </a>
+                <a href="/status" class="btn-outline">
+                    <span class="material-icons" style="font-size:1rem;">bar_chart</span>
+                    API Status
+                </a>
             </div>
 
+            <!-- Server Status Strip -->
             <div class="hero-status-strip">
-                <div class="hss-item"><span class="hss-dot"></span><span>Online</span></div>
+                <div class="hss-item">
+                    <span class="hss-dot"></span>
+                    <span>Online</span>
+                </div>
                 <div class="hss-divider"></div>
-                <div class="hss-item"><span class="material-icons" style="font-size:0.75rem;color:var(--accent-color);">memory</span><span>Node</span><span class="hss-value" id="strip-node">--</span></div>
+                <div class="hss-item">
+                    <span class="material-icons" style="font-size:0.75rem; color:var(--accent-color);">memory</span>
+                    <span>Node</span>
+                    <span class="hss-value" id="strip-node">--</span>
+                </div>
                 <div class="hss-divider"></div>
-                <div class="hss-item"><span class="material-icons" style="font-size:0.75rem;color:var(--primary-color);">schedule</span><span>Uptime</span><span class="hss-value" id="strip-uptime">--</span></div>
+                <div class="hss-item">
+                    <span class="material-icons" style="font-size:0.75rem; color:var(--primary-color);">schedule</span>
+                    <span>Uptime</span>
+                    <span class="hss-value" id="strip-uptime">--</span>
+                </div>
                 <div class="hss-divider"></div>
-                <div class="hss-item"><span class="material-icons" style="font-size:0.75rem;color:var(--success-color);">dns</span><span class="hss-value" id="strip-provider">--</span></div>
+                <div class="hss-item">
+                    <span class="material-icons" style="font-size:0.75rem; color:var(--success-color);">dns</span>
+                    <span class="hss-value" id="strip-provider">--</span>
+                </div>
                 <div class="hss-divider"></div>
-                <div class="hss-item"><span class="material-icons" style="font-size:0.75rem;color:var(--text-muted);">storage</span><span>Mem</span><span class="hss-value" id="strip-mem">--%</span></div>
+                <div class="hss-item">
+                    <span class="material-icons" style="font-size:0.75rem; color:var(--text-muted);">storage</span>
+                    <span>Mem</span>
+                    <span class="hss-value" id="strip-mem">--%</span>
+                </div>
             </div>
         </div>
 
         <!-- Feature Cards -->
         <div class="feature-grid">
             <div class="feature-card">
-                <div class="feature-icon-box"><span class="material-icons" style="color:var(--primary-color);font-size:1.3rem;">bolt</span></div>
+                <div class="feature-icon-box">
+                    <span class="material-icons" style="color:var(--primary-color); font-size:1.3rem;">bolt</span>
+                </div>
                 <div class="feature-title">Lightning Fast</div>
                 <p class="feature-desc">Latency rendah di bawah 100ms untuk setiap request.</p>
             </div>
+
             <div class="feature-card">
-                <div class="feature-icon-box"><span class="material-icons" style="color:var(--primary-color);font-size:1.3rem;">no_encryption</span></div>
+                <div class="feature-icon-box">
+                    <span class="material-icons" style="color:var(--primary-color); font-size:1.3rem;">no_encryption</span>
+                </div>
                 <div class="feature-title">No Auth Required</div>
                 <p class="feature-desc">Langsung panggil endpoint tanpa API Key.</p>
             </div>
+
             <div class="feature-card">
-                <div class="feature-icon-box"><span class="material-icons" style="color:var(--primary-color);font-size:1.3rem;">language</span></div>
+                <div class="feature-icon-box">
+                    <span class="material-icons" style="color:var(--primary-color); font-size:1.3rem;">language</span>
+                </div>
                 <div class="feature-title">Your IP</div>
                 <div class="ip-row">
                     <code id="your-ip" class="ip-code">--</code>
-                    <button id="copy-ip-btn" class="copy-ip-btn" title="Copy IP"><span class="material-icons" style="font-size:1rem;">content_copy</span></button>
+                    <button id="copy-ip-btn" class="copy-ip-btn" title="Copy IP">
+                        <span class="material-icons" style="font-size:1rem;">content_copy</span>
+                    </button>
                 </div>
                 <span id="copy-feedback" class="copy-feedback">Copied!</span>
             </div>
@@ -285,63 +884,19 @@
             </div>
         </div>
 
-        <!-- Rate Limit Card — info statis, jujur, ga misleading -->
-        <div class="rate-limit-card">
-            <div class="rl-header">
-                <div class="rl-title">
-                    <span class="material-icons" style="font-size:1rem;color:var(--primary-color);">speed</span>
-                    Rate Limit
-                </div>
-                <span class="rl-badge">Free &amp; No Auth</span>
-            </div>
-
-            <div class="rl-stats">
-                <div class="rl-stat">
-                    <div class="rl-stat-value">60</div>
-                    <div class="rl-stat-label">Req / Menit</div>
-                </div>
-                <div class="rl-stat">
-                    <div class="rl-stat-value" id="rl-endpoints-count">--</div>
-                    <div class="rl-stat-label">Endpoints</div>
-                </div>
-                <div class="rl-stat">
-                    <div class="rl-stat-value">0</div>
-                    <div class="rl-stat-label">API Key</div>
-                </div>
-            </div>
-
-            <div class="rl-info-row">
-                <div class="rl-info-item">
-                    <span class="material-icons" style="font-size:0.8rem;">schedule</span>
-                    Reset tiap <strong>1 menit</strong>
-                </div>
-                <div class="rl-info-item">
-                    <span class="material-icons" style="font-size:0.8rem;">public</span>
-                    Per <strong>IP Address</strong>
-                </div>
-                <div class="rl-info-item">
-                    <span class="material-icons" style="font-size:0.8rem;">block</span>
-                    Lebih → <strong>429 Error</strong>
-                </div>
-                <div class="rl-info-item">
-                    <span class="material-icons" style="font-size:0.8rem;">all_inclusive</span>
-                    Gratis <strong>selamanya</strong>
-                </div>
-            </div>
-        </div>
-
         <!-- Changelog Widget -->
         <div class="changelog-widget" id="changelog-widget" style="display:none;">
             <div class="changelog-widget-header">
-                <div style="display:flex;align-items:center;gap:0.5rem;">
-                    <span class="material-icons" style="font-size:1rem;color:var(--primary-color);">new_releases</span>
-                    <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-color);">What's New</span>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">new_releases</span>
+                    <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-color);">What's New</span>
                 </div>
-                <a href="/changelog" style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--primary-color);text-decoration:none;opacity:0.7;">View All →</a>
+                <a href="/changelog" style="font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--primary-color); text-decoration:none; opacity:0.7;">View All →</a>
             </div>
             <div id="changelog-entries"></div>
         </div>
 
+        <!-- Footer -->
         <div class="main-footer">
             <span class="footer-copy" id="footer-copy">© 2025 Robin • All Rights Reserved</span>
             <span class="footer-id">ID::LUM-HOME</span>
@@ -361,44 +916,49 @@
             }
         });
 
-        // ── Changelog ──
+        // ── Changelog Widget ──
         async function fetchChangelog() {
             try {
                 const res  = await fetch('/changelog?limit=5');
                 const data = await res.json();
                 if (!data.status || !data.entries?.length) return;
+
                 const widget    = document.getElementById('changelog-widget');
                 const container = document.getElementById('changelog-entries');
                 widget.style.display = 'block';
+
                 const typeMap = {
-                    feature:  { icon:'✨', color:'var(--primary-color)', bg:'rgba(79,70,229,0.1)',  dot:'#4f46e5' },
-                    fix:      { icon:'🐛', color:'var(--error-color)',   bg:'rgba(244,63,94,0.1)',  dot:'#f43f5e' },
-                    update:   { icon:'🔄', color:'var(--accent-color)',  bg:'rgba(34,211,238,0.1)', dot:'#22d3ee' },
-                    security: { icon:'🔒', color:'#f59e0b',              bg:'rgba(245,158,11,0.1)', dot:'#f59e0b' },
-                    breaking: { icon:'⚠️', color:'#f59e0b',              bg:'rgba(245,158,11,0.1)', dot:'#f59e0b' },
+                    feature:  { icon: '✨', color: 'var(--primary-color)', bg: 'rgba(79,70,229,0.1)',  dot: '#4f46e5' },
+                    fix:      { icon: '🐛', color: 'var(--error-color)',   bg: 'rgba(244,63,94,0.1)',  dot: '#f43f5e' },
+                    update:   { icon: '🔄', color: 'var(--accent-color)',  bg: 'rgba(34,211,238,0.1)', dot: '#22d3ee' },
+                    security: { icon: '🔒', color: '#f59e0b',              bg: 'rgba(245,158,11,0.1)', dot: '#f59e0b' },
+                    breaking: { icon: '⚠️', color: '#f59e0b',              bg: 'rgba(245,158,11,0.1)', dot: '#f59e0b' },
                 };
+
                 container.innerHTML = data.entries.map((e, i) => {
-                    const t      = typeMap[e.type] || typeMap.update;
-                    const date   = e.timestamp ? new Date(e.timestamp).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '';
-                    const notes  = (e.notes || []).slice(0, 3).map(n => `<li>${n}</li>`).join('');
+                    const t    = typeMap[e.type] || typeMap.update;
+                    const date = e.timestamp ? new Date(e.timestamp).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '';
+                    const notes = (e.notes || []).slice(0, 3).map(n => `<li>${n}</li>`).join('');
                     const isLast = i === data.entries.length - 1;
-                    return `<div class="changelog-entry">
-                        <div class="changelog-timeline">
-                            <div class="changelog-dot" style="background:${t.dot};"></div>
-                            ${!isLast ? '<div class="changelog-line"></div>' : ''}
-                        </div>
-                        <div class="changelog-body">
-                            <div class="changelog-meta">
-                                <span class="changelog-type-badge" style="background:${t.bg};color:${t.color};">${t.icon} ${e.type}</span>
-                                <span class="changelog-version">${e.version || ''}</span>
-                                <span class="changelog-title">${e.title}</span>
-                                <span class="changelog-date">${date}</span>
+                    return `
+                        <div class="changelog-entry">
+                            <div class="changelog-timeline">
+                                <div class="changelog-dot" style="background:${t.dot};"></div>
+                                ${!isLast ? '<div class="changelog-line"></div>' : ''}
                             </div>
-                            <ul class="changelog-notes">${notes}</ul>
+                            <div class="changelog-body">
+                                <div class="changelog-meta">
+                                    <span class="changelog-type-badge" style="background:${t.bg}; color:${t.color};">${t.icon} ${e.type}</span>
+                                    <span class="changelog-version">${e.version || ''}</span>
+                                    <span class="changelog-title">${e.title}</span>
+                                    <span class="changelog-date">${date}</span>
+                                </div>
+                                <ul class="changelog-notes">${notes}</ul>
+                            </div>
                         </div>
-                    </div>`;
+                    `;
                 }).join('');
-            } catch (_) {}
+            } catch (_) { /* silent fail */ }
         }
 
         // ── Server Info ──
@@ -407,38 +967,62 @@
                 const res  = await fetch('/server-info');
                 const data = await res.json();
                 if (!data.status) return;
-                const s = data.server, o = data.owner;
+
+                const s = data.server;
+                const o = data.owner;
+
+                // Update strip di hero
                 document.getElementById('strip-node').textContent     = s.nodeVersion || '--';
                 document.getElementById('strip-provider').textContent = s.provider    || '--';
                 document.getElementById('strip-mem').textContent      = (s.memUsed || 0) + '%';
+
+                // Uptime counter — update strip
                 let uptimeSec = s.uptimeSeconds || 0;
                 function updateUptime() {
                     uptimeSec++;
                     const h   = Math.floor(uptimeSec / 3600);
                     const m   = Math.floor((uptimeSec % 3600) / 60);
                     const sec = uptimeSec % 60;
-                    const str = h > 0 ? `${h}h ${String(m).padStart(2,'0')}m` : `${String(m).padStart(2,'0')}m ${String(sec).padStart(2,'0')}s`;
-                    const el  = document.getElementById('strip-uptime');
+                    const str = h > 0
+                        ? `${h}h ${String(m).padStart(2,'0')}m`
+                        : `${String(m).padStart(2,'0')}m ${String(sec).padStart(2,'0')}s`;
+                    const el = document.getElementById('strip-uptime');
                     if (el) el.textContent = str;
                 }
                 updateUptime();
                 setInterval(updateUptime, 1000);
+
+                // Owner
                 document.getElementById('owner-name').textContent = o.name || '--';
                 const fallback = document.getElementById('owner-avatar-fallback');
                 fallback.textContent = (o.name || 'R').charAt(0).toUpperCase();
+
                 if (o.avatar) {
                     const img = document.getElementById('owner-avatar-img');
                     img.src = o.avatar;
                     img.onload  = () => { img.style.display = 'block'; fallback.style.display = 'none'; };
                     img.onerror = () => {};
                 }
+
+                // Owner links
                 const linksEl = document.getElementById('owner-links');
                 const links = [];
-                if (o.github) links.push({ label:'GitHub',   icon:'fab fa-github',   url:o.github });
-                if (o.wa)     links.push({ label:'WhatsApp', icon:'fab fa-whatsapp', url:o.wa });
-                linksEl.innerHTML = links.map(l => `<a href="${l.url}" target="_blank" class="owner-link"><i class="${l.icon}"></i> ${l.label}</a>`).join('');
-            } catch (e) { console.error('server-info error:', e); }
+                if (o.github) links.push({ label: 'GitHub', icon: 'fab fa-github', url: o.github });
+                if (o.wa)     links.push({ label: 'WhatsApp', icon: 'fab fa-whatsapp', url: o.wa });
+                linksEl.innerHTML = links.map(l =>
+                    `<a href="${l.url}" target="_blank" class="owner-link">
+                        <i class="${l.icon}"></i> ${l.label}
+                    </a>`
+                ).join('');
+
+            } catch (e) {
+                console.error('server-info error:', e);
+            }
         }
+        fetchServerInfo();
+        fetchChangelog();
+
+
 
         // ── Endpoint Count ──
         async function fetchEndpointCount() {
@@ -446,13 +1030,12 @@
                 const res  = await fetch('/endpoints');
                 const data = await res.json();
                 if (data.status && data.count) {
-                    const w   = document.getElementById('total-endpoints-widget');
-                    const rlE = document.getElementById('rl-endpoints-count');
-                    if (w)   w.textContent   = data.count + '+';
-                    if (rlE) rlE.textContent = data.count + '+';
+                    const w = document.getElementById('total-endpoints-widget');
+                    if (w) w.textContent = data.count + '+';
                 }
             } catch (e) {}
         }
+        fetchEndpointCount();
 
         // ── Your IP ──
         async function fetchYourIp() {
@@ -460,12 +1043,10 @@
             try {
                 const ip = await (await fetch('https://api.ipify.org')).text();
                 if (el) el.textContent = ip;
-            } catch (e) { if (el) el.textContent = 'Unavailable'; }
+            } catch (e) {
+                if (el) el.textContent = 'Unavailable';
+            }
         }
-
-        fetchServerInfo();
-        fetchChangelog();
-        fetchEndpointCount();
         fetchYourIp();
 
         // ── Copy IP ──
@@ -479,45 +1060,100 @@
             });
         });
 
-        // ── Typing Animation ──
+        // ══════════════════════════════════════════
+        //  TYPING ANIMATION
+        // ══════════════════════════════════════════
         const el1     = document.getElementById('typed-line-1');
         const el2     = document.getElementById('typed-line-2');
+        const cursor  = document.getElementById('typing-cursor');
         const desc    = document.getElementById('hero-desc');
         const actions = document.getElementById('hero-actions');
+
+        // Baris 1 langsung muncul dulu
         el1.textContent = 'Build Faster with';
-        setTimeout(() => { desc.style.opacity = '1'; actions.style.opacity = '1'; }, 1200);
-        const phrases = ['Free REST APIs', 'Open Source APIs', 'No Auth APIs', 'Fast & Free APIs'];
-        let phraseIndex = 0, charIndex = 0, isDeleting = false, typingSpeed = 100;
+
+        // Fade in desc + actions langsung (ga nunggu loop selesai)
+        setTimeout(() => {
+            desc.style.opacity    = '1';
+            actions.style.opacity = '1';
+        }, 1200);
+
+        // Typing loop baris 2
+        const phrases     = ['Free REST APIs', 'Open Source APIs', 'No Auth APIs', 'Fast & Free APIs'];
+        let phraseIndex   = 0;
+        let charIndex     = 0;
+        let isDeleting    = false;
+        let typingSpeed   = 100;
+
         function typeLoop() {
             const current = phrases[phraseIndex];
-            if (isDeleting) { el2.textContent = current.substring(0, charIndex - 1); charIndex--; typingSpeed = 50; }
-            else            { el2.textContent = current.substring(0, charIndex + 1); charIndex++; typingSpeed = 100; }
-            if (!isDeleting && charIndex === current.length)  { typingSpeed = 2000; isDeleting = true; }
-            else if (isDeleting && charIndex === 0) { isDeleting = false; phraseIndex = (phraseIndex + 1) % phrases.length; typingSpeed = 500; }
+
+            if (isDeleting) {
+                el2.textContent = current.substring(0, charIndex - 1);
+                charIndex--;
+                typingSpeed = 50;
+            } else {
+                el2.textContent = current.substring(0, charIndex + 1);
+                charIndex++;
+                typingSpeed = 100;
+            }
+
+            if (!isDeleting && charIndex === current.length) {
+                typingSpeed = 2000;
+                isDeleting  = true;
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting   = false;
+                phraseIndex  = (phraseIndex + 1) % phrases.length;
+                typingSpeed  = 500;
+            }
+
             setTimeout(typeLoop, typingSpeed);
         }
+
         setTimeout(typeLoop, 1000);
 
-        // ── GitHub Notif Bubble ──
+        // ══════════════════════════════════════════
+        //  GITHUB NOTIF BUBBLE
+        // ══════════════════════════════════════════
         const NOTIF_MESSAGES = [
-            "etto... arigatou ne! >.< 🙏","makasih udah mampir~ ⭐","jangan lupa star repo nya! (◕‿◕)",
-            "free forever! (งツ)ว","made with ❤️ by Robin","uwu API go brrrr~","open source & gratis!",
-            "you're awesome! (ﾉ◕ヮ◕)ﾉ","kamu keren banget tau~ 🌸","arigatou gozaimasu!! ✨",
-            "ngoding bareng yuk~ 💻","api gratis, hati nggak~ 🥺","⭐ the repo onegaishimasu!",
-            "konnichiwa developer! 👋","yosh! let's build something~ 🚀","sugoi ne~ API nya! (≧◡≦)",
-            "nani?! masih belum star? 👀","daisuki~ thank you! 💖",
+            "etto... arigatou ne! >.< 🙏",
+            "makasih udah mampir~ ⭐",
+            "jangan lupa star repo nya! (◕‿◕)",
+            "free forever! (งツ)ว",
+            "made with ❤️ by Robin",
+            "uwu API go brrrr~",
+            "open source & gratis!",
+            "you're awesome! (ﾉ◕ヮ◕)ﾉ",
+            "kamu keren banget tau~ 🌸",
+            "arigatou gozaimasu!! ✨",
+            "ngoding bareng yuk~ 💻",
+            "api gratis, hati nggak~ 🥺",
+            "⭐ the repo onegaishimasu!",
+            "konnichiwa developer! 👋",
+            "yosh! let's build something~ 🚀",
+            "sugoi ne~ API nya! (≧◡≦)",
+            "nani?! masih belum star? 👀",
+            "daisuki~ thank you! 💖",
         ];
+
         const notifBubble = document.createElement('div');
         notifBubble.className = 'github-notif-bubble';
         document.body.appendChild(notifBubble);
-        const notifAnchor = document.getElementById('github-notif-anchor');
-        let lastMsgIdx = -1, notifTimer = null, notifHideTimer = null;
+
+        const notifAnchor  = document.getElementById('github-notif-anchor');
+        let lastMsgIdx     = -1;
+        let notifTimer     = null;
+        let notifHideTimer = null;
+
         function positionBubble() {
-            const rect = notifAnchor.getBoundingClientRect();
-            const bw   = notifBubble.offsetWidth || 160;
-            notifBubble.style.left = Math.max(8, rect.left + rect.width / 2 - bw / 2) + 'px';
-            notifBubble.style.top  = Math.max(8, rect.top - notifBubble.offsetHeight - 12) + 'px';
+            const rect    = notifAnchor.getBoundingClientRect();
+            const bubbleW = notifBubble.offsetWidth || 160;
+            const left    = rect.left + rect.width / 2 - bubbleW / 2;
+            const top     = rect.top  - notifBubble.offsetHeight - 12;
+            notifBubble.style.left = Math.max(8, left) + 'px';
+            notifBubble.style.top  = Math.max(8, top)  + 'px';
         }
+
         function showNotifBubble() {
             let idx;
             do { idx = Math.floor(Math.random() * NOTIF_MESSAGES.length); } while (idx === lastMsgIdx);
@@ -528,38 +1164,114 @@
             clearTimeout(notifHideTimer);
             notifHideTimer = setTimeout(() => { notifBubble.classList.remove('show'); }, 3500);
         }
+
         function scheduleNotif() {
+            const delay = 6000 + Math.random() * 8000;
             clearTimeout(notifTimer);
-            notifTimer = setTimeout(() => { showNotifBubble(); scheduleNotif(); }, 6000 + Math.random() * 8000);
+            notifTimer = setTimeout(() => { showNotifBubble(); scheduleNotif(); }, delay);
         }
+
+        // Mulai notif setelah typing selesai (~3 detik) + 1 detik jeda
         setTimeout(() => { showNotifBubble(); scheduleNotif(); }, 4000);
 
-        // ── Hamburger ──
+        // ── Hamburger / Mobile Menu ──
         const hamburger     = document.getElementById('hamburger');
         const mobileMenu    = document.getElementById('mobile-menu');
         const mobileOverlay = document.getElementById('mobile-overlay');
-        function toggleMenu() { hamburger.classList.toggle('active'); mobileMenu.classList.toggle('active'); mobileOverlay.classList.toggle('active'); document.body.classList.toggle('noscroll'); }
+
+        function toggleMenu() {
+            hamburger.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+            mobileOverlay.classList.toggle('active');
+            document.body.classList.toggle('noscroll');
+        }
+
         hamburger.addEventListener('click', toggleMenu);
         mobileOverlay.addEventListener('click', toggleMenu);
-        mobileMenu.querySelectorAll('a').forEach(l => l.addEventListener('click', () => { if (mobileMenu.classList.contains('active')) toggleMenu(); }));
-        document.addEventListener('keydown', e => { if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu(); });
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (mobileMenu.classList.contains('active')) toggleMenu();
+            });
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();
+        });
 
-        // ── Color Customizer ──
-        const root     = document.documentElement;
-        const nav      = document.getElementById('main-nav');
-        const STORAGE  = 'lumina-theme';
+        // ══════════════════════════════════════════
+        //  COLOR CUSTOMIZER
+        // ══════════════════════════════════════════
+        const root    = document.documentElement;
+        const nav     = document.getElementById('main-nav');
+        const STORAGE = 'lumina-theme';
         const DEFAULTS = { primary:'#4f46e5', accent:'#22d3ee', nav:'#1e1b4b' };
-        function hexToHsl(hex){let r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}return[Math.round(h*360),Math.round(s*100),Math.round(l*100)];}
-        function hslToHex(h,s,l){s/=100;l/=100;const a=s*Math.min(l,1-l);const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c).toString(16).padStart(2,'0');};return`#${f(0)}${f(8)}${f(4)}`;}
-        function applyTheme(c){const[ph,ps,pl]=hexToHsl(c.primary);root.style.setProperty('--primary-color',c.primary);root.style.setProperty('--primary-hover',hslToHex(ph,ps,Math.max(pl-8,10)));root.style.setProperty('--secondary-color',hslToHex(ph,Math.max(ps-15,0),Math.min(pl+18,90)));root.style.setProperty('--accent-color',c.accent);root.style.setProperty('--highlight-color',`${c.primary}18`);const[nh,ns,nl]=hexToHsl(c.nav);nav.style.background=`linear-gradient(135deg,${c.nav},${hslToHex(nh,ns,Math.min(nl+6,50))})`;nav.style.boxShadow=`0 4px 24px ${c.primary}40`;document.getElementById('pick-primary').value=c.primary;document.getElementById('pick-accent').value=c.accent;document.getElementById('pick-nav').value=c.nav;document.getElementById('swatch-primary').style.background=c.primary;document.getElementById('swatch-accent').style.background=c.accent;document.getElementById('swatch-nav').style.background=c.nav;localStorage.setItem(STORAGE,JSON.stringify(c));}
+
+        function hexToHsl(hex) {
+            let r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+            const max=Math.max(r,g,b), min=Math.min(r,g,b);
+            let h, s, l=(max+min)/2;
+            if(max===min){h=s=0;}
+            else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);
+                switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}
+            return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
+        }
+
+        function hslToHex(h,s,l){
+            s/=100;l/=100;const a=s*Math.min(l,1-l);
+            const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c).toString(16).padStart(2,'0');};
+            return `#${f(0)}${f(8)}${f(4)}`;
+        }
+
+        function applyTheme(colors) {
+            const [ph,ps,pl]=hexToHsl(colors.primary);
+            root.style.setProperty('--primary-color',   colors.primary);
+            root.style.setProperty('--primary-hover',   hslToHex(ph,ps,Math.max(pl-8,10)));
+            root.style.setProperty('--secondary-color', hslToHex(ph,Math.max(ps-15,0),Math.min(pl+18,90)));
+            root.style.setProperty('--accent-color',    colors.accent);
+            root.style.setProperty('--highlight-color', `${colors.primary}18`);
+            const [nh,ns,nl]=hexToHsl(colors.nav);
+            nav.style.background=`linear-gradient(135deg,${colors.nav},${hslToHex(nh,ns,Math.min(nl+6,50))})`;
+            nav.style.boxShadow =`0 4px 24px ${colors.primary}40`;
+            document.getElementById('pick-primary').value=colors.primary;
+            document.getElementById('pick-accent').value =colors.accent;
+            document.getElementById('pick-nav').value    =colors.nav;
+            document.getElementById('swatch-primary').style.background=colors.primary;
+            document.getElementById('swatch-accent').style.background =colors.accent;
+            document.getElementById('swatch-nav').style.background    =colors.nav;
+            localStorage.setItem(STORAGE,JSON.stringify(colors));
+        }
+
         const saved=JSON.parse(localStorage.getItem(STORAGE)||'null');
         if(saved) applyTheme(saved);
-        document.querySelectorAll('.preset-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyTheme({primary:btn.dataset.primary,accent:btn.dataset.accent,nav:btn.dataset.nav});});});
-        function onPickerChange(){document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));applyTheme({primary:document.getElementById('pick-primary').value,accent:document.getElementById('pick-accent').value,nav:document.getElementById('pick-nav').value});}
+
+        document.querySelectorAll('.preset-btn').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+                btn.classList.add('active');
+                applyTheme({primary:btn.dataset.primary,accent:btn.dataset.accent,nav:btn.dataset.nav});
+            });
+        });
+
+        function onPickerChange(){
+            document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+            applyTheme({primary:document.getElementById('pick-primary').value,accent:document.getElementById('pick-accent').value,nav:document.getElementById('pick-nav').value});
+        }
         ['pick-primary','pick-accent','pick-nav'].forEach(id=>document.getElementById(id).addEventListener('input',onPickerChange));
-        document.getElementById('customizer-reset').addEventListener('click',()=>{document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===0));['--primary-color','--primary-hover','--secondary-color','--accent-color','--highlight-color'].forEach(p=>root.style.removeProperty(p));nav.style.background='';nav.style.boxShadow='';localStorage.removeItem(STORAGE);applyTheme(DEFAULTS);});
-        const custToggle=document.getElementById('customizer-toggle'),custPanel=document.getElementById('customizer-panel'),custChevron=document.getElementById('customizer-chevron');
-        custToggle.addEventListener('click',()=>{const open=custPanel.classList.toggle('open');custChevron.style.transform=open?'rotate(180deg)':'rotate(0deg)';});
+
+        document.getElementById('customizer-reset').addEventListener('click',()=>{
+            document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+            ['--primary-color','--primary-hover','--secondary-color','--accent-color','--highlight-color'].forEach(p=>root.style.removeProperty(p));
+            nav.style.background='';nav.style.boxShadow='';
+            localStorage.removeItem(STORAGE);
+            applyTheme(DEFAULTS);
+        });
+
+        const custToggle =document.getElementById('customizer-toggle');
+        const custPanel  =document.getElementById('customizer-panel');
+        const custChevron=document.getElementById('customizer-chevron');
+        custToggle.addEventListener('click',()=>{
+            const open=custPanel.classList.toggle('open');
+            custChevron.style.transform=open?'rotate(180deg)':'rotate(0deg)';
+        });
     </script>
 </body>
 </html>
