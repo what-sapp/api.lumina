@@ -558,7 +558,7 @@
     </div>
 
     <!-- ── LOGIN SCREEN ── -->
-    <div class="login-screen" id="login-screen">
+    <div class="login-screen" id="login-screen" style="display:none;">
         <div class="login-card">
             <div class="login-icon">
                 <span class="material-icons" style="color:white; font-size:1.4rem;">admin_panel_settings</span>
@@ -998,14 +998,25 @@
         window._provider = provider;
         window._signOut  = () => signOut(auth);
 
-        // Auth state
+        // ─────────────────────────────────────────
+        //  Helper: hide loader (smooth fade out)
+        // ─────────────────────────────────────────
+        function hideLoader() {
+            const loader = document.getElementById('page-loader');
+            if (!loader || loader.dataset.hidden) return;
+            loader.dataset.hidden = '1';
+            loader.style.opacity = '0';
+            setTimeout(() => { loader.style.display = 'none'; }, 400);
+        }
+
+        // Auth state — ini adalah satu-satunya tempat hideLoader dipanggil
         onAuthStateChanged(auth, async (user) => {
             const loginScreen  = document.getElementById('login-screen');
             const adminContent = document.getElementById('admin-content');
             const loginError   = document.getElementById('login-error');
 
             if (user && user.email === ADMIN_EMAIL) {
-                // ✅ Admin masuk
+                // ✅ Admin masuk — sembunyikan login, tampilkan content, BARU hide loader
                 loginScreen.style.display  = 'none';
                 adminContent.classList.add('visible');
 
@@ -1015,9 +1026,10 @@
 
                 // Simpan token buat API calls
                 window._idToken = await user.getIdToken();
-                user.getIdToken().then(t => { window._idToken = t; });
+                // Auto-refresh token tiap 50 menit
+                setInterval(() => user.getIdToken(true).then(t => { window._idToken = t; }), 50 * 60 * 1000);
 
-                // Init charts & load data
+                // Init dashboard
                 initCharts();
                 loadTraffic();
                 loadBlacklist();
@@ -1026,16 +1038,20 @@
                 loadChangelog();
 
             } else if (user) {
-                // ❌ Email bukan admin
+                // ❌ Bukan admin
                 await signOut(auth);
-                loginError.style.display = 'block';
-                loginError.textContent   = `Akses ditolak. ${user.email} bukan admin.`;
+                loginScreen.style.display = 'flex';
+                loginError.style.display  = 'block';
+                loginError.textContent    = `Akses ditolak. ${user.email} bukan admin.`;
 
             } else {
-                // Belum login
+                // Belum login — tampilkan login screen
                 loginScreen.style.display  = 'flex';
                 adminContent.classList.remove('visible');
             }
+
+            // Sembunyikan loader setelah auth state diketahui (apapun hasilnya)
+            hideLoader();
         });
 
         // Login button
@@ -1053,22 +1069,6 @@
     </script>
 
     <script>
-        // ── Page Loader ──
-        function hideLoader() {
-            const loader = document.getElementById('page-loader');
-            if (loader && loader.style.display !== 'none') {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.display = 'none', 400);
-            }
-        }
-
-        window.addEventListener('load', () => {
-            setTimeout(hideLoader, 300);
-        });
-
-        // Fallback: paksa hide setelah 4 detik apapun yang terjadi
-        setTimeout(hideLoader, 4000);
-
         // ══════════════════════════════════════════
         //  API HELPER
         // ══════════════════════════════════════════
@@ -1191,11 +1191,9 @@
         async function loadEndpointsList() {
             const container = document.getElementById('endpoints-list');
             try {
-                // Ambil semua endpoints dari /endpoints
                 const epRes   = await fetch('/endpoints');
                 const epData  = await epRes.json();
 
-                // Ambil status dari admin
                 const stRes   = await adminFetch('/admin/endpoints-status');
                 const stData  = await stRes.json();
                 const statusMap = {};
@@ -1220,7 +1218,7 @@
                 }
 
                 container.innerHTML = allItems.map(item => {
-                    const enabled = statusMap[item.key] !== false; // default true
+                    const enabled = statusMap[item.key] !== false;
                     const cls     = { GET:'mx-get', POST:'mx-post', PUT:'mx-put', DELETE:'mx-delete' }[item.method] || 'mx-get';
                     return `
                         <div class="endpoint-toggle-item">
@@ -1250,11 +1248,9 @@
                     body:   JSON.stringify({ key, enabled })
                 });
                 const data = await res.json();
-                if (!data.status) { el.checked = !enabled; } // revert
+                if (!data.status) { el.checked = !enabled; }
                 else {
-                    // Update label
                     el.closest('.toggle-wrap').querySelector('.toggle-label').textContent = enabled ? 'ON' : 'OFF';
-                    // Update disabled count
                     const allToggles = document.querySelectorAll('#endpoints-list input[type=checkbox]');
                     const disabledCount = [...allToggles].filter(t => !t.checked).length;
                     document.getElementById('stat-disabled').textContent = disabledCount;
@@ -1269,11 +1265,8 @@
         let chartStatus = null;
 
         function initCharts() {
-            const isDark   = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const gridColor  = 'rgba(100,116,139,0.1)';
-            const textColor  = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#64748b';
+            const gridColor = 'rgba(100,116,139,0.1)';
 
-            // ── Hourly chart ──
             const ctxH = document.getElementById('chart-hourly').getContext('2d');
             chartHourly = new Chart(ctxH, {
                 type: 'line',
@@ -1319,7 +1312,6 @@
                 }
             });
 
-            // ── Status chart ──
             const ctxS = document.getElementById('chart-status').getContext('2d');
             chartStatus = new Chart(ctxS, {
                 type: 'doughnut',
@@ -1358,7 +1350,6 @@
         function updateCharts(trafficData) {
             if (!trafficData || !trafficData.length) return;
 
-            // ── Hourly: group by jam ──
             const now     = Date.now();
             const hourMap = {};
             for (let i = 23; i >= 0; i--) {
@@ -1381,7 +1372,6 @@
             chartHourly.data.datasets[0].backgroundColor   = primary + '15';
             chartHourly.update();
 
-            // ── Status distribution ──
             let ok = 0, warn = 0, err = 0;
             trafficData.forEach(t => {
                 if (t.status >= 200 && t.status < 400) ok++;
@@ -1400,14 +1390,12 @@
                 const res  = await adminFetch('/admin/cache/reload', { method: 'POST' });
                 const data = await res.json();
                 if (data.status) {
-                    // Flash feedback
                     const btn = document.querySelector('[onclick="forceReloadCache()"]');
                     const orig = btn.innerHTML;
                     btn.innerHTML = '<span class="material-icons" style="font-size:0.8rem;">check</span> Synced!';
                     btn.style.color = 'var(--success-color)';
                     setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
 
-                    // Reload semua data
                     loadTraffic();
                     loadBlacklist();
                     loadEndpointsList();
@@ -1418,118 +1406,7 @@
         // ══════════════════════════════════════════
         //  REPORTS
         // ══════════════════════════════════════════
-
-        // ── Changelog functions ──
-        let clEditId = null;
-
-        async function loadChangelog() {
-            const container = document.getElementById('changelog-list');
-            if (!container) return;
-            container.innerHTML = '<div class="empty-state">Loading...</div>';
-            try {
-                const res  = await fetch('/changelog');
-                const data = await res.json();
-                const entries = data.entries || [];
-                document.getElementById('changelog-count').textContent = entries.length;
-                if (!entries.length) { container.innerHTML = '<div class="empty-state">Belum ada changelog. Klik "New Entry" untuk mulai.</div>'; return; }
-                const typeMap = {
-                    feature:  { icon: '✨', color: 'var(--primary-color)', bg: 'rgba(79,70,229,0.1)' },
-                    fix:      { icon: '🐛', color: 'var(--error-color)',   bg: 'rgba(244,63,94,0.1)' },
-                    update:   { icon: '🔄', color: 'var(--accent-color)',  bg: 'rgba(34,211,238,0.1)' },
-                    security: { icon: '🔒', color: 'var(--warning-color)', bg: 'rgba(245,158,11,0.1)' },
-                    breaking: { icon: '⚠️', color: 'var(--warning-color)', bg: 'rgba(245,158,11,0.1)' },
-                };
-                container.innerHTML = entries.map(e => {
-                    const t    = typeMap[e.type] || typeMap.update;
-                    const date = e.timestamp ? new Date(e.timestamp).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '—';
-                    const notes = (e.notes || []).map(n => `<li style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.2rem;">• ${n}</li>`).join('');
-                    return `<div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border-color);">
-                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap;">
-                            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; flex:1; min-width:0;">
-                                <span style="font-size:0.6rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:100px; background:${t.bg}; color:${t.color}; white-space:nowrap;">${t.icon} ${e.type}</span>
-                                <span style="font-size:0.72rem; font-weight:700; color:var(--primary-color);">${e.version || ''}</span>
-                                <span style="font-size:0.82rem; font-weight:600; color:var(--text-color);">${e.title}</span>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:0.4rem;">
-                                <span style="font-size:0.6rem; color:var(--text-muted);">${date}</span>
-                                <button onclick="editChangelog('${e.id}')" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:none;color:var(--text-muted);cursor:pointer;"><span class="material-icons" style="font-size:0.85rem;">edit</span></button>
-                                <button onclick="deleteChangelog('${e.id}')" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:none;color:var(--error-color);cursor:pointer;"><span class="material-icons" style="font-size:0.85rem;">delete</span></button>
-                            </div>
-                        </div>
-                        <ul style="margin:0;padding:0;list-style:none;">${notes}</ul>
-                    </div>`;
-                }).join('');
-            } catch (err) {
-                container.innerHTML = `<div class="empty-state" style="color:var(--error-color);">Error: ${err.message}</div>`;
-            }
-        }
-
-        function showChangelogForm() {
-            document.getElementById('changelog-form').style.display = 'block';
-            ['cl-version','cl-title','cl-notes','cl-edit-id'].forEach(id => document.getElementById(id).value = '');
-            document.getElementById('cl-type').value = 'feature';
-            document.getElementById('cl-submit-btn').textContent = 'Submit Entry';
-            clEditId = null;
-        }
-
-        function hideChangelogForm() {
-            document.getElementById('changelog-form').style.display = 'none';
-            clEditId = null;
-        }
-
-        async function editChangelog(id) {
-            try {
-                const res = await fetch('/changelog');
-                const data = await res.json();
-                const e = data.entries.find(x => x.id === id);
-                if (!e) return;
-                showChangelogForm();
-                document.getElementById('cl-version').value = e.version || '';
-                document.getElementById('cl-title').value   = e.title   || '';
-                document.getElementById('cl-type').value    = e.type    || 'update';
-                document.getElementById('cl-notes').value   = (e.notes || []).join('
-');
-                document.getElementById('cl-edit-id').value = e.id;
-                document.getElementById('cl-submit-btn').textContent = 'Update Entry';
-                clEditId = e.id;
-            } catch (err) { alert('Error: ' + err.message); }
-        }
-
-        async function submitChangelog() {
-            const version = document.getElementById('cl-version').value.trim();
-            const title   = document.getElementById('cl-title').value.trim();
-            const type    = document.getElementById('cl-type').value;
-            const notes   = document.getElementById('cl-notes').value.trim().split('
-').filter(n => n.trim());
-            if (!version || !title || !notes.length) { alert('Version, title, dan minimal 1 note wajib diisi!'); return; }
-            const btn = document.getElementById('cl-submit-btn');
-            btn.textContent = 'Saving...'; btn.disabled = true;
-            try {
-                const token = window._idToken || '';
-                const res   = await fetch(clEditId ? `/admin/changelog/${clEditId}` : '/admin/changelog', {
-                    method: clEditId ? 'PATCH' : 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ version, title, notes, type })
-                });
-                const data = await res.json();
-                if (data.status) { hideChangelogForm(); loadChangelog(); }
-                else alert('Error: ' + data.message);
-            } catch (err) { alert('Network error: ' + err.message); }
-            btn.textContent = clEditId ? 'Update Entry' : 'Submit Entry'; btn.disabled = false;
-        }
-
-        async function deleteChangelog(id) {
-            if (!confirm('Hapus entry ini?')) return;
-            try {
-                const token = window._idToken || '';
-                const res   = await fetch(`/admin/changelog/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-                const data  = await res.json();
-                if (data.status) loadChangelog();
-                else alert('Error: ' + data.message);
-            } catch (err) { alert('Network error: ' + err.message); }
-        }
-
-        let allReports   = [];
+        let allReports    = [];
         let currentFilter = 'all';
 
         async function loadReports() {
@@ -1540,11 +1417,10 @@
                 const data = await res.json();
                 allReports = data.reports || [];
 
-                // Update badge
                 const openCount = allReports.filter(r => r.status === 'open').length;
                 const badge     = document.getElementById('reports-badge');
                 if (openCount > 0) {
-                    badge.textContent  = openCount;
+                    badge.textContent   = openCount;
                     badge.style.display = 'inline';
                 } else {
                     badge.style.display = 'none';
@@ -1627,10 +1503,8 @@
                 });
                 const data = await res.json();
                 if (data.status) {
-                    // Update local cache
                     const r = allReports.find(r => r.id === id);
                     if (r) r.status = status;
-                    // Re-render badge
                     const openCount = allReports.filter(r => r.status === 'open').length;
                     const badge     = document.getElementById('reports-badge');
                     badge.textContent   = openCount;
@@ -1650,22 +1524,140 @@
             } catch (e) { console.error(e); }
         }
 
-        // Expose functions globally
-        window.loadTraffic       = loadTraffic;
-        window.loadBlacklist     = loadBlacklist;
-        window.addBlacklist      = addBlacklist;
-        window.removeBlacklist   = removeBlacklist;
-        window.loadEndpointsList = loadEndpointsList;
-        window.toggleEndpoint    = toggleEndpoint;
-        window.forceReloadCache  = forceReloadCache;
+        // ══════════════════════════════════════════
+        //  CHANGELOG
+        // ══════════════════════════════════════════
+        let clEditId = null;
+
+        async function loadChangelog() {
+            const container = document.getElementById('changelog-list');
+            if (!container) return;
+            container.innerHTML = '<div class="empty-state">Loading...</div>';
+            try {
+                const res  = await fetch('/changelog');
+                const data = await res.json();
+                const entries = data.entries || [];
+                document.getElementById('changelog-count').textContent = entries.length;
+                if (!entries.length) {
+                    container.innerHTML = '<div class="empty-state">Belum ada changelog. Klik "New Entry" untuk mulai.</div>';
+                    return;
+                }
+                const typeMap = {
+                    feature:  { icon: '✨', color: 'var(--primary-color)', bg: 'rgba(79,70,229,0.1)' },
+                    fix:      { icon: '🐛', color: 'var(--error-color)',   bg: 'rgba(244,63,94,0.1)' },
+                    update:   { icon: '🔄', color: 'var(--accent-color)',  bg: 'rgba(34,211,238,0.1)' },
+                    security: { icon: '🔒', color: 'var(--warning-color)', bg: 'rgba(245,158,11,0.1)' },
+                    breaking: { icon: '⚠️', color: 'var(--warning-color)', bg: 'rgba(245,158,11,0.1)' },
+                };
+                container.innerHTML = entries.map(e => {
+                    const t    = typeMap[e.type] || typeMap.update;
+                    const date = e.timestamp ? new Date(e.timestamp).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '—';
+                    const notes = (e.notes || []).map(n => `<li style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.2rem;">• ${n}</li>`).join('');
+                    return `<div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border-color);">
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+                            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; flex:1; min-width:0;">
+                                <span style="font-size:0.6rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:100px; background:${t.bg}; color:${t.color}; white-space:nowrap;">${t.icon} ${e.type}</span>
+                                <span style="font-size:0.72rem; font-weight:700; color:var(--primary-color);">${e.version || ''}</span>
+                                <span style="font-size:0.82rem; font-weight:600; color:var(--text-color);">${e.title}</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:0.4rem;">
+                                <span style="font-size:0.6rem; color:var(--text-muted);">${date}</span>
+                                <button onclick="editChangelog('${e.id}')" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:none;color:var(--text-muted);cursor:pointer;"><span class="material-icons" style="font-size:0.85rem;">edit</span></button>
+                                <button onclick="deleteChangelog('${e.id}')" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:none;color:var(--error-color);cursor:pointer;"><span class="material-icons" style="font-size:0.85rem;">delete</span></button>
+                            </div>
+                        </div>
+                        <ul style="margin:0;padding:0;list-style:none;">${notes}</ul>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                container.innerHTML = `<div class="empty-state" style="color:var(--error-color);">Error: ${err.message}</div>`;
+            }
+        }
+
+        function showChangelogForm() {
+            document.getElementById('changelog-form').style.display = 'block';
+            ['cl-version','cl-title','cl-notes','cl-edit-id'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('cl-type').value = 'feature';
+            document.getElementById('cl-submit-btn').textContent = 'Submit Entry';
+            clEditId = null;
+        }
+
+        function hideChangelogForm() {
+            document.getElementById('changelog-form').style.display = 'none';
+            clEditId = null;
+        }
+
+        async function editChangelog(id) {
+            try {
+                const res = await fetch('/changelog');
+                const data = await res.json();
+                const e = data.entries.find(x => x.id === id);
+                if (!e) return;
+                showChangelogForm();
+                document.getElementById('cl-version').value = e.version || '';
+                document.getElementById('cl-title').value   = e.title   || '';
+                document.getElementById('cl-type').value    = e.type    || 'update';
+                document.getElementById('cl-notes').value   = (e.notes || []).join('\n');
+                document.getElementById('cl-edit-id').value = e.id;
+                document.getElementById('cl-submit-btn').textContent = 'Update Entry';
+                clEditId = e.id;
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function submitChangelog() {
+            const version = document.getElementById('cl-version').value.trim();
+            const title   = document.getElementById('cl-title').value.trim();
+            const type    = document.getElementById('cl-type').value;
+            const notes   = document.getElementById('cl-notes').value.trim().split('\n').filter(n => n.trim());
+            if (!version || !title || !notes.length) { alert('Version, title, dan minimal 1 note wajib diisi!'); return; }
+            const btn = document.getElementById('cl-submit-btn');
+            btn.textContent = 'Saving...'; btn.disabled = true;
+            try {
+                const token = window._idToken || '';
+                const res   = await fetch(clEditId ? `/admin/changelog/${clEditId}` : '/admin/changelog', {
+                    method: clEditId ? 'PATCH' : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ version, title, notes, type })
+                });
+                const data = await res.json();
+                if (data.status) { hideChangelogForm(); loadChangelog(); }
+                else alert('Error: ' + data.message);
+            } catch (err) { alert('Network error: ' + err.message); }
+            btn.textContent = clEditId ? 'Update Entry' : 'Submit Entry'; btn.disabled = false;
+        }
+
+        async function deleteChangelog(id) {
+            if (!confirm('Hapus entry ini?')) return;
+            try {
+                const token = window._idToken || '';
+                const res   = await fetch(`/admin/changelog/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                const data  = await res.json();
+                if (data.status) loadChangelog();
+                else alert('Error: ' + data.message);
+            } catch (err) { alert('Network error: ' + err.message); }
+        }
+
+        // Expose globally
+        window.loadTraffic        = loadTraffic;
+        window.loadBlacklist      = loadBlacklist;
+        window.addBlacklist       = addBlacklist;
+        window.removeBlacklist    = removeBlacklist;
+        window.loadEndpointsList  = loadEndpointsList;
+        window.toggleEndpoint     = toggleEndpoint;
+        window.forceReloadCache   = forceReloadCache;
         window.loadReports        = loadReports;
         window.filterReports      = filterReports;
         window.updateReportStatus = updateReportStatus;
         window.deleteReport       = deleteReport;
+        window.loadChangelog      = loadChangelog;
+        window.showChangelogForm  = showChangelogForm;
+        window.hideChangelogForm  = hideChangelogForm;
+        window.editChangelog      = editChangelog;
+        window.submitChangelog    = submitChangelog;
+        window.deleteChangelog    = deleteChangelog;
 
         // ── Admin Nav Scrollspy ──
         function closeMobileAndScroll(el) {
-            // Tutup mobile menu dulu
             const menu    = document.getElementById('mobile-menu');
             const overlay = document.getElementById('mobile-overlay');
             const hb      = document.getElementById('hamburger');
@@ -1675,25 +1667,18 @@
                 hb?.classList.remove('active');
                 document.body.classList.remove('noscroll');
             }
-            // Scroll ke section
-            const href    = el.getAttribute('href');
-            const target  = document.querySelector(href);
+            const href   = el.getAttribute('href');
+            const target = document.querySelector(href);
             if (target) {
                 setTimeout(() => {
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 200);
             }
         }
+        window.closeMobileAndScroll = closeMobileAndScroll;
 
-        // Scrollspy — update active nav item saat scroll
         function initScrollspy() {
-            const sections = [
-                'section-charts',
-                'section-blacklist',
-                'section-endpoints',
-                'section-reports',
-                'section-changelog'
-            ];
+            const sections = ['section-charts','section-blacklist','section-endpoints','section-reports','section-changelog'];
             const navItems = document.querySelectorAll('.admin-nav-item');
 
             const observer = new IntersectionObserver((entries) => {
@@ -1713,7 +1698,6 @@
             });
         }
 
-        // Init scrollspy setelah login
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(initScrollspy, 1000);
         });
