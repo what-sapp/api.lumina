@@ -1650,6 +1650,15 @@
             } catch (e) { console.error(e); }
         }
 
+        // Expose semua fungsi ke window
+        window.closeMobileAndScroll = closeMobileAndScroll;
+        window.loadChangelog        = loadChangelog;
+        window.showChangelogForm    = showChangelogForm;
+        window.hideChangelogForm    = hideChangelogForm;
+        window.submitChangelog      = submitChangelog;
+        window.editChangelog        = editChangelog;
+        window.deleteChangelog      = deleteChangelog;
+
         // Expose functions globally
         window.loadTraffic       = loadTraffic;
         window.loadBlacklist     = loadBlacklist;
