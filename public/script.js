@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }, 800);
     };
 
-    // Safety: kalau fetch gagal / timeout, force unlock scroll setelah 5 detik
+    // Safety: force unlock setelah 5 detik
     setTimeout(() => {
         document.body.classList.remove('noscroll');
         if (pageLoader) { pageLoader.style.opacity = '0'; pageLoader.style.display = 'none'; }
@@ -29,16 +29,26 @@ document.addEventListener('DOMContentLoaded', async function () {
         const endpoints = await (await fetch('/endpoints')).json();
         const set       = await (await fetch('/set')).json();
 
-        setContent('api-icon',      'href',        set.icon);
-        setContent('api-title',     'textContent', set.name.main);
-        setContent('api-description','content',    set.description);
-        setContent('api-name',      'textContent', set.name.main);
-        setContent('api-author',    'textContent', `by ${set.author}`);
-        setContent('api-desc',      'textContent', set.description);
-        setContent('api-copyright', 'textContent', `© 2025 ${set.name.copyright}. All rights reserved.`);
+        // ── Fetch endpoint status dari admin (public, no auth) ──
+        let disabledKeys = new Set();
+        try {
+            const stRes  = await fetch('/admin/endpoints-status');
+            const stData = await stRes.json();
+            (stData.list || []).forEach(s => {
+                if (s.enabled === false) disabledKeys.add(s.key);
+            });
+        } catch (_) { /* silent — kalau gagal, anggap semua enabled */ }
+
+        setContent('api-icon',       'href',        set.icon);
+        setContent('api-title',      'textContent', set.name.main);
+        setContent('api-description','content',     set.description);
+        setContent('api-name',       'textContent', set.name.main);
+        setContent('api-author',     'textContent', `by ${set.author}`);
+        setContent('api-desc',       'textContent', set.description);
+        setContent('api-copyright',  'textContent', `© 2025 ${set.name.copyright}. All rights reserved.`);
 
         setupApiLinks(set);
-        setupApiContent(endpoints);
+        setupApiContent(endpoints, disabledKeys);
         setupSearchFunctionality();
         hideLoader();
     } catch (error) {
@@ -52,14 +62,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // --- 3. UI GENERATION ---
-    function setupApiContent(data) {
+    function setupApiContent(data, disabledKeys) {
         const apiContent = document.getElementById('api-content');
         if (!apiContent) return;
 
-        // Simpan data kategori untuk lazy render
         const categoryData = data.endpoints;
 
-        // ── Helper: render endpoint cards ke dalam grid ──
+        // ── Helper: render endpoint cards ──
         function renderCards(grid, items, catIndex) {
             items.forEach((itemData, itemIndex) => {
                 const itemName = Object.keys(itemData)[0];
@@ -71,21 +80,34 @@ document.addEventListener('DOMContentLoaded', async function () {
                 card.dataset.desc     = (item.desc || '').toLowerCase();
                 card.dataset.category = catIndex;
 
-                // Animasi stagger masuk
-                card.style.opacity   = '0';
-                card.style.transform = 'translateY(16px)';
-                card.style.transition= `opacity 0.3s ease ${itemIndex * 0.05}s, transform 0.3s ease ${itemIndex * 0.05}s`;
+                card.style.opacity    = '0';
+                card.style.transform  = 'translateY(16px)';
+                card.style.transition = `opacity 0.3s ease ${itemIndex * 0.05}s, transform 0.3s ease ${itemIndex * 0.05}s`;
 
-                const status    = item.status || 'ready';
+                // ── Cek apakah endpoint di-disable admin ──
+                const endpointKey = (item.path || '/').replace(/^\//, '').replace(/\//g, '_');
+                const isDisabled  = disabledKeys.has(endpointKey);
+
+                // Override status kalau disabled
+                const rawStatus = item.status || 'ready';
+                const status    = isDisabled ? 'disabled' : rawStatus;
+
                 const statusMap = {
-                    ready  : { cls: 'status-ready',  icon: 'circle', label: 'Ready'  },
-                    error  : { cls: 'status-error',  icon: 'cancel', label: 'Error'  },
-                    update : { cls: 'status-update', icon: 'update', label: 'Update' },
+                    ready   : { cls: 'status-ready',    icon: 'circle',           label: 'Ready'    },
+                    error   : { cls: 'status-error',    icon: 'cancel',           label: 'Error'    },
+                    update  : { cls: 'status-update',   icon: 'update',           label: 'Update'   },
+                    disabled: { cls: 'status-disabled', icon: 'do_not_disturb_on', label: 'Offline' },
                 };
                 const s = statusMap[status] || statusMap.ready;
 
                 const method    = (item.method || 'GET').toUpperCase();
                 const methodCls = { GET:'method-get', POST:'method-post', PUT:'method-put', DELETE:'method-delete' }[method] || 'method-get';
+
+                // Kalau disabled, tambah style redup di card
+                if (isDisabled) {
+                    card.style.opacity = '0';
+                    card.style.filter  = 'grayscale(0.4)';
+                }
 
                 card.innerHTML = `
                     <div class="endpoint-card-header">
@@ -104,49 +126,44 @@ document.addEventListener('DOMContentLoaded', async function () {
                             data-name="${itemName}"
                             data-desc="${item.desc || ''}"
                             data-method="${method}"
-                            ${status === 'error' ? 'disabled' : ''}>
+                            ${(status === 'error' || isDisabled) ? 'disabled' : ''}>
                             <span class="material-icons" style="font-size:0.75rem;">send</span>
                             Try
                         </button>
                     </div>
                 `;
 
+                if (isDisabled) {
+                    // Tooltip disabled
+                    card.title = 'Endpoint ini sedang offline';
+                }
+
                 grid.appendChild(card);
 
-                // Trigger animasi di next frame
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        card.style.opacity   = '1';
+                        card.style.opacity   = isDisabled ? '0.55' : '1';
                         card.style.transform = 'translateY(0)';
                     });
                 });
             });
         }
 
-        // ── Intersection Observer untuk lazy render ──
+        // ── Intersection Observer lazy render ──
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (!entry.isIntersecting) return;
                 const section  = entry.target;
                 const catIndex = Number(section.dataset.catIndex);
                 const grid     = section.querySelector('.endpoint-grid');
-
-                // Cek apakah sudah dirender (ada flag)
                 if (section.dataset.rendered === 'true') return;
                 section.dataset.rendered = 'true';
-
-                // Render cards sekarang
                 renderCards(grid, categoryData[catIndex].items, catIndex);
-
-                // Hentikan observasi section ini
                 observer.unobserve(section);
             });
-        }, {
-            rootMargin: '100px 0px',  // mulai render 100px sebelum masuk viewport
-            threshold: 0
-        });
+        }, { rootMargin: '100px 0px', threshold: 0 });
 
-        // ── Buat skeleton section dulu (tanpa cards) ──
+        // ── Buat section skeleton ──
         categoryData.forEach((category, catIndex) => {
             const section = document.createElement('div');
             section.className        = 'category-section';
@@ -156,7 +173,20 @@ document.addEventListener('DOMContentLoaded', async function () {
             section.style.transform  = 'translateY(12px)';
             section.style.transition = `opacity 0.4s ease ${catIndex * 0.06}s, transform 0.4s ease ${catIndex * 0.06}s`;
 
-            const count = category.items.length;
+            // Hitung berapa yang disabled di kategori ini
+            const totalItems    = category.items.length;
+            const disabledCount = category.items.filter(itemData => {
+                const item = itemData[Object.keys(itemData)[0]];
+                const key  = (item.path || '/').replace(/^\//, '').replace(/\//g, '_');
+                return disabledKeys.has(key);
+            }).length;
+
+            const countHtml = disabledCount > 0
+                ? `<span class="category-count">${totalItems}</span>
+                   <span style="font-size:0.6rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:100px; background:rgba(244,63,94,0.1); color:#f43f5e; margin-left:0.25rem;">
+                       ${disabledCount} offline
+                   </span>`
+                : `<span class="category-count">${totalItems}</span>`;
 
             section.innerHTML = `
                 <div class="category-header" data-category="${catIndex}">
@@ -165,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             <span class="material-icons" style="font-size:1.1rem; color:var(--primary-color);">folder</span>
                         </div>
                         <span class="category-name">${category.name}</span>
-                        <span class="category-count">${count}</span>
+                        ${countHtml}
                     </div>
                     <span class="material-icons category-chevron">expand_more</span>
                 </div>
@@ -176,7 +206,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             apiContent.appendChild(section);
 
-            // Fade in section header
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     section.style.opacity   = '1';
@@ -184,7 +213,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 });
             });
 
-            // Start observing
             observer.observe(section);
         });
 
@@ -200,7 +228,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
                 if (icon) icon.textContent = isOpen ? 'folder_open' : 'folder';
 
-                // Kalau baru dibuka dan belum dirender, render sekarang juga
                 const section  = header.closest('.category-section');
                 const catIndex = Number(section.dataset.catIndex);
                 const grid     = section.querySelector('.endpoint-grid');
@@ -212,7 +239,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         });
 
-        // ── Try button — event delegation ──
+        // ── Try button ──
         apiContent.addEventListener('click', e => {
             const btn = e.target.closest('.try-btn');
             if (btn && !btn.disabled) {
@@ -229,12 +256,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         const apiUrlEl          = document.getElementById('api-url');
         const sendBtn           = document.getElementById('submit-api');
 
-        // Reset
         responseContainer.classList.remove('visible');
         paramsContainer.innerHTML  = '';
         responseData.innerHTML     = '';
 
-        // Fill modal content
         document.getElementById('modal-title').textContent       = name;
         document.getElementById('modal-path').textContent        = endpoint || '/';
         document.getElementById('modal-description').textContent = description || 'No description available.';
@@ -244,7 +269,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             apiUrlEl.textContent = `${window.location.origin}${clean}`;
         }
 
-        // Parse params
         const params = [];
         const pathMatches = endpoint.match(/{([^}]+)}/g);
         if (pathMatches) pathMatches.forEach(m => params.push(m.replace(/[{}]/g, '')));
@@ -279,7 +303,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         sendBtn.onclick = () => handleApiRequest(endpoint, paramsContainer);
 
-        // Open modal
         if (window.openDocsModal) window.openDocsModal();
     }
 
@@ -303,11 +326,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         const statusEl          = document.getElementById('response-status');
         const timeEl            = document.getElementById('response-time');
 
-        let isValid    = true;
-        let baseUrl    = endpoint.split('?')[0];
+        let isValid     = true;
+        let baseUrl     = endpoint.split('?')[0];
         let queryParams = new URLSearchParams();
 
-        // Validate & build URL
         paramsContainer.querySelectorAll('.param-input').forEach(input => {
             const pName = input.id.replace('param-', '');
             const val   = input.value.trim();
@@ -334,7 +356,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         const finalUrl = queryParams.toString() ? `${baseUrl}?${queryParams}` : baseUrl;
 
-        // Loading state
         sendBtn.disabled = true;
         sendBtn.innerHTML = `<span class="material-icons" style="font-size:1rem; animation:spin 0.8s linear infinite;">refresh</span> Sending...`;
         responseContainer.classList.add('visible');
@@ -346,14 +367,12 @@ document.addEventListener('DOMContentLoaded', async function () {
             const duration    = Date.now() - start;
             const contentType = res.headers.get('content-type') || '';
 
-            // Status badge
             statusEl.textContent = `${res.status} ${res.statusText || (res.ok ? 'OK' : 'Error')}`;
             statusEl.className   = `response-status ${res.ok ? 'ok' : 'error'}`;
             timeEl.textContent   = `${duration}ms`;
 
             logActivity({ endpoint: finalUrl, status: res.status, ok: res.ok, duration, error: res.ok ? null : `HTTP ${res.status}`, timestamp: Date.now() });
 
-            // Render response
             if (contentType.includes('image/')) {
                 const blob   = await res.blob();
                 const imgUrl = URL.createObjectURL(blob);
@@ -392,11 +411,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             const term = e.target.value.toLowerCase().trim();
 
             document.querySelectorAll('.category-section').forEach(section => {
-                const header    = section.querySelector('.category-header');
-                const content   = section.querySelector('.accordion-content');
-                const chevron   = header.querySelector('.category-chevron');
-                const icon      = header.querySelector('.category-icon .material-icons');
-                let   hasMatch  = false;
+                const header   = section.querySelector('.category-header');
+                const content  = section.querySelector('.accordion-content');
+                const chevron  = header.querySelector('.category-chevron');
+                const icon     = header.querySelector('.category-icon .material-icons');
+                let   hasMatch = false;
 
                 section.querySelectorAll('.endpoint-card').forEach(card => {
                     const match = !term || card.dataset.name.includes(term) || card.dataset.desc.includes(term);
@@ -405,7 +424,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 });
 
                 if (term) {
-                    // Auto-expand categories with matches
                     if (hasMatch) {
                         content.classList.add('open');
                         header.classList.add('open');
@@ -414,7 +432,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                     }
                     section.style.display = hasMatch ? '' : 'none';
                 } else {
-                    // Reset — tutup semua accordion, tampilkan semua card
                     content.classList.remove('open');
                     header.classList.remove('open');
                     chevron.style.transform = 'rotate(0deg)';
