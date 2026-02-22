@@ -38,13 +38,14 @@ async function reloadAdminCache() {
     }
 }
 
+// Load cache on startup
 reloadAdminCache();
 setInterval(reloadAdminCache, 30000);
 
 // ── Rate Limiter ──
 const rateMap = new Map();
-const RATE_LIMIT  = 1000;
-const RATE_WINDOW = 24 * 60 * 60 * 1000; // 24 jam
+const RATE_LIMIT  = 60;
+const RATE_WINDOW = 60 * 1000;
 
 function checkRateLimit(ip) {
     const now   = Date.now();
@@ -57,13 +58,12 @@ function checkRateLimit(ip) {
     return entry.count <= RATE_LIMIT;
 }
 
-// Cleanup rateMap tiap 1 jam
 setInterval(() => {
     const now = Date.now();
     for (const [ip, entry] of rateMap.entries()) {
         if (now > entry.resetAt) rateMap.delete(ip);
     }
-}, 60 * 60 * 1000);
+}, 5 * 60 * 1000);
 
 app.set('trust proxy', true);
 app.set('json spaces', 2);
@@ -78,8 +78,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Middleware: Blacklist + Rate Limit ──
 app.use((req, res, next) => {
-    const ip       = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
-    const isAdmin  = req.path.startsWith('/admin');
+    const ip      = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
+    const isAdmin = req.path.startsWith('/admin');
     const isStatic = req.path.match(/\.(html|css|js|png|ico|jpg|svg|woff2?)$/);
 
     if (blacklistCache.has(ip)) {
@@ -88,13 +88,7 @@ app.use((req, res, next) => {
 
     if (!isAdmin && !isStatic) {
         if (!checkRateLimit(ip)) {
-            return res.status(429).json({
-                status: false,
-                message: 'Too many requests. Please slow down.',
-                retryAfter: '24h',
-                limit: RATE_LIMIT,
-                window: '24 hours'
-            });
+            return res.status(429).json({ status: false, message: 'Too many requests. Please slow down.', retryAfter: '60s' });
         }
     }
 
@@ -112,7 +106,8 @@ app.use((req, res, next) => {
             const statusCode   = res.statusCode || 200;
             const responseData = { status: data.status, statusCode, creator: set.author.toLowerCase(), ...data };
 
-            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info', '/changelog', '/rate-status'].some(p => req.path.startsWith(p));
+            // Log traffic (skip admin & utility routes)
+            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info', '/changelog'].some(p => req.path.startsWith(p));
             if (!skip) {
                 db.collection('traffic').add({
                     path:      req.path,
@@ -168,6 +163,7 @@ function loadEndpointsFromDirectory(directory, baseRoute = '') {
                     const endpointName = item.replace('.js', '');
                     const endpointPath = `${baseRoute}/${endpointName}`;
 
+                    // Wrap dengan disabled check
                     app.all(endpointPath, (req, res, next) => {
                         const key = endpointPath.replace(/^\//, '').replace(/\//g, '_');
                         if (disabledEndpoints.has(key)) {
@@ -209,13 +205,13 @@ const allEndpoints = loadEndpointsFromDirectory('api');
 // ════════════════════════════════════════
 //  HTML ROUTES
 // ════════════════════════════════════════
-app.get('/',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/docs',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'docs.html')));
-app.get('/contributors', (req, res) => res.sendFile(path.join(__dirname, 'public', 'contributors.html')));
-app.get('/status',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'status.html')));
-app.get('/luminaai',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'luminaai.html')));
-app.get('/playground',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'playground.html')));
-app.get('/admin',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/',            (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/docs',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'docs.html')));
+app.get('/contributors',(req, res) => res.sendFile(path.join(__dirname, 'public', 'contributors.html')));
+app.get('/status',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'status.html')));
+app.get('/luminaai',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'luminaai.html')));
+app.get('/playground',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'playground.html')));
+app.get('/admin',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
 // ════════════════════════════════════════
 //  API ROUTES
@@ -229,41 +225,6 @@ app.get('/set', (req, res) => {
 });
 
 // ════════════════════════════════════════
-//  RATE STATUS ROUTE (public) — buat index.html
-// ════════════════════════════════════════
-app.get('/rate-status', (req, res) => {
-    const ip    = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
-    const now   = Date.now();
-    const entry = rateMap.get(ip);
-
-    if (!entry || now > entry.resetAt) {
-        // IP belum pernah hit atau windownya udah reset
-        return res.json({
-            status:    true,
-            ip,
-            limit:     RATE_LIMIT,
-            used:      0,
-            remaining: RATE_LIMIT,
-            resetAt:   new Date(now + RATE_WINDOW).toISOString(),
-            window:    '24 hours'
-        });
-    }
-
-    const used      = entry.count;
-    const remaining = Math.max(0, RATE_LIMIT - used);
-
-    res.json({
-        status:    true,
-        ip,
-        limit:     RATE_LIMIT,
-        used,
-        remaining,
-        resetAt:   new Date(entry.resetAt).toISOString(),
-        window:    '24 hours'
-    });
-});
-
-// ════════════════════════════════════════
 //  SERVER INFO ROUTE (public)
 // ════════════════════════════════════════
 app.get('/server-info', (req, res) => {
@@ -273,25 +234,26 @@ app.get('/server-info', (req, res) => {
     const minutes = Math.floor((uptime % 3600) / 60);
     const seconds = Math.floor(uptime % 60);
 
-    const memUsage  = process.memoryUsage();
+    // Memory — pakai process.memoryUsage() lebih reliable di serverless
+    const memUsage = process.memoryUsage();
     const heapUsed  = Math.round(memUsage.heapUsed / 1024 / 1024);
     const heapTotal = Math.round(memUsage.heapTotal / 1024 / 1024);
     const rss       = Math.round(memUsage.rss / 1024 / 1024);
     const memUsed   = Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100);
 
     res.json({
-        status: true,
+        status:  true,
         server: {
-            region:        set.server?.region      || 'Asia-Southeast',
-            provider:      set.server?.provider    || 'Vercel',
-            version:       set.server?.version     || 'v1.0.0',
-            nodeVersion:   process.version,
-            uptime:        `${hours}h ${minutes}m ${seconds}s`,
+            region:      set.server?.region      || 'Asia-Southeast',
+            provider:    set.server?.provider    || 'Vercel',
+            version:     set.server?.version     || 'v1.0.0',
+            nodeVersion: process.version,
+            uptime:      `${hours}h ${minutes}m ${seconds}s`,
             uptimeSeconds: Math.floor(uptime),
-            memUsed,
-            memDetail:     `${heapUsed}MB / ${heapTotal}MB heap (${rss}MB RSS)`,
-            platform:      os.platform(),
-            arch:          os.arch()
+            memUsed:     memUsed,
+            memDetail:   `${heapUsed}MB / ${heapTotal}MB heap (${rss}MB RSS)`,
+            platform:    os.platform(),
+            arch:        os.arch()
         },
         owner: {
             name:   set.owner?.name   || set.author,
@@ -305,7 +267,7 @@ app.get('/server-info', (req, res) => {
 });
 
 // ════════════════════════════════════════
-//  PUBLIC STATS ROUTE
+//  PUBLIC STATS ROUTE (no auth needed)
 // ════════════════════════════════════════
 app.get('/stats', async (req, res) => {
     try {
@@ -313,32 +275,71 @@ app.get('/stats', async (req, res) => {
         const traffic = snap.docs.map(d => d.data());
 
         if (!traffic.length) {
-            return res.json({ status: true, totalRequests: 0, successRate: 100, avgDuration: 0, topEndpoints: [], recentErrors: 0, last24h: 0 });
+            return res.json({
+                status:       true,
+                totalRequests: 0,
+                successRate:   100,
+                avgDuration:   0,
+                topEndpoints:  [],
+                recentErrors:  0,
+                last24h:       0
+            });
         }
 
-        const total   = traffic.length;
-        const ok      = traffic.filter(t => t.status >= 200 && t.status < 400);
-        const rate    = ((ok.length / total) * 100).toFixed(1);
-        const withDur = traffic.filter(t => t.duration);
-        const avgDur  = withDur.length ? Math.round(withDur.reduce((s, t) => s + t.duration, 0) / withDur.length) : 0;
+        // Total requests
+        const total = traffic.length;
 
+        // Success rate
+        const ok    = traffic.filter(t => t.status >= 200 && t.status < 400);
+        const rate  = ((ok.length / total) * 100).toFixed(1);
+
+        // Avg duration
+        const withDur = traffic.filter(t => t.duration);
+        const avgDur  = withDur.length
+            ? Math.round(withDur.reduce((s, t) => s + t.duration, 0) / withDur.length)
+            : 0;
+
+        // Top endpoints
         const pathMap = {};
         traffic.forEach(t => {
             if (!t.path) return;
             if (!pathMap[t.path]) pathMap[t.path] = { count: 0, ok: 0, totalDur: 0 };
             pathMap[t.path].count++;
-            if (t.status >= 200 && t.status < 400) { pathMap[t.path].ok++; pathMap[t.path].totalDur += (t.duration || 0); }
+            if (t.status >= 200 && t.status < 400) {
+                pathMap[t.path].ok++;
+                pathMap[t.path].totalDur += (t.duration || 0);
+            }
         });
 
         const topEndpoints = Object.entries(pathMap)
             .sort((a, b) => b[1].count - a[1].count)
             .slice(0, 10)
-            .map(([path, d]) => ({ path, count: d.count, successRate: ((d.ok / d.count) * 100).toFixed(0), avgDuration: d.ok ? Math.round(d.totalDur / d.ok) : 0 }));
+            .map(([path, d]) => ({
+                path,
+                count:       d.count,
+                successRate: ((d.ok / d.count) * 100).toFixed(0),
+                avgDuration: d.ok ? Math.round(d.totalDur / d.ok) : 0
+            }));
 
-        const now     = Date.now();
-        const last24h = traffic.filter(t => t.timestamp?.seconds && (now - t.timestamp.seconds * 1000) <= 24 * 60 * 60 * 1000).length;
+        // Last 24h
+        const now   = Date.now();
+        const last24h = traffic.filter(t => {
+            if (!t.timestamp?.seconds) return false;
+            return (now - t.timestamp.seconds * 1000) <= 24 * 60 * 60 * 1000;
+        }).length;
 
-        res.json({ status: true, totalRequests: total, successRate: parseFloat(rate), avgDuration: avgDur, topEndpoints, recentErrors: traffic.filter(t => t.status >= 400).length, last24h });
+        // Recent errors
+        const recentErrors = traffic.filter(t => t.status >= 400).length;
+
+        res.json({
+            status:        true,
+            totalRequests: total,
+            successRate:   parseFloat(rate),
+            avgDuration:   avgDur,
+            topEndpoints,
+            recentErrors,
+            last24h
+        });
     } catch (e) {
         res.status(500).json({ status: false, message: e.message });
     }
@@ -347,6 +348,8 @@ app.get('/stats', async (req, res) => {
 // ════════════════════════════════════════
 //  REPORT ROUTES
 // ════════════════════════════════════════
+
+// Rate limit khusus report — max 5 per jam per IP
 const reportRateMap = new Map();
 function checkReportLimit(ip) {
     const now   = Date.now();
@@ -359,13 +362,23 @@ function checkReportLimit(ip) {
     return entry.count <= 5;
 }
 
+// POST /report — submit report dari user
 app.post('/report', async (req, res) => {
     const ip = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
-    if (!checkReportLimit(ip)) return res.status(429).json({ status: false, message: 'Too many reports. Please wait before submitting again.' });
+
+    if (!checkReportLimit(ip)) {
+        return res.status(429).json({ status: false, message: 'Too many reports. Please wait before submitting again.' });
+    }
 
     const { endpoint, type, description, email } = req.body;
-    if (!endpoint || endpoint.trim().length < 2) return res.status(400).json({ status: false, message: 'Endpoint URL is required.' });
-    if (!type) return res.status(400).json({ status: false, message: 'Issue type is required.' });
+
+    if (!endpoint || endpoint.trim().length < 2) {
+        return res.status(400).json({ status: false, message: 'Endpoint URL is required.' });
+    }
+
+    if (!type) {
+        return res.status(400).json({ status: false, message: 'Issue type is required.' });
+    }
 
     try {
         await db.collection('reports').add({
@@ -378,15 +391,19 @@ app.post('/report', async (req, res) => {
             timestamp:   admin.firestore.FieldValue.serverTimestamp(),
             ua:          req.headers['user-agent'] || ''
         });
+
         res.json({ status: true, message: 'Report submitted successfully. Thank you!' });
     } catch (e) {
         res.status(500).json({ status: false, message: e.message });
     }
 });
 
+// GET /admin/reports — list semua report (admin only)
 // ════════════════════════════════════════
 //  ADMIN ROUTES
 // ════════════════════════════════════════
+
+// Verify Firebase token middleware
 async function verifyAdmin(req, res, next) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ status: false, message: 'Unauthorized' });
@@ -401,50 +418,70 @@ async function verifyAdmin(req, res, next) {
     }
 }
 
+// GET /admin/reports — list semua report
 app.get('/admin/reports', verifyAdmin, async (req, res) => {
     try {
         const status = req.query.status || null;
         let query    = db.collection('reports').orderBy('timestamp', 'desc').limit(100);
         if (status) query = db.collection('reports').where('status', '==', status).orderBy('timestamp', 'desc').limit(100);
-        const snap    = await query.get();
+        const snap   = await query.get();
         const reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         res.json({ status: true, count: reports.length, reports });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// PATCH /admin/reports/:id — update status report
 app.patch('/admin/reports/:id', verifyAdmin, async (req, res) => {
-    const { id } = req.params;
+    const { id }     = req.params;
     const { status } = req.body;
-    if (!['open','in_progress','resolved','dismissed'].includes(status))
+    if (!['open','in_progress','resolved','dismissed'].includes(status)) {
         return res.status(400).json({ status: false, message: 'Invalid status' });
+    }
     try {
         await db.collection('reports').doc(id).update({ status, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
         res.json({ status: true, message: `Report ${id} → ${status}` });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// DELETE /admin/reports/:id — hapus report
 app.delete('/admin/reports/:id', verifyAdmin, async (req, res) => {
+    const { id } = req.params;
     try {
         await db.collection('reports').doc(id).delete();
-        res.json({ status: true, message: `Report ${req.params.id} deleted` });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+        res.json({ status: true, message: `Report ${id} deleted` });
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
 // ════════════════════════════════════════
 //  CHANGELOG ROUTES
 // ════════════════════════════════════════
+
+// GET /changelog — public
 app.get('/changelog', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 20;
-        const snap  = await db.collection('changelog').orderBy('timestamp', 'desc').limit(limit).get();
+        const snap  = await db.collection('changelog')
+            .orderBy('timestamp', 'desc')
+            .limit(limit)
+            .get();
         const entries = snap.docs.map(d => ({
-            id: d.id, ...d.data(),
+            id: d.id,
+            ...d.data(),
             timestamp: d.data().timestamp?.toDate?.()?.toISOString() || null
         }));
         res.json({ status: true, count: entries.length, entries });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// POST /admin/changelog — tambah entry
 app.post('/admin/changelog', verifyAdmin, async (req, res) => {
     try {
         const { version, title, notes, type } = req.body;
@@ -453,13 +490,16 @@ app.post('/admin/changelog', verifyAdmin, async (req, res) => {
         const ref = await db.collection('changelog').add({
             version, title,
             notes: Array.isArray(notes) ? notes : [notes],
-            type:  type || 'update',
+            type: type || 'update',
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
         res.json({ status: true, id: ref.id });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// PATCH /admin/changelog/:id — edit entry
 app.patch('/admin/changelog/:id', verifyAdmin, async (req, res) => {
     try {
         const { version, title, notes, type } = req.body;
@@ -470,67 +510,95 @@ app.patch('/admin/changelog/:id', verifyAdmin, async (req, res) => {
         if (type)    update.type    = type;
         await db.collection('changelog').doc(req.params.id).update(update);
         res.json({ status: true });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// DELETE /admin/changelog/:id — hapus entry
 app.delete('/admin/changelog/:id', verifyAdmin, async (req, res) => {
     try {
         await db.collection('changelog').doc(req.params.id).delete();
         res.json({ status: true });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// Force reload cache
 app.post('/admin/cache/reload', verifyAdmin, async (req, res) => {
     try {
         await reloadAdminCache();
         res.json({ status: true, message: 'Cache reloaded', blacklisted: blacklistCache.size, disabled: disabledEndpoints.size });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// Traffic
 app.get('/admin/traffic', verifyAdmin, async (req, res) => {
     try {
-        const limit   = parseInt(req.query.limit) || 100;
-        const snap    = await db.collection('traffic').orderBy('timestamp', 'desc').limit(limit).get();
+        const limit = parseInt(req.query.limit) || 100;
+        const snap  = await db.collection('traffic').orderBy('timestamp', 'desc').limit(limit).get();
         const traffic = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         res.json({ status: true, count: traffic.length, traffic });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// Blacklist - GET
 app.get('/admin/blacklist', verifyAdmin, async (req, res) => {
     try {
         const snap = await db.collection('blacklist').get();
         const list = snap.docs.map(d => ({ ip: d.id, ...d.data() }));
         res.json({ status: true, list });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// Blacklist - POST
 app.post('/admin/blacklist', verifyAdmin, async (req, res) => {
     const { ip, reason } = req.body;
     if (!ip) return res.status(400).json({ status: false, message: 'IP required' });
     try {
-        await db.collection('blacklist').doc(ip).set({ reason: reason || 'No reason', addedAt: admin.firestore.FieldValue.serverTimestamp(), addedBy: req.admin.email });
+        await db.collection('blacklist').doc(ip).set({
+            reason:  reason || 'No reason',
+            addedAt: admin.firestore.FieldValue.serverTimestamp(),
+            addedBy: req.admin.email
+        });
         await reloadAdminCache();
         res.json({ status: true, message: `IP ${ip} blacklisted` });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// Blacklist - DELETE
 app.delete('/admin/blacklist/:ip', verifyAdmin, async (req, res) => {
     const ip = decodeURIComponent(req.params.ip);
     try {
         await db.collection('blacklist').doc(ip).delete();
         await reloadAdminCache();
         res.json({ status: true, message: `IP ${ip} removed` });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// Endpoints status - GET
 app.get('/admin/endpoints-status', verifyAdmin, async (req, res) => {
     try {
         const snap = await db.collection('endpoints_status').get();
         const list = snap.docs.map(d => ({ key: d.id, ...d.data() }));
         res.json({ status: true, list });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
+// Endpoints status - POST (toggle)
 app.post('/admin/endpoints-status', verifyAdmin, async (req, res) => {
     const { key, enabled } = req.body;
     if (!key) return res.status(400).json({ status: false, message: 'key required' });
@@ -538,7 +606,9 @@ app.post('/admin/endpoints-status', verifyAdmin, async (req, res) => {
         await db.collection('endpoints_status').doc(key).set({ enabled: !!enabled }, { merge: true });
         await reloadAdminCache();
         res.json({ status: true, message: `Endpoint ${key} → ${enabled ? 'enabled' : 'disabled'}` });
-    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    } catch (e) {
+        res.status(500).json({ status: false, message: e.message });
+    }
 });
 
 // ════════════════════════════════════════
