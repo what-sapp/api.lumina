@@ -7,8 +7,8 @@ const axios = require('axios');
  */
 module.exports = {
     name: "Roleplay AI",
-    desc: "AI Roleplay kepribadian kuat dengan pilihan model opsional.",
-    category: "AI Magic",
+    desc: "AI Roleplay High-Class dengan 4 pilihan model (default, stheno, fantasi, spicedQ3",
+    category: "AI CHAT",
     params: ["message", "_model"],
     async run(req, res) {
         try {
@@ -60,7 +60,7 @@ module.exports = {
 
             res.status(200).json({
                 status: true,
-                creator: "shannz x Xena",
+              // creator: "shannz x Xena",
                 engine: selectedModel,
                 result: resultData
             });
@@ -69,7 +69,7 @@ module.exports = {
             console.error('SpicyChat Error Detail:', error.response ? error.response.data : error.message);
             res.status(500).json({
                 status: false,
-                creator: "shannz",
+                //creator: "shannz",
                 error: "Duh, bot-nya lagi korslet atau IP Server diblokir SpicyChat!"
             });
         }
