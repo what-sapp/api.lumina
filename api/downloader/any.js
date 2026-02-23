@@ -1,14 +1,13 @@
 const axios = require('axios');
-const fs = require('fs');
 
 /**
- * ANYDOWNLOADER PRO (STREAMING SAVER)
- * Feature: Auto-Fetch & Buffer Delivery
+ * ANYDOWNLOADER PRO (STEALTH MODE)
+ * Fix: Error 500 on Server Deployment
  * Integration: Shannz x Xena
  */
 module.exports = {
     name: "AnyDL Pro",
-    desc: "Download video sosmed otomatis dan simpan langsung ke sistem.",
+    desc: "Universal Downloader dengan sistem Stealth untuk nembus proteksi server.",
     category: "Downloader",
     params: ["url"],
     async run(req, res) {
@@ -20,42 +19,60 @@ module.exports = {
             const hash = Buffer.from(url).toString('base64') + "1032YXBp";
             const token = "7262ad5f00a065f305ae9655cd93185878278d1d18b6733add0501fbc7029bf7";
 
-            const response = await axios.post(endpoint, 
-                new URLSearchParams({ url, token, hash }), 
-                {
-                    headers: {
-                        'content-type': 'application/x-www-form-urlencoded',
-                        'user-agent': 'Mozilla/5.0 (Linux; Android 14; Infinix X6833B)'
-                    }
-                }
-            );
+            // Gunakan headers yang lebih lengkap sesuai dengan browser asli
+            const response = await axios({
+                method: 'post',
+                url: endpoint,
+                data: new URLSearchParams({ url, token, hash }),
+                headers: {
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Origin': 'https://anydownloader.com',
+                    'Referer': 'https://anydownloader.com/',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                timeout: 15000 // Kasih waktu lebih lama biar nggak timeout
+            });
 
             const data = response.data;
-            if (data && data.medias) {
-                const videoNoWm = data.medias.find(m => m.quality.includes("No Watermark")) || data.medias[0];
-                const cleanTitle = (data.title || 'video').replace(/[^\w\s]/gi, '').slice(0, 30);
 
-                // --- OPTIONAL: KIRIM JSON + LINK ---
+            if (data && data.medias) {
+                const video = data.medias.find(m => m.quality.toLowerCase().includes("no watermark")) || data.medias[0];
+                const audio = data.medias.find(m => m.extension === "mp3");
+
                 res.status(200).json({
                     status: true,
                     creator: "shannz x Xena",
                     title: data.title,
                     thumbnail: data.thumbnail,
-                    filename: `${cleanTitle}.mp4`,
-                    download_url: videoNoWm.url,
-                    audio_url: data.medias.find(m => m.extension === "mp3")?.url || null
+                    result: {
+                        video: video ? video.url : null,
+                        audio: audio ? audio.url : null,
+                        quality: video ? video.quality : 'N/A'
+                    }
                 });
-
-                // Note: Jika ingin API langsung ngirim FILE (bukan JSON),
-                // kamu bisa ganti res.json di atas jadi pipe stream.
-                
             } else {
-                res.status(404).json({ status: false, error: "Gagal ambil data, link mungkin privat!" });
+                // Balikin error asli dari server AnyDownloader buat debugging
+                res.status(404).json({ 
+                    status: false, 
+                    error: "AnyDownloader tidak memberikan hasil. Link mungkin mati atau privat.",
+                    debug: data 
+                });
             }
 
         } catch (error) {
-            console.error('AnyDL Pro Error:', error.message);
-            res.status(500).json({ status: false, error: "Server Downloader lagi mogok!" });
+            // Cek apakah error karena diblokir (403/500)
+            const errorStatus = error.response ? error.response.status : 500;
+            const errorMsg = error.response ? JSON.stringify(error.response.data) : error.message;
+            
+            console.error('AnyDL Pro Error:', errorMsg);
+            res.status(errorStatus).json({ 
+                status: false, 
+                error: "AnyDownloader memblokir akses server. Coba ganti Proxy atau IP!",
+                detail: error.message 
+            });
         }
     }
 };
