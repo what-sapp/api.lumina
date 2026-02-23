@@ -346,6 +346,15 @@ app.get('/stats', async (req, res) => {
 });
 
 // ════════════════════════════════════════
+//  PUBLIC ENDPOINTS STATUS (no auth)
+// ════════════════════════════════════════
+app.get('/endpoints-status', (req, res) => {
+    // Baca dari disabledEndpoints cache — zero DB call, aman buat publik
+    const list = [...disabledEndpoints].map(key => ({ key, enabled: false }));
+    res.json({ status: true, list });
+});
+
+// ════════════════════════════════════════
 //  REPORT ROUTES
 // ════════════════════════════════════════
 
