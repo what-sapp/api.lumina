@@ -1,16 +1,39 @@
 const axios = require('axios');
 
+/**
+ * ROLEPLAY AI (SPICYCHAT ENGINE)
+ * Feature: Under-score Optional Model (_model)
+ * Integration: Shannz x Xena
+ */
 module.exports = {
-    name: "Roleplay AI2",
-    desc: "AI Roleplay kepribadian kuat (Fixed Connection).",
+    name: "Roleplay AI Pro",
+    desc: "AI Roleplay High-Class. Gunakan parameter '_model' untuk ganti engine (Opsional).",
     category: "AI Magic",
-    params: ["message"],
+    params: ["message", "_model"], // _model diawali underscore agar terlihat sebagai opsi tambahan
     async run(req, res) {
         try {
-            const { message } = req.query;
-            if (!message) return res.status(400).json({ status: false, error: "Isi pesan dulu!" });
+            const { message, _model } = req.query;
+            
+            // Mapping ID Model Internal SpicyChat
+            const modelMap = {
+                'fantasi': 'squelching_fantasies_8b',
+                'spiced': 'spicedq3_a3b',
+                'stheno': 'stheno-8b',
+                'default': 'default'
+            };
 
-            // Pake config yang persis sama dengan test Termux kamu
+            // LOGIC: Jika _model kosong atau tidak valid, otomatis lari ke 'default'
+            const selectedModel = modelMap[_model?.toLowerCase()] || 'default';
+
+            if (!message) {
+                return res.status(400).json({ 
+                    status: false, 
+                    error: "Pesan belum diisi, Senior! (Contoh: ?message=halo&_model=spiced)" 
+                });
+            }
+
+            console.log(`RP Mode: Active | Engine: ${selectedModel}`);
+
             const response = await axios({
                 method: 'post',
                 url: 'https://prod.nd-api.com/chat',
@@ -18,45 +41,44 @@ module.exports = {
                     'Content-Type': 'application/json',
                     'accept': 'application/json, text/plain, */*',
                     'origin': 'https://spicychat.ai',
-                    'referer': 'https://spicychat.ai/', // Tambahin Referer biar dikira dari web resmi
+                    'referer': 'https://spicychat.ai/', 
                     'user-agent': 'Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
                     'x-app-id': 'spicychat',
                     'x-guest-userid': '946a71dd-4cf4-424c-8870-4ad494be461c'
                 },
                 data: {
                     "character_id": "03613fb4-766d-4872-8e83-bd21c8e5a895",
-                    "conversation_id": "gid_2c7b780e-ec8b-45b6-99ee-b1bae36713b7", // Samain ID konversinya
+                    "conversation_id": `gen_session_${Date.now()}`,
                     "message": message,
                     "autopilot": false,
                     "continue_chat": false,
-                    "inference_model": "default",
+                    "inference_model": selectedModel, 
                     "inference_settings": {
-                        "max_new_tokens": 180,
+                        "max_new_tokens": 250,
                         "temperature": 0.7,
                         "top_p": 0.7,
                         "top_k": 90
                     },
-                    "language": "en"
+                    "language": "id"
                 }
             });
 
-            // Proteksi kalau structure response-nya beda
-            const resultData = response.data.message ? response.data.message.content : response.data;
+            // Proteksi pengambilan data content
+            const aiReply = response.data.message ? response.data.message.content : "AI tidak memberikan respon.";
 
             res.status(200).json({
                 status: true,
                 creator: "shannz x Xena",
-                result: resultData
+                engine_active: selectedModel,
+                result: aiReply
             });
 
         } catch (error) {
-            // Log detail error biar kita tau dia kena 403 (Block) atau 400 (Bad Request)
             console.error('SpicyChat Error Detail:', error.response ? error.response.data : error.message);
-            
             res.status(500).json({
                 status: false,
                 creator: "shannz",
-                error: "Duh, bot-nya lagi korslet atau IP Server diblokir SpicyChat!"
+                error: "Duh, bot-nya lagi ngambek atau IP server kena limit!"
             });
         }
     }
