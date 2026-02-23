@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         // ── Fetch endpoint status dari admin (public, no auth) ──
         let disabledKeys = new Set();
         try {
-            const stRes  = await fetch('/admin/endpoints-status');
+            const stRes  = await fetch('/endpoints-status');
             const stData = await stRes.json();
             (stData.list || []).forEach(s => {
                 if (s.enabled === false) disabledKeys.add(s.key);
