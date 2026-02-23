@@ -2,17 +2,17 @@ const axios = require('axios');
 
 /**
  * ROLEPLAY AI (CASTORICE)
- * Feature: Multimodel Support with Updated Session
+ * Feature: Custom Session & Multimodel Support
  * Integration: Shannz x Xena
  */
 module.exports = {
     name: "Castorice AI",
-    desc: "Chatting dengan Castorice. Gunakan parameter '_model' untuk ganti engine.",
+    desc: "Chatting dengan Castorice. Gunakan '_model' untuk engine & '_session' untuk custom ID chat.",
     category: "AI CHAT",
-    params: ["message", "_model"],
+    params: ["message", "_model", "_session"],
     async run(req, res) {
         try {
-            const { message, _model } = req.query;
+            const { message, _model, _session } = req.query;
             
             // Mapping Model sesuai JSON internal
             const modelMap = {
@@ -23,6 +23,13 @@ module.exports = {
             };
 
             const selectedModel = modelMap[_model?.toLowerCase()] || 'default';
+
+            // Custom Conversation ID: 
+            // Kalau user isi _session, kita buatkan ID unik. 
+            // Kalau kosong, pakai ID default (Public Session).
+            const customSession = _session 
+                ? `gid_${_session.toLowerCase().replace(/\s+/g, '_')}` 
+                : "gid_126f5d14-de31-4956-83c0-9449a617f8bf";
 
             if (!message) return res.status(400).json({ status: false, error: "Tanya sesuatu ke Castorice, Senior!" });
 
@@ -39,8 +46,8 @@ module.exports = {
                     'x-guest-userid': '946a71dd-4cf4-424c-8870-4ad494be461c'
                 },
                 data: {
-                    "character_id": "d9564784-8dcc-451e-bd4c-5961ec319520", // ID Castorice
-                    "conversation_id": "gid_126f5d14-de31-4956-83c0-9449a617f8bf", // Sesi aktif Castorice
+                    "character_id": "d9564784-8dcc-451e-bd4c-5961ec319520",
+                    "conversation_id": customSession, // ID yang sudah di-custom
                     "message": message,
                     "autopilot": false,
                     "continue_chat": false,
@@ -59,8 +66,8 @@ module.exports = {
 
             res.status(200).json({
                 status: true,
-                //creator: "shannz x Xena",
                 character: "Castorice",
+                session_id: customSession,
                 engine: selectedModel,
                 result: resultData
             });
@@ -68,7 +75,6 @@ module.exports = {
         } catch (error) {
             res.status(500).json({
                 status: false,
-              //  creator: "shannz",
                 error: "Castorice lagi istirahat, coba lagi nanti!"
             });
         }
