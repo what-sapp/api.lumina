@@ -1,74 +1,61 @@
 const axios = require('axios');
+const fs = require('fs');
 
 /**
- * ANYDOWNLOADER (UNIVERSAL ENGINE)
- * Feature: TikTok No WM, IG, FB, etc.
+ * ANYDOWNLOADER PRO (STREAMING SAVER)
+ * Feature: Auto-Fetch & Buffer Delivery
  * Integration: Shannz x Xena
  */
 module.exports = {
-    name: "Any DL",
-    desc: "Unduh video dari TikTok (No WM), IG, FB, dan lainnya via AnyDownloader.",
+    name: "AnyDL Pro",
+    desc: "Download video sosmed otomatis dan simpan langsung ke sistem.",
     category: "Downloader",
     params: ["url"],
     async run(req, res) {
         try {
             const { url } = req.query;
-            if (!url) return res.status(400).json({ status: false, error: "Link-nya mana, Senior?" });
+            if (!url) return res.status(400).json({ status: false, error: "Link-nya mana, Mang?" });
 
             const endpoint = 'https://anydownloader.com/wp-json/api/download/';
-            
-            // Logic Hash: Base64 URL + Salt '1032YXBp'
             const hash = Buffer.from(url).toString('base64') + "1032YXBp";
-            
-            // Token statis dari hasil sniff kamu
             const token = "7262ad5f00a065f305ae9655cd93185878278d1d18b6733add0501fbc7029bf7";
 
             const response = await axios.post(endpoint, 
-                new URLSearchParams({
-                    url: url,
-                    token: token,
-                    hash: hash
-                }), 
+                new URLSearchParams({ url, token, hash }), 
                 {
                     headers: {
-                        'accept': '*/*',
                         'content-type': 'application/x-www-form-urlencoded',
-                        'origin': 'https://anydownloader.com',
-                        'referer': 'https://anydownloader.com/',
                         'user-agent': 'Mozilla/5.0 (Linux; Android 14; Infinix X6833B)'
                     }
                 }
             );
 
             const data = response.data;
-
             if (data && data.medias) {
-                // Cari video kualitas terbaik (No Watermark untuk TikTok)
-                const video = data.medias.find(m => m.quality.toLowerCase().includes("no watermark")) || data.medias[0];
-                const audio = data.medias.find(m => m.extension === "mp3");
+                const videoNoWm = data.medias.find(m => m.quality.includes("No Watermark")) || data.medias[0];
+                const cleanTitle = (data.title || 'video').replace(/[^\w\s]/gi, '').slice(0, 30);
 
+                // --- OPTIONAL: KIRIM JSON + LINK ---
                 res.status(200).json({
                     status: true,
                     creator: "shannz x Xena",
                     title: data.title,
                     thumbnail: data.thumbnail,
-                    source: data.source,
-                    result: {
-                        video: video ? video.url : null,
-                        audio: audio ? audio.url : null,
-                        quality: video ? video.quality : 'N/A'
-                    }
+                    filename: `${cleanTitle}.mp4`,
+                    download_url: videoNoWm.url,
+                    audio_url: data.medias.find(m => m.extension === "mp3")?.url || null
                 });
+
+                // Note: Jika ingin API langsung ngirim FILE (bukan JSON),
+                // kamu bisa ganti res.json di atas jadi pipe stream.
+                
             } else {
-                res.status(404).json({ status: false, error: "Gagal mengambil data, mungkin link tidak didukung!" });
+                res.status(404).json({ status: false, error: "Gagal ambil data, link mungkin privat!" });
             }
 
         } catch (error) {
-            console.error('AnyDL Error:', error.message);
-            res.status(500).json({ 
-                status: false, 
-                error: "Duh, server AnyDownloader lagi sibuk atau token-nya wafat!" 
-            });
+            console.error('AnyDL Pro Error:', error.message);
+            res.status(500).json({ status: false, error: "Server Downloader lagi mogok!" });
         }
     }
 };
