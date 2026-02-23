@@ -1,13 +1,18 @@
 const axios = require('axios');
 
+/**
+ * ROLEPLAY AI (CASTORICE BY KURO_709)
+ * Stability: High (98.0k Chats)
+ * Integration: Shannz x Xena
+ */
 module.exports = {
     name: "Castorice AI",
-    desc: "Chatting dengan Castorice. Gunakan parameter '_model' untuk engine & '_session' untuk ID unik.",
+    desc: "Chatting dengan Castorice (Kuro Version). Gunakan parameter '_model' untuk ganti engine.",
     category: "AI CHAT",
-    params: ["message", "_model", "_session"],
+    params: ["message", "_model"],
     async run(req, res) {
         try {
-            const { message, _model, _session } = req.query;
+            const { message, _model } = req.query;
             
             const modelMap = {
                 'fantasi': 'squelching_fantasies_8b',
@@ -18,20 +23,11 @@ module.exports = {
 
             const selectedModel = modelMap[_model?.toLowerCase()] || 'default';
 
-            // LOGIC: Kita buat format ID-nya persis kayak aslinya (UUID style)
-            // Kalau user gak ngasih _session, kita pake ID default yang udah terbukti work.
-            let sessionID = "gid_126f5d14-de31-4956-83c0-9449a617f8bf";
-            if (_session) {
-                // Generate ID simpel tapi aman (tanpa karakter aneh)
-                sessionID = `gid_${Buffer.from(_session).toString('hex').slice(0, 32)}`;
-            }
-
-            if (!message) return res.status(400).json({ status: false, error: "Tanya sesuatu ke Castorice!" });
+            if (!message) return res.status(400).json({ status: false, error: "Tanya sesuatu ke Castorice, Senior!" });
 
             const response = await axios({
                 method: 'post',
                 url: 'https://prod.nd-api.com/chat',
-                timeout: 15000, // Tambahin timeout biar gak gantung
                 headers: {
                     'Content-Type': 'application/json',
                     'accept': 'application/json, text/plain, */*',
@@ -42,8 +38,8 @@ module.exports = {
                     'x-guest-userid': '946a71dd-4cf4-424c-8870-4ad494be461c'
                 },
                 data: {
-                    "character_id": "d9564784-8dcc-451e-bd4c-5961ec319520",
-                    "conversation_id": sessionID,
+                    "character_id": "f8d2b168-3655-45a1-a6bc-39a29019e56f", // ID Castorice Kuro
+                    "conversation_id": "gid_860fc707-ff9b-4644-910f-bd69cadc8146", // Session ID Kuro
                     "message": message,
                     "autopilot": false,
                     "continue_chat": false,
@@ -62,19 +58,15 @@ module.exports = {
 
             res.status(200).json({
                 status: true,
-                character: "Castorice",
-                session_id: sessionID,
+                character: "Castorice (Kuro)",
                 engine: selectedModel,
                 result: resultData
             });
 
         } catch (error) {
-            // Biar di log server keliatan salahnya apa (403/400/500)
-            console.error('ERROR_SPICY:', error.response ? error.response.status : error.message);
-            
             res.status(500).json({
                 status: false,
-                error: "Duh, bot-nya lagi korslet atau IP Server diblokir SpicyChat!"
+                error: "Castorice lagi istirahat, coba lagi nanti!"
             });
         }
     }
