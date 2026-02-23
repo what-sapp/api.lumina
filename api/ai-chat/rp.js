@@ -2,40 +2,30 @@ const axios = require('axios');
 
 /**
  * ROLEPLAY AI (SPICYCHAT ENGINE)
- * Creator: Xena (Integrated to Gienetic)
- * Character: FIXED NO-LIMIT CHARACTER
+ * Fix: Direct Content Response
  */
 module.exports = {
     name: "Roleplay AI",
-    desc: "AI Roleplay dengan kepribadian mendalam (Fixed No-Limit Character).",
+    desc: "Chatting dengan AI Roleplay kepribadian kuat (Fixed Output).",
     category: "AI CHAT",
     params: ["message"],
     async run(req, res) {
         try {
             const { message } = req.query;
-            
-            // FIXED ID (No Limit Jalur Langit)
             const characterId = "03613fb4-766d-4872-8e83-bd21c8e5a895";
 
-            if (!message) {
-                return res.status(400).json({ 
-                    status: false, 
-                    error: "Kasih pesan buat lawan bicaramu, Senior! Masukkan parameter 'message'." 
-                });
-            }
-
-            console.log(`RP AI Chatting: Character No-Limit Active`);
+            if (!message) return res.status(400).json({ status: false, error: "Tanya apa aja ke bot-nya, Mang!" });
 
             const response = await axios.post('https://prod.nd-api.com/chat', {
                 "character_id": characterId,
-                "conversation_id": `gienetic_rp_${Math.random().toString(36).substring(7)}`,
+                "conversation_id": `gienetic_chat_${Date.now()}`, // Pake timestamp biar unik
                 "message": message,
                 "autopilot": false,
                 "continue_chat": false,
                 "inference_model": "default",
                 "inference_settings": {
-                    "max_new_tokens": 300, // Kita panjangin biar puas balesannya
-                    "temperature": 0.8,
+                    "max_new_tokens": 250,
+                    "temperature": 0.7,
                     "top_p": 0.7,
                     "top_k": 90
                 },
@@ -51,18 +41,20 @@ module.exports = {
                 }
             });
 
-            // Langsung ambil response teksnya biar gak ribet
+            // Ambil kontennya aja biar user gak pusing baca JSON tumpuk
+            const aiReply = response.data.message.content;
+
             res.status(200).json({
                 status: true,
-                creator: "shannz x Xena",
-                result: response.data
+                //creator: "shannz x Xena",
+                result: aiReply
             });
 
         } catch (error) {
             res.status(500).json({
                 status: false,
-                creator: "shannz",
-                error: "Duh, karakternya lagi istirahat atau koneksi SpicyChat sibuk!"
+              //  creator: "shannz",
+                error: "Duh, bot-nya lagi korslet (Error di Server Spicy)!"
             });
         }
     }
