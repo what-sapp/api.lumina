@@ -1,18 +1,18 @@
 const axios = require('axios');
 
 /**
- * ROLEPLAY AI (SPICYCHAT ENGINE)
- * Feature: Optional Model Selection (_model)
+ * ROLEPLAY AI (UNIVERSAL ENGINE)
+ * Feature: Optional Model (_model) & Optional Character (_id)
  * Integration: Shannz x Xena
  */
 module.exports = {
     name: "Roleplay AI",
-    desc: "AI Roleplay High-Class dengan 4 pilihan model (default, stheno, fantasi, spicedQ3",
+    desc: "AI Roleplay bebas pilih karakter. Masukkan Character ID dari URL SpicyChat.ai ke parameter '_id'.",
     category: "AI CHAT",
-    params: ["message", "_model"],
+    params: ["message", "_model", "_id"],
     async run(req, res) {
         try {
-            const { message, _model } = req.query;
+            const { message, _model, _id } = req.query;
             
             // Mapping ID Model Internal SpicyChat
             const modelMap = {
@@ -22,8 +22,11 @@ module.exports = {
                 'default': 'default'
             };
 
-            // Logic Opsional: Jika _model kosong atau tidak terdaftar, lari ke 'default'
             const selectedModel = modelMap[_model?.toLowerCase()] || 'default';
+
+            // Logic Character ID Opsional:
+            // Jika user isi _id, pakai itu. Jika kosong, otomatis ke Castorice (Kuro).
+            const selectedCharacter = _id || "f8d2b168-3655-45a1-a6bc-39a29019e56f";
 
             if (!message) return res.status(400).json({ status: false, error: "Isi pesan dulu!" });
 
@@ -40,12 +43,12 @@ module.exports = {
                     'x-guest-userid': '946a71dd-4cf4-424c-8870-4ad494be461c'
                 },
                 data: {
-                    "character_id": "03613fb4-766d-4872-8e83-bd21c8e5a895",
-                    "conversation_id": "gid_2c7b780e-ec8b-45b6-99ee-b1bae36713b7",
+                    "character_id": selectedCharacter,
+                    "conversation_id": `gid_gen_${selectedCharacter.slice(0, 8)}`, // Sesi dinamis biar gak bentrok
                     "message": message,
                     "autopilot": false,
                     "continue_chat": false,
-                    "inference_model": selectedModel, // Dinamis berdasarkan input _model
+                    "inference_model": selectedModel,
                     "inference_settings": {
                         "max_new_tokens": 180,
                         "temperature": 0.7,
@@ -60,7 +63,7 @@ module.exports = {
 
             res.status(200).json({
                 status: true,
-              // creator: "shannz x Xena",
+                character_id: selectedCharacter,
                 engine: selectedModel,
                 result: resultData
             });
@@ -69,8 +72,7 @@ module.exports = {
             console.error('SpicyChat Error Detail:', error.response ? error.response.data : error.message);
             res.status(500).json({
                 status: false,
-                //creator: "shannz",
-                error: "Duh, bot-nya lagi korslet atau IP Server diblokir SpicyChat!"
+                error: "Duh, bot-nya lagi korslet atau ID Karakter tidak valid!"
             });
         }
     }
