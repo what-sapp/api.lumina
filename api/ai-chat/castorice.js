@@ -1,20 +1,14 @@
 const axios = require('axios');
 
-/**
- * ROLEPLAY AI (CASTORICE)
- * Feature: Custom Session & Multimodel Support
- * Integration: Shannz x Xena
- */
 module.exports = {
     name: "Castorice AI",
-    desc: "Chatting dengan Castorice. Gunakan '_model' untuk engine & '_session' untuk custom ID chat.",
+    desc: "Chatting dengan Castorice. Gunakan parameter '_model' untuk engine & '_session' untuk ID unik.",
     category: "AI CHAT",
     params: ["message", "_model", "_session"],
     async run(req, res) {
         try {
             const { message, _model, _session } = req.query;
             
-            // Mapping Model sesuai JSON internal
             const modelMap = {
                 'fantasi': 'squelching_fantasies_8b',
                 'spiced': 'spicedq3_a3b',
@@ -24,18 +18,20 @@ module.exports = {
 
             const selectedModel = modelMap[_model?.toLowerCase()] || 'default';
 
-            // Custom Conversation ID: 
-            // Kalau user isi _session, kita buatkan ID unik. 
-            // Kalau kosong, pakai ID default (Public Session).
-            const customSession = _session 
-                ? `gid_${_session.toLowerCase().replace(/\s+/g, '_')}` 
-                : "gid_126f5d14-de31-4956-83c0-9449a617f8bf";
+            // LOGIC: Kita buat format ID-nya persis kayak aslinya (UUID style)
+            // Kalau user gak ngasih _session, kita pake ID default yang udah terbukti work.
+            let sessionID = "gid_126f5d14-de31-4956-83c0-9449a617f8bf";
+            if (_session) {
+                // Generate ID simpel tapi aman (tanpa karakter aneh)
+                sessionID = `gid_${Buffer.from(_session).toString('hex').slice(0, 32)}`;
+            }
 
-            if (!message) return res.status(400).json({ status: false, error: "Tanya sesuatu ke Castorice, Senior!" });
+            if (!message) return res.status(400).json({ status: false, error: "Tanya sesuatu ke Castorice!" });
 
             const response = await axios({
                 method: 'post',
                 url: 'https://prod.nd-api.com/chat',
+                timeout: 15000, // Tambahin timeout biar gak gantung
                 headers: {
                     'Content-Type': 'application/json',
                     'accept': 'application/json, text/plain, */*',
@@ -47,7 +43,7 @@ module.exports = {
                 },
                 data: {
                     "character_id": "d9564784-8dcc-451e-bd4c-5961ec319520",
-                    "conversation_id": customSession, // ID yang sudah di-custom
+                    "conversation_id": sessionID,
                     "message": message,
                     "autopilot": false,
                     "continue_chat": false,
@@ -67,15 +63,18 @@ module.exports = {
             res.status(200).json({
                 status: true,
                 character: "Castorice",
-                session_id: customSession,
+                session_id: sessionID,
                 engine: selectedModel,
                 result: resultData
             });
 
         } catch (error) {
+            // Biar di log server keliatan salahnya apa (403/400/500)
+            console.error('ERROR_SPICY:', error.response ? error.response.status : error.message);
+            
             res.status(500).json({
                 status: false,
-                error: "Castorice lagi istirahat, coba lagi nanti!"
+                error: "Duh, bot-nya lagi korslet atau IP Server diblokir SpicyChat!"
             });
         }
     }
