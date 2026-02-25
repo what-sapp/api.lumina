@@ -76,7 +76,7 @@ const BASE_HEADERS = {
 
 async function getInbox(username) {
     const res  = await request(`https://akunlama.com/api/v1/mail/list?recipient=${username}`);
-    const data = res.json();
+    let data; try { data = res.json(); } catch(e) { return []; }
     if (!Array.isArray(data) || data.length === 0) return [];
     return data.map(item => ({ region: item.storage.region, key: item.storage.key }));
 }
@@ -145,8 +145,8 @@ async function uploadImage(imgUrl, authHeaders) {
         { method: "POST", headers: { ...authHeaders, "Content-Type": `multipart/form-data; boundary=${boundary}`, "Content-Length": body.length } },
         body
     );
-    console.log(`[upload] Status: ${res.status}`);
-    const json = res.json();
+    console.log(`[upload] Status: ${res.status} | ${res.body.slice(0,200)}`);
+    let json; try { json = res.json(); } catch(e) { throw new Error("Response bukan JSON: " + res.body.slice(0,300)); }
     if (!json?.url) throw new Error("Upload gagal: " + res.body);
     console.log(`[upload] OK: ${json.url}`);
     return json.url;
@@ -162,7 +162,7 @@ async function createJob(imgUrl, prompt, authHeaders) {
         { prompt, image_urls: [imgUrl] }
     );
     console.log(`[job] Status: ${res.status}`);
-    const json = res.json();
+    let json; try { json = res.json(); } catch(e) { throw new Error("Response bukan JSON: " + res.body.slice(0,300)); }
     if (!json?.request_id) throw new Error("Job gagal: " + res.body);
     console.log(`[job] ID: ${json.request_id}`);
     return json.request_id;
