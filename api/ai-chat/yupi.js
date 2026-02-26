@@ -12,9 +12,9 @@ const crypto = require("crypto");
 let geningDb = {};
 
 module.exports = {
-    name: "GeningAI",
+    name: "Yupi Kohata",
     desc: "Chat Unlimited Yupi Kohata. Mirroring Full Scrape Logic (Auto-Bypass).",
-    category: "AI YUPI",
+    category: "AI CHAT",
     params: ["query", "user"],
 
     async run(req, res) {
