@@ -1,0 +1,85 @@
+const crypto = require("crypto");
+
+/**
+ * AI CUSTOM TRANSFORMER - Fitur ke-117
+ * Engine: GPT-Image-1 (Strict Custom Prompt)
+ * Status: PRO (Prompt Mandatory)
+ * Creator: Xena
+ */
+
+async function convertAIImage(imageUrl, prompt) {
+    // 1. Download gambar & ubah ke Base64
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error('Gagal ambil gambar dari URL.');
+    
+    const buf = Buffer.from(await response.arrayBuffer());
+    const mime = response.headers.get("content-type") || "image/jpeg";
+    const imgData = `data:${mime};base64,${buf.toString("base64")}`;
+
+    // 2. Siapkan Payload JSON
+    const payload = JSON.stringify({
+        image: imgData,
+        model: "gpt-image-1",
+        n: 1,
+        prompt: prompt, // Wajib dari user
+        quality: "low",
+        size: "1024x1024"
+    });
+
+    // 3. Tembak Netlify Proxy Ghibli
+    const res = await fetch("https://ghibli-proxy.netlify.app/.netlify/functions/ghibli-proxy", {
+        method: "POST",
+        headers: {
+            "content-type": "application/json",
+            "origin": "https://overchat.ai",
+            "referer": "https://overchat.ai/",
+            "user-agent": "Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36..."
+        },
+        body: payload
+    }).then(r => r.json());
+
+    if (!res?.success || !res?.data?.[0]?.b64_json) {
+        throw new Error(res?.message || "AI gagal memproses gambar dengan prompt tersebut.");
+    }
+
+    return Buffer.from(res.data[0].b64_json, "base64");
+}
+
+module.exports = {
+    name: "AIConvert",
+    desc: "Transformasi gambar berdasarkan prompt (Cyberpunk, Anime, Pixar, dll).",
+    category: "TEST",
+    params: ["url", "prompt"], // Keduanya wajib
+
+    async run(req, res) {
+        const { url, prompt } = req.query;
+
+        // Validasi Ketat
+        if (!url) return res.status(400).json({ 
+            status: false, 
+            creator: "Xena", 
+            error: "Masukkan parameter 'url' gambar!" 
+        });
+        
+        if (!prompt) return res.status(400).json({ 
+            status: false, 
+            creator: "Xena", 
+            error: "Prompt wajib diisi! Contoh: prompt=make it ghibli style" 
+        });
+
+        try {
+            const resultBuffer = await convertAIImage(url, prompt);
+            
+            // Kirim hasil sebagai Image PNG
+            res.set("Content-Type", "image/png");
+            res.status(200).send(resultBuffer);
+
+        } catch (err) {
+            res.status(500).json({ 
+                status: false, 
+                creator: "Xena", 
+                error: err.message 
+            });
+        }
+    }
+};
