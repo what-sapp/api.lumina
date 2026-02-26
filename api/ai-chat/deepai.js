@@ -6,9 +6,9 @@ const axios = require('axios');
  * Integration: Shannz x Xena
  */
 module.exports = {
-    name: "Titan AI",
-    desc: "Titan Ultimate List (13 Models). Gunakan '_model' (1-13) untuk memilih engine.",
-    category: "AI Magic",
+    name: "Deep AI",
+    desc: "List (13 Models). Gunakan 'model' (1-13) untuk memilih model ai.",
+    category: "AI CHAT",
     params: ["message", "_model"],
     async run(req, res) {
         try {
