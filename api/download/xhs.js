@@ -41,7 +41,7 @@ async function xhsDownloader(xhsUrl) {
 module.exports = {
     name: "XhsDL",
     desc: "Download video Xiaohongshu (XHS) via RedNoteDownloader.",
-    category: "TEST",
+    category: "Download",
     params: ["url"],
 
     async run(req, res) {
