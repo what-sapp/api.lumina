@@ -9,7 +9,7 @@ const zlib  = require("zlib");
 module.exports = {
     name:     "Kimi AI",
     desc:     "Chat dengan Kimi AI (Moonshot) yang punya kemampuan penalaran tinggi.",
-    category: "AI Chat",
+    category: "AI CHAT",
     params:   ["query"],
 
     async run(req, res) {
