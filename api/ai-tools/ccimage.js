@@ -1,14 +1,29 @@
-const https = require("https");
-const http  = require("http");
+const axios = require("axios");
+const FormData = require("form-data");
 
 /**
- * ImgUpscaler — AI Photo Colorizer (REST Module)
- * params: url, upscale_type (optional: 2, 4, 8, 16)
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║         AI PHOTO COLORIZER — imgupscaler.ai                 ║
+ * ║                 Creator: Shannz x Xena                      ║
+ * ╠══════════════════════════════════════════════════════════════╣
+ * ║  FLOW:                                                       ║
+ * ║  1. Upload image → colorize job                              ║
+ * ║  2. Poll colorize job → dapat colorized URL                  ║
+ * ║  3. (Opsional) Upscale colorized URL                         ║
+ * ║  4. Poll upscale job → dapat final URL                       ║
+ * ║                                                              ║
+ * ║  USAGE CLI:                                                  ║
+ * ║  node colorize.js "https://example.com/foto.jpg"             ║
+ * ║  node colorize.js "https://example.com/foto.jpg" 2           ║
+ * ║  node colorize.js foto.jpg 4                                 ║
+ * ║                                                              ║
+ * ║  API PARAMS:                                                 ║
+ * ║  url          → URL gambar (wajib)                           ║
+ * ║  upscale_type → 0=off, 2=2K, 4=4K, 8=8K, 16=16K (default 0)║
+ * ║                                                              ║
+ * ║  INSTALL: npm install axios form-data                        ║
+ * ╚══════════════════════════════════════════════════════════════╝
  */
-
-// ─── CONFIG ───────────────────────────────────────────────────────────────────
-
-const PRODUCT_SERIAL = "5846a1bc-a228-4a53-bce2-33fc51444268";
 
 const BASE_HEADERS = {
     "accept":             "*/*",
@@ -20,185 +35,155 @@ const BASE_HEADERS = {
     "sec-fetch-mode":     "cors",
     "sec-fetch-site":     "same-site",
     "Referer":            "https://imgupscaler.ai/",
-    "Referrer-Policy":    "strict-origin-when-cross-origin",
-    "user-agent":         "Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36",
+    "user-agent":         "Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36 Chrome/107.0.0.0 Mobile Safari/537.36",
     "timezone":           "Asia/Jakarta",
 };
 
-// ─── HELPER ───────────────────────────────────────────────────────────────────
-
-function httpsRequest(options, body) {
-    return new Promise((resolve, reject) => {
-        const req = https.request(options, (res) => {
-            let data = "";
-            res.on("data", d => data += d.toString());
-            res.on("end", () => resolve({ status: res.statusCode, body: data }));
-        });
-        req.setTimeout(30000, () => { req.destroy(); reject(new Error("Timeout")); });
-        req.on("error", reject);
-        if (body) req.write(body);
-        req.end();
+function randomUUID() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
     });
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function buildFormData(fields, boundary) {
-    let body = "";
-    for (const [name, value] of Object.entries(fields)) {
-        body += `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;
+// ─── GET IMAGE BUFFER ─────────────────────────────────────────────────────────
+
+async function getImageBuffer(input) {
+    if (/^https?:\/\//i.test(input)) {
+        const res = await axios.get(input, { responseType: "arraybuffer" });
+        const ext = input.split(".").pop().split("?")[0].toLowerCase();
+        return { buffer: Buffer.from(res.data), fileName: `image.${ext || "jpg"}` };
+    } else {
+        const fs   = require("fs");
+        const path = require("path");
+        return { buffer: fs.readFileSync(input), fileName: path.basename(input) };
     }
-    body += `--${boundary}--\r\n`;
-    return Buffer.from(body);
 }
 
-// Download URL → Buffer (ganti fs.readFileSync)
-function urlToBuffer(url) {
-    return new Promise((resolve, reject) => {
-        const proto = url.startsWith("https") ? https : http;
-        proto.get(url, (res) => {
-            if (res.statusCode === 301 || res.statusCode === 302) {
-                return urlToBuffer(res.headers.location).then(resolve).catch(reject);
-            }
-            const chunks = [];
-            res.on("data", d => chunks.push(d));
-            res.on("end", () => resolve(Buffer.concat(chunks)));
-            res.on("error", reject);
-        }).on("error", reject);
-    });
-}
+// ─── STEP 1: CREATE COLORIZE JOB ─────────────────────────────────────────────
 
-// ─── STEP 1: COLORIZE ────────────────────────────────────────────────────────
+async function createColorizeJob(buffer, fileName) {
+    const form = new FormData();
+    form.append("original_image_file", buffer, { filename: fileName, contentType: "image/jpeg" });
 
-async function createColorizeJob(imageUrl) {
-    const fileBuffer = await urlToBuffer(imageUrl);
-    const boundary   = "----WebKitFormBoundary" + Math.random().toString(36).slice(2, 18).toUpperCase();
-    const partHeader = Buffer.from(
-        `--${boundary}\r\nContent-Disposition: form-data; name="original_image_file"; filename="image.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`
-    );
-    const partFooter = Buffer.from(`\r\n--${boundary}--\r\n`);
-    const body       = Buffer.concat([partHeader, fileBuffer, partFooter]);
-
-    const res  = await httpsRequest({
-        hostname: "api.imgupscaler.ai",
-        path:     "/api/imgupscaler/v2/ai-image-colorize/create-job",
-        method:   "POST",
-        headers:  {
+    const { data } = await axios.post("https://api.imgupscaler.ai/api/imgupscaler/v2/ai-image-colorize/create-job", form, {
+        headers: {
             ...BASE_HEADERS,
-            "content-type":   `multipart/form-data; boundary=${boundary}`,
-            "content-length": body.length,
+            ...form.getHeaders(),
             "authorization":  "",
-            "product-serial": PRODUCT_SERIAL,
-        }
-    }, body);
+            "product-serial": randomUUID(),
+        },
+        maxBodyLength: Infinity,
+    });
 
-    const json  = JSON.parse(res.body);
-    const jobId = json?.result?.job_id;
-    if (!jobId) throw new Error("Colorize job ID tidak ditemukan: " + res.body);
+    const jobId = data?.result?.job_id;
+    if (!jobId) throw new Error("Colorize job ID tidak ditemukan: " + JSON.stringify(data));
     return jobId;
 }
 
-// ─── STEP 2: UPSCALE (OPTIONAL) ──────────────────────────────────────────────
+// ─── STEP 2: CREATE UPSCALE JOB (OPTIONAL) ───────────────────────────────────
 
 async function createUpscaleJob(colorizedUrl, upscaleType) {
-    const boundary = "----WebKitFormBoundary" + Math.random().toString(36).slice(2, 18).toUpperCase();
-    const body     = buildFormData({
-        original_image_url: colorizedUrl,
-        upscale_type:       String(upscaleType),
-        image_width:        "1080",
-        image_height:       "1080",
-    }, boundary);
+    const form = new FormData();
+    form.append("original_image_url", colorizedUrl);
+    form.append("upscale_type",       String(upscaleType));
+    form.append("image_width",        "1080");
+    form.append("image_height",       "1080");
 
-    const res  = await httpsRequest({
-        hostname: "api.imgupscaler.ai",
-        path:     "/api/image-upscaler/v2/universal-upscale-for-url/create-job",
-        method:   "POST",
-        headers:  {
+    const { data } = await axios.post("https://api.imgupscaler.ai/api/image-upscaler/v2/universal-upscale-for-url/create-job", form, {
+        headers: {
             ...BASE_HEADERS,
-            "content-type":   `multipart/form-data; boundary=${boundary}`,
-            "content-length": body.length,
+            ...form.getHeaders(),
             "authorization":  "",
-            "product-serial": PRODUCT_SERIAL,
-        }
-    }, body);
+            "product-serial": randomUUID(),
+        },
+    });
 
-    const json  = JSON.parse(res.body);
-    const jobId = json?.result?.job_id;
-    if (!jobId) throw new Error("Upscale job ID tidak ditemukan: " + res.body);
+    const jobId = data?.result?.job_id;
+    if (!jobId) throw new Error("Upscale job ID tidak ditemukan: " + JSON.stringify(data));
     return jobId;
 }
 
-// ─── POLL ─────────────────────────────────────────────────────────────────────
+// ─── POLL JOB ─────────────────────────────────────────────────────────────────
 
-async function pollJob(jobId, label = "", maxRetry = 30, interval = 3000) {
+async function pollJob(jobId, type = "colorize", maxRetry = 30, interval = 3000) {
+    const path = type === "colorize"
+        ? `/api/imgupscaler/v1/ai-image-colorize/get-job/${jobId}`
+        : `/api/image-upscaler/v1/universal_upscale/get-job/${jobId}`;
+
     for (let i = 1; i <= maxRetry; i++) {
         await sleep(interval);
-
-        const res  = await httpsRequest({
-            hostname: "api.imgupscaler.ai",
-            path:     label === "Colorize"
-                ? `/api/imgupscaler/v1/ai-image-colorize/get-job/${jobId}`
-                : `/api/image-upscaler/v1/universal_upscale/get-job/${jobId}`,
-            method:   "GET",
-            headers:  { ...BASE_HEADERS, "product-serial": PRODUCT_SERIAL }
-        });
-
-        let json;
-        try { json = JSON.parse(res.body); } catch { continue; }
-
-        const code      = json?.code;
-        const outputArr = json?.result?.output_url;
-
-        if (code === 100000 && Array.isArray(outputArr) && outputArr[0]) {
-            return outputArr[0];
-        }
+        try {
+            const { data } = await axios.get(`https://api.imgupscaler.ai${path}`, {
+                headers: { ...BASE_HEADERS, "product-serial": randomUUID() },
+            });
+            const outputArr = data?.result?.output_url;
+            if (data?.code === 100000 && Array.isArray(outputArr) && outputArr[0]) {
+                return outputArr[0];
+            }
+        } catch {}
     }
-
-    throw new Error(`Timeout polling ${label}`);
+    throw new Error(`Timeout polling ${type} job`);
 }
 
 // ─── CORE ─────────────────────────────────────────────────────────────────────
 
-async function colorizePhoto(imageUrl, upscaleType = 0) {
-    const colorizeJobId = await createColorizeJob(imageUrl);
-    const colorizedUrl  = await pollJob(colorizeJobId, "Colorize");
+async function colorizePhoto(input, upscaleType = 0) {
+    const { buffer, fileName } = await getImageBuffer(input);
 
-    if (!upscaleType || upscaleType <= 0) return colorizedUrl;
+    // Step 1: Colorize
+    const colorizeJobId = await createColorizeJob(buffer, fileName);
+    const colorizedUrl  = await pollJob(colorizeJobId, "colorize");
+
+    // Step 2: Upscale (optional)
+    if (!upscaleType || upscaleType <= 0) return { colorized_url: colorizedUrl };
 
     const upscaleJobId = await createUpscaleJob(colorizedUrl, upscaleType);
-    return await pollJob(upscaleJobId, "Upscale");
+    const finalUrl     = await pollJob(upscaleJobId, "upscale");
+
+    return { colorized_url: colorizedUrl, upscaled_url: finalUrl };
 }
 
-// ─── MODULE EXPORT ────────────────────────────────────────────────────────────
+// ─── CLI ──────────────────────────────────────────────────────────────────────
 
-module.exports = {
-    name:     "AI Photo Colorizer",
-    desc:     "Colorize foto hitam putih pakai AI imgupscaler — gratis, tanpa login.",
-    category: "AI Tools",
-    params:   ["url", "upscale_type"],
-
-    async run(req, res) {
-        try {
-            const { url, upscale_type } = req.query;
-
-            if (!url || !/^https?:\/\/.+/i.test(url))
-                return res.status(400).json({ status: false, error: 'Parameter "url" (link gambar) wajib diisi!' });
-
-            const upscaleType = parseInt(upscale_type) || 0;
-            const outputUrl   = await colorizePhoto(url, upscaleType);
-
-            return res.status(200).json({
-                status:  true,
-                creator: "Shannz x Xena",
-                result:  { output_url: outputUrl }
-            });
-
-        } catch (error) {
-            return res.status(500).json({
-                status:  false,
-                creator: "Shannz x Xena",
-                error:   error.message
-            });
-        }
+if (require.main === module) {
+    const [,, input, upscaleType] = process.argv;
+    if (!input) {
+        console.log("Usage:");
+        console.log('  node colorize.js "https://example.com/foto.jpg"');
+        console.log('  node colorize.js "https://example.com/foto.jpg" 2');
+        console.log("  node colorize.js foto.jpg 4");
+        console.log("  upscale_type: 0=off (default), 2=2K, 4=4K, 8=8K, 16=16K");
+        process.exit(1);
     }
-};
+    colorizePhoto(input, parseInt(upscaleType) || 0)
+        .then(r  => console.log("✅ Result:", JSON.stringify(r, null, 2)))
+        .catch(e => { console.error("❌ Error:", e.message); process.exit(1); });
+} else {
+    module.exports = {
+        name:     "AI Photo Colorizer",
+        desc:     "Colorize foto hitam putih + upscale.",
+        category: "AI TOOLS",
+        params:   ["url", "_upscale_type"],
+        async run(req, res) {
+            try {
+                const { url, upscale_type = 0 } = req.query;
+                if (!url) return res.status(400).json({
+                    status: false,
+                    error: 'Parameter "url" wajib diisi!'
+                });
+
+                const result = await colorizePhoto(url, parseInt(upscale_type) || 0);
+                return res.status(200).json({
+                    status: true,
+                    creator: "Shannz x Xena",
+                    result
+                });
+            } catch (e) {
+                return res.status(500).json({ status: false, error: e.message });
+            }
+        }
+    };
+}
