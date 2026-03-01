@@ -6,7 +6,7 @@ const axios = require('axios');
  * Params: url
  */
 module.exports = {
-    name: "Douyin Downloader",
+    name: "Douyin",
     desc: "Download video atau image slide dari Douyin/TikTok tanpa watermark",
     category: "Downloader",
     params: ["url"],
@@ -50,7 +50,7 @@ module.exports = {
         } catch (error) {
             res.status(500).json({
                 status: false,
-                creator: "shannz",
+                //creator: "shannz",
                 error: error.message
             });
         }
