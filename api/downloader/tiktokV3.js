@@ -1,5 +1,5 @@
 module.exports = {
-    name: "TiktokDl",
+    name: "Tiktok V3",
     desc: "Download video TikTok tanpa watermark via tikwm.",
     category: "Downloader",
     params: ["url"],
