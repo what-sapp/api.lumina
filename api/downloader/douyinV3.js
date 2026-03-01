@@ -1,5 +1,5 @@
 module.exports = {
-    name: "DouyinV3",
+    name: "Douyin V3",
     desc: "Download video Douyin tanpa watermark.",
     category: "Downloader",
     params: ["url"],
