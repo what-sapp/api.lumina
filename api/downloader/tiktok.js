@@ -205,7 +205,7 @@ const handleTikTokDownload = async (tiktokUrl) => {
 };
 
 module.exports = {
-    name: "TikTok Downloader",
+    name: "TikTok",
     desc: "Download TikTok videos and slides with metadata",
     category: "Downloader",
     params: ["url"],
