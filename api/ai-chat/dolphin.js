@@ -8,7 +8,7 @@ const axios = require('axios');
 module.exports = {
     name: "Dolphin AI",
     desc: "AI dengan logika tinggi menggunakan Dolphin 24B Engine.",
-    category: "AI Magic",
+    category: "AI CHAT",
     params: ["message"],
     async run(req, res) {
         try {
