@@ -9,7 +9,7 @@ const https = require("https");
 module.exports = {
     name: "TurboSeek AI",
     desc: "AI Search mirip Perplexity via turboseek.io — gratis & tanpa login.",
-    category: "AI Search",
+    category: "AI CHAT",
     params: ["text"],
 
     async run(req, res) {
