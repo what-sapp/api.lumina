@@ -53,7 +53,15 @@ module.exports = {
 
             const imageKey = uploadData.fields.key;
 
-            // Step 4: Create task
+            // Step 4: Get last uid before create
+            const beforeRes = await fetch(`${BASE}/api/items/history`, {
+                method: "POST", headers: h,
+                body: JSON.stringify({ tool_type: "1", tag: "", page: 0, page_size: 1 })
+            });
+            const beforeData = await beforeRes.json();
+            const lastUid = beforeData.data?.items?.[0]?.uid || null;
+
+            // Step 5: Create task
             await fetch(`${BASE}/api/items/create`, {
                 method: "POST", headers: h,
                 body: JSON.stringify({
@@ -64,7 +72,7 @@ module.exports = {
                 })
             });
 
-            // Step 5: Poll history tool_type=1
+            // Step 6: Poll history - tunggu item baru
             let result = null;
             for (let i = 0; i < 20; i++) {
                 await new Promise(r => setTimeout(r, 5000));
@@ -74,7 +82,7 @@ module.exports = {
                 });
                 const histData = await histRes.json();
                 const item = histData.data?.items?.[0];
-                if (item && item.status === 2) {
+                if (item && item.uid !== lastUid && item.status === 2) {
                     const output = item.result_urls?.find(u => !u.is_input);
                     if (output) { result = { item, url: output.hd }; break; }
                 }
