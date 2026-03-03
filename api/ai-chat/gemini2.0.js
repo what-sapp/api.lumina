@@ -21,7 +21,7 @@ const crypto = require("crypto");
 const UA = "Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36 Chrome/107.0.0.0 Mobile Safari/537.36";
 
 async function getSession() {
-    const res = await axios.get("https://talkai.info/chat/", {
+    const res = await axios.get("https://talkai.info/id/chat/", {
         headers: { "user-agent": UA, "accept": "text/html" },
     });
     return (res.headers["set-cookie"] || []).map(c => c.split(";")[0]).join("; ");
@@ -37,16 +37,16 @@ async function gemini(prompt, system = "") {
     const body = JSON.stringify({
         type: "chat",
         messagesHistory,
-        settings: { model: "gemini-2.5-flash", temperature: 0.7 },
+        settings: { model: "gemini-2.0-flash-lite", temperature: 0.7 },
     });
 
-    const res = await axios.post("https://talkai.info/chat/send/", body, {
+    const res = await axios.post("https://talkai.info/id/chat/send/", body, {
         headers: {
             "accept":       "application/json, text/event-stream",
             "content-type": "application/json",
             "cookie":       cookie,
             "origin":       "https://talkai.info",
-            "referer":      "https://talkai.info/chat/",
+            "referer":      "https://talkai.info/id/chat/",
             "user-agent":   UA,
         },
         responseType: "text",
@@ -71,7 +71,7 @@ if (require.main === module) {
         .catch(e => { console.error("❌ Error:", e.message); process.exit(1); });
 } else {
     module.exports = {
-        name:     "Gemini Chat",
+        name:     "Gemini 2.0",
         desc:     "Chat dengan Gemini 2.0 Flash via talkai.info — gratis tanpa login.",
         category: "AI CHAT",
         params:   ["prompt", "_system"],
