@@ -19,7 +19,7 @@ const crypto = require("crypto");
 const UA = "Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36 Chrome/107.0.0.0 Mobile Safari/537.36";
 
 async function getSession() {
-    const res = await axios.get("https://talkai.info/chat/", {
+    const res = await axios.get("https://talkai.info/id/chat/", {
         headers: { "user-agent": UA, "accept": "text/html" },
     });
     return (res.headers["set-cookie"] || []).map(c => c.split(";")[0]).join("; ");
@@ -35,16 +35,16 @@ async function deepseek(prompt, system = "") {
     const body = JSON.stringify({
         type: "chat",
         messagesHistory,
-        settings: { model: "deepseek-v3", temperature: 0.7 },
+        settings: { model: "deepseek-chat", temperature: 0.7 },
     });
 
-    const res = await axios.post("https://talkai.info/chat/send/", body, {
+    const res = await axios.post("https://talkai.info/id/chat/send/", body, {
         headers: {
             "accept":       "application/json, text/event-stream",
             "content-type": "application/json",
             "cookie":       cookie,
             "origin":       "https://talkai.info",
-            "referer":      "https://talkai.info/chat/",
+            "referer":      "https://talkai.info/id/chat/",
             "user-agent":   UA,
         },
         responseType: "text",
@@ -85,4 +85,3 @@ if (require.main === module) {
         }
     };
 }
-
