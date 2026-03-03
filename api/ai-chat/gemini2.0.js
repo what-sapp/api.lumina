@@ -37,7 +37,7 @@ async function gemini(prompt, system = "") {
     const body = JSON.stringify({
         type: "chat",
         messagesHistory,
-        settings: { model: "gemini-2.0-flash", temperature: 0.7 },
+        settings: { model: "gemini-2.5-flash", temperature: 0.7 },
     });
 
     const res = await axios.post("https://talkai.info/chat/send/", body, {
@@ -71,7 +71,7 @@ if (require.main === module) {
         .catch(e => { console.error("❌ Error:", e.message); process.exit(1); });
 } else {
     module.exports = {
-        name:     "Gemini 2.0 Flash",
+        name:     "Gemini Chat",
         desc:     "Chat dengan Gemini 2.0 Flash via talkai.info — gratis tanpa login.",
         category: "AI CHAT",
         params:   ["prompt", "_system"],
@@ -87,4 +87,3 @@ if (require.main === module) {
         }
     };
 }
-
