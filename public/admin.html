@@ -563,8 +563,9 @@
                 const epData = await epRes.json();
                 const stRes  = await adminFetch('/admin/endpoints-status');
                 const stData = await stRes.json();
+
                 const statusMap = {};
-                (stData.list || []).forEach(s => { statusMap[s.key] = s.enabled; });
+                (stData.list || []).forEach(s => { statusMap[s.key] = { enabled: s.enabled, requireKey: s.requireKey || false }; });
 
                 const allItems = [];
                 (epData.endpoints || []).forEach(cat => {
@@ -576,22 +577,29 @@
                     });
                 });
 
-                document.getElementById('stat-disabled').textContent = allItems.filter(i => statusMap[i.key] === false).length;
+                document.getElementById('stat-disabled').textContent = allItems.filter(i => statusMap[i.key]?.enabled === false).length;
 
                 if (!allItems.length) { container.innerHTML = '<div class="empty-state">No endpoints found</div>'; return; }
 
                 container.innerHTML = allItems.map(item => {
-                    const enabled = statusMap[item.key] !== false;
-                    const cls     = { GET:'mx-get', POST:'mx-post', PUT:'mx-put', DELETE:'mx-delete' }[item.method] || 'mx-get';
+                    const enabled    = statusMap[item.key]?.enabled !== false;
+                    const requireKey = statusMap[item.key]?.requireKey || false;
+                    const cls        = { GET:'mx-get', POST:'mx-post', PUT:'mx-put', DELETE:'mx-delete' }[item.method] || 'mx-get';
                     return `
-                        <div class="endpoint-toggle-item">
-                            <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <div class="endpoint-toggle-item" style="gap:0.5rem; flex-wrap:wrap;">
+                            <div style="display:flex; align-items:center; gap:0.5rem; flex:1; min-width:0;">
                                 <span class="method-xs ${cls}">${item.method}</span>
-                                <span class="endpoint-key">${item.path}</span>
+                                <span class="endpoint-key" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.path}</span>
                             </div>
-                            <div class="toggle-wrap">
-                                <span class="toggle-label">${enabled ? 'ON' : 'OFF'}</span>
-                                <label class="toggle"><input type="checkbox" ${enabled ? 'checked' : ''} onchange="toggleEndpoint('${item.key}', this.checked, this)"><span class="toggle-slider"></span></label>
+                            <div style="display:flex; align-items:center; gap:0.875rem;">
+                                <div class="toggle-wrap" title="Enable/Disable endpoint">
+                                    <span class="toggle-label" style="color:${enabled ? 'var(--success-color)' : 'var(--text-muted)'};">${enabled ? 'ON' : 'OFF'}</span>
+                                    <label class="toggle"><input type="checkbox" ${enabled ? 'checked' : ''} data-role="enabled" data-key="${item.key}" onchange="toggleEndpoint('${item.key}', this.checked, this)"><span class="toggle-slider"></span></label>
+                                </div>
+                                <div class="toggle-wrap" title="Wajibkan API Key untuk endpoint ini">
+                                    <span class="material-icons" style="font-size:0.8rem; color:${requireKey ? 'var(--accent-color)' : 'var(--text-muted)'};">vpn_key</span>
+                                    <label class="toggle"><input type="checkbox" ${requireKey ? 'checked' : ''} data-role="requireKey" data-key="${item.key}" onchange="toggleRequireKey('${item.key}', this.checked, this)"><span class="toggle-slider" style="${requireKey ? 'background:var(--accent-color);' : ''}"></span></label>
+                                </div>
                             </div>
                         </div>`;
                 }).join('');
@@ -602,12 +610,23 @@
             try {
                 const res  = await adminFetch('/admin/endpoints-status', { method: 'POST', body: JSON.stringify({ key, enabled }) });
                 const data = await res.json();
-                if (!data.status) { el.checked = !enabled; }
-                else {
-                    el.closest('.toggle-wrap').querySelector('.toggle-label').textContent = enabled ? 'ON' : 'OFF';
-                    document.getElementById('stat-disabled').textContent = [...document.querySelectorAll('#endpoints-list input[type=checkbox]')].filter(t => !t.checked).length;
-                }
+                if (!data.status) { el.checked = !enabled; return; }
+                const label = el.closest('.toggle-wrap').querySelector('.toggle-label');
+                if (label) { label.textContent = enabled ? 'ON' : 'OFF'; label.style.color = enabled ? 'var(--success-color)' : 'var(--text-muted)'; }
+                document.getElementById('stat-disabled').textContent = [...document.querySelectorAll('#endpoints-list input[data-role="enabled"]')].filter(t => !t.checked).length;
             } catch (e) { el.checked = !enabled; }
+        }
+
+        async function toggleRequireKey(key, requireKey, el) {
+            try {
+                const res  = await adminFetch('/admin/endpoints-require-key', { method: 'POST', body: JSON.stringify({ key, requireKey }) });
+                const data = await res.json();
+                if (!data.status) { el.checked = !requireKey; return; }
+                const icon   = el.closest('.toggle-wrap').querySelector('.material-icons');
+                const slider = el.nextElementSibling;
+                if (icon)   icon.style.color      = requireKey ? 'var(--accent-color)' : 'var(--text-muted)';
+                if (slider) slider.style.background = requireKey ? 'var(--accent-color)' : '';
+            } catch (e) { el.checked = !requireKey; }
         }
 
         // ── Apikey Manager ──
@@ -914,7 +933,7 @@
 
         // Expose globally
         window.loadTraffic=loadTraffic; window.loadBlacklist=loadBlacklist; window.addBlacklist=addBlacklist; window.removeBlacklist=removeBlacklist;
-        window.loadEndpointsList=loadEndpointsList; window.toggleEndpoint=toggleEndpoint; window.forceReloadCache=forceReloadCache;
+        window.loadEndpointsList=loadEndpointsList; window.toggleEndpoint=toggleEndpoint; window.toggleRequireKey=toggleRequireKey; window.forceReloadCache=forceReloadCache;
         window.loadApikeys=loadApikeys; window.showApikeyForm=showApikeyForm; window.hideApikeyForm=hideApikeyForm;
         window.generateApikey=generateApikey; window.copyApikey=copyApikey; window.toggleApikey=toggleApikey;
         window.deleteApikey=deleteApikey; window.toggleRequireApikey=toggleRequireApikey;
