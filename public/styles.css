@@ -1167,3 +1167,46 @@ body.noscroll {
     color: var(--error-color);
     background: rgba(244, 63, 94, 0.05);
 }
+/* ================================================
+   FIX ANDROID GOOGLE SEARCH POPUP
+   ================================================ */
+.endpoint-card,
+.endpoint-card *,
+.category-header,
+.category-name,
+.endpoint-name,
+.endpoint-desc,
+.endpoint-path {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Input di modal tetap bisa di-select */
+.param-input,
+.modal-box input,
+.modal-box textarea {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Global tap highlight off */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ================================================
+   ACCORDION FIX — pakai scrollHeight bukan 5000px
+   ================================================ */
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.accordion-content.open {
+    max-height: none; /* di-override JS pakai scrollHeight */
+}
+
+
