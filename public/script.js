@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 card.style.transform  = 'translateY(16px)';
                 card.style.transition = `opacity 0.3s ease ${itemIndex * 0.05}s, transform 0.3s ease ${itemIndex * 0.05}s`;
 
-                const endpointKey = (item.path || '/').replace(/^\//, '').replace(/\//g, '_');
+                const endpointKey = (item.path || '/').split('?')[0].replace(/^\//, '').replace(/\//g, '_');
                 const isDisabled  = disabledKeys.has(endpointKey);
                 const rawStatus   = item.status || 'ready';
                 const status      = isDisabled ? 'disabled' : rawStatus;
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const totalItems    = category.items.length;
             const disabledCount = category.items.filter(itemData => {
                 const item = itemData[Object.keys(itemData)[0]];
-                const key  = (item.path || '/').replace(/^\//, '').replace(/\//g, '_');
+                const key  = (item.path || '/').split('?')[0].replace(/^\//, '').replace(/\//g, '_');
                 return disabledKeys.has(key);
             }).length;
 
