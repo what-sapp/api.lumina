@@ -34,7 +34,7 @@ module.exports = {
 
     // Credentials — ganti jika expired
     CREDS: {
-        email: "robinvschina@gmail.com",
+        email: "nekofr3@gmail.com",
         password: "ROBIN12345"
     },
     TOKEN: null,
