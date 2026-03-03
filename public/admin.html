@@ -572,7 +572,7 @@
                     cat.items.forEach(itemObj => {
                         const name = Object.keys(itemObj)[0];
                         const item = itemObj[name];
-                        const key  = item.path.replace(/^\//, '').replace(/\//g, '_');
+                        const key  = item.path.split('?')[0].replace(/^\//, '').replace(/\//g, '_');
                         allItems.push({ name, key, path: item.path, method: item.method || 'GET' });
                     });
                 });
