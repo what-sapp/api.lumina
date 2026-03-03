@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         // ── Apikey field — cek per-endpoint requireKey ──
-        const endpointKey   = endpoint.split('?')[0].replace(/^//, '').replace(///g, '_');
+        const endpointKey   = endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_');
         const requireApikey = (window._requireKeyEndpoints || new Set()).has(endpointKey);
         const savedApikey   = window._savedApikey || '';
 
@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         let queryParams = new URLSearchParams();
 
         // ── Cek apikey ──
-        const requireApikey = (window._requireKeyEndpoints || new Set()).has(endpoint.split('?')[0].replace(/^//, '').replace(///g, '_'));
+        const requireApikey = (window._requireKeyEndpoints || new Set()).has(endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_'));
         const apikeyInput   = document.getElementById('modal-apikey');
         const apikeyVal     = apikeyInput?.value?.trim() || '';
         const apikeyError   = document.getElementById('error-apikey');
