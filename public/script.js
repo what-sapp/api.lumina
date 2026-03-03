@@ -100,6 +100,10 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 const card = document.createElement('div');
                 card.className = 'endpoint-card';
+                card.style.userSelect        = 'none';
+                card.style.webkitUserSelect  = 'none';
+                card.style.webkitTouchCallout = 'none';
+                card.style.webkitTapHighlightColor = 'transparent';
                 card.dataset.name     = itemName.toLowerCase();
                 card.dataset.desc     = (item.desc || '').toLowerCase();
                 card.dataset.category = catIndex;
