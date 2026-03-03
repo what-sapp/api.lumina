@@ -253,7 +253,7 @@ app.get('/contributors', (req, res) => res.sendFile(path.join(__dirname, 'public
 app.get('/status',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'status.html')));
 app.get('/luminaai',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'luminaai.html')));
 app.get('/playground',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'playground.html')));
-app.get('/admin',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/admin', (req, res, next) => { if (req.path !== '/admin' && req.path !== '/admin/') return next(); res.sendFile(path.join(__dirname, 'public', 'admin.html')); });
 
 // ════════════════════════════════════════
 //  PUBLIC API ROUTES
@@ -521,8 +521,13 @@ app.post('/admin/endpoints-require-key', verifyAdmin, async (req, res) => {
 //  ADMIN: APIKEY MANAGEMENT
 // ════════════════════════════════════════
 app.get('/admin/apikeys', verifyAdmin, async (req, res) => {
-    try { const snap = await db.collection('apikeys').orderBy('createdAt', 'desc').get(); res.json({ status: true, count: snap.docs.length, list: snap.docs.map(d => ({ key: d.id, ...d.data() })) }); }
-    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+    try {
+        let snap;
+        try { snap = await db.collection('apikeys').orderBy('createdAt', 'desc').get(); }
+        catch (_) { snap = await db.collection('apikeys').get(); }
+        const list = snap.docs.map(d => ({ key: d.id, ...d.data() }));
+        res.json({ status: true, count: list.length, list });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
 app.post('/admin/apikeys', verifyAdmin, async (req, res) => {
@@ -544,6 +549,24 @@ app.patch('/admin/apikeys/:key', verifyAdmin, async (req, res) => {
 app.delete('/admin/apikeys/:key', verifyAdmin, async (req, res) => {
     try { await db.collection('apikeys').doc(req.params.key).delete(); await reloadApikeyCache(); res.json({ status: true }); }
     catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// ════════════════════════════════════════
+//  ADMIN: SETTINGS (require-apikey toggle)
+// ════════════════════════════════════════
+app.get('/admin/settings/require-apikey', verifyAdmin, async (req, res) => {
+    try {
+        const doc = await db.collection('settings').doc('require_apikey').get();
+        res.json({ status: true, enabled: doc.exists ? (doc.data().enabled || false) : false });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.post('/admin/settings/require-apikey', verifyAdmin, async (req, res) => {
+    const { enabled } = req.body;
+    try {
+        await db.collection('settings').doc('require_apikey').set({ enabled: !!enabled }, { merge: true });
+        res.json({ status: true, enabled: !!enabled });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
 // ════════════════════════════════════════
