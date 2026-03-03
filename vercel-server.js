@@ -1,9 +1,10 @@
-const cors = require('cors');
+const cors    = require('cors');
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const set = require('./settings');
-const admin = require('firebase-admin');
+const fs      = require('fs');
+const path    = require('path');
+const crypto  = require('crypto');
+const set     = require('./settings');
+const admin   = require('firebase-admin');
 
 const app = express();
 
@@ -20,9 +21,13 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// ── Cache ──
+// ════════════════════════════════════════
+//  CACHE
+// ════════════════════════════════════════
 let blacklistCache    = new Set();
 let disabledEndpoints = new Set();
+let apikeyCache       = new Set();
+let requireApikey     = false;
 
 async function reloadAdminCache() {
     try {
@@ -38,12 +43,27 @@ async function reloadAdminCache() {
     }
 }
 
-// Load cache on startup
-reloadAdminCache();
-setInterval(reloadAdminCache, 30000);
+async function reloadApikeyCache() {
+    try {
+        const snap = await db.collection('apikeys').where('active', '==', true).get();
+        apikeyCache = new Set(snap.docs.map(d => d.id));
 
-// ── Rate Limiter ──
-const rateMap = new Map();
+        const setting = await db.collection('settings').doc('require_apikey').get();
+        requireApikey = setting.exists ? setting.data().enabled : false;
+    } catch (e) {
+        console.warn('Apikey cache reload failed:', e.message);
+    }
+}
+
+reloadAdminCache();
+reloadApikeyCache();
+setInterval(reloadAdminCache,  30000);
+setInterval(reloadApikeyCache, 30000);
+
+// ════════════════════════════════════════
+//  RATE LIMITER
+// ════════════════════════════════════════
+const rateMap     = new Map();
 const RATE_LIMIT  = 60;
 const RATE_WINDOW = 60 * 1000;
 
@@ -65,6 +85,9 @@ setInterval(() => {
     }
 }, 5 * 60 * 1000);
 
+// ════════════════════════════════════════
+//  EXPRESS SETUP
+// ════════════════════════════════════════
 app.set('trust proxy', true);
 app.set('json spaces', 2);
 
@@ -76,10 +99,12 @@ app.use('/image', express.static(path.join(__dirname, 'docs', 'image')));
 app.use('/err',   express.static(path.join(__dirname, 'docs', 'err')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── Middleware: Blacklist + Rate Limit ──
+// ════════════════════════════════════════
+//  MIDDLEWARE: Blacklist + Rate Limit
+// ════════════════════════════════════════
 app.use((req, res, next) => {
-    const ip      = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
-    const isAdmin = req.path.startsWith('/admin');
+    const ip       = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
+    const isAdmin  = req.path.startsWith('/admin');
     const isStatic = req.path.match(/\.(html|css|js|png|ico|jpg|svg|woff2?)$/);
 
     if (blacklistCache.has(ip)) {
@@ -95,7 +120,36 @@ app.use((req, res, next) => {
     next();
 });
 
-// ── Middleware: Response wrapper + Traffic logging ──
+// ════════════════════════════════════════
+//  MIDDLEWARE: Require Apikey
+// ════════════════════════════════════════
+app.use((req, res, next) => {
+    const isAdmin  = req.path.startsWith('/admin');
+    const isStatic = req.path.match(/\.(html|css|js|png|ico|jpg|svg|woff2?)$/);
+    const isPublic = [
+        '/endpoints', '/set', '/stats', '/server-info',
+        '/changelog', '/endpoints-status', '/report',
+        '/settings/require-apikey'
+    ].some(p => req.path.startsWith(p));
+    const isRoot = ['/', '/docs', '/contributors', '/status', '/luminaai', '/playground', '/admin'].includes(req.path);
+
+    if (!requireApikey || isAdmin || isPublic || isStatic || isRoot) return next();
+
+    const apikey = req.query.apikey || req.headers['x-api-key'];
+    if (!apikey || !apikeyCache.has(apikey)) {
+        return res.status(401).json({
+            status:  false,
+            message: 'API key required. Get your key from the owner.',
+            hint:    'Pass ?apikey=YOUR_KEY or header X-Api-Key'
+        });
+    }
+
+    next();
+});
+
+// ════════════════════════════════════════
+//  MIDDLEWARE: Response wrapper + Traffic logging
+// ════════════════════════════════════════
 app.use((req, res, next) => {
     const startTime = Date.now();
     const ip        = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '');
@@ -106,8 +160,7 @@ app.use((req, res, next) => {
             const statusCode   = res.statusCode || 200;
             const responseData = { status: data.status, statusCode, creator: set.author.toLowerCase(), ...data };
 
-            // Log traffic (skip admin & utility routes)
-            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info', '/changelog'].some(p => req.path.startsWith(p));
+            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info', '/changelog', '/settings'].some(p => req.path.startsWith(p));
             if (!skip) {
                 db.collection('traffic').add({
                     path:      req.path,
@@ -141,14 +194,15 @@ String.prototype.capitalize = function () {
     }
 })();
 
+// ════════════════════════════════════════
+//  LOAD ENDPOINTS FROM DIRECTORY
+// ════════════════════════════════════════
 function loadEndpointsFromDirectory(directory, baseRoute = '') {
     let endpoints = [];
     const fullPath = path.join(__dirname, directory);
-
     if (!fs.existsSync(fullPath)) return endpoints;
 
     const items = fs.readdirSync(fullPath);
-
     items.forEach(item => {
         const itemPath = path.join(fullPath, item);
         const stats    = fs.statSync(itemPath);
@@ -158,12 +212,11 @@ function loadEndpointsFromDirectory(directory, baseRoute = '') {
             endpoints = [...endpoints, ...nested];
         } else if (stats.isFile() && item.endsWith('.js')) {
             try {
-                const module = require(itemPath);
+                const module       = require(itemPath);
                 if (module?.run && typeof module.run === 'function') {
                     const endpointName = item.replace('.js', '');
                     const endpointPath = `${baseRoute}/${endpointName}`;
 
-                    // Wrap dengan disabled check
                     app.all(endpointPath, (req, res, next) => {
                         const key = endpointPath.replace(/^\//, '').replace(/\//g, '_');
                         if (disabledEndpoints.has(key)) {
@@ -205,16 +258,16 @@ const allEndpoints = loadEndpointsFromDirectory('api');
 // ════════════════════════════════════════
 //  HTML ROUTES
 // ════════════════════════════════════════
-app.get('/',            (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/docs',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'docs.html')));
-app.get('/contributors',(req, res) => res.sendFile(path.join(__dirname, 'public', 'contributors.html')));
-app.get('/status',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'status.html')));
-app.get('/luminaai',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'luminaai.html')));
-app.get('/playground',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'playground.html')));
-app.get('/admin',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/docs',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'docs.html')));
+app.get('/contributors', (req, res) => res.sendFile(path.join(__dirname, 'public', 'contributors.html')));
+app.get('/status',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'status.html')));
+app.get('/luminaai',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'luminaai.html')));
+app.get('/playground',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'playground.html')));
+app.get('/admin',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
 // ════════════════════════════════════════
-//  API ROUTES
+//  PUBLIC API ROUTES
 // ════════════════════════════════════════
 app.get('/endpoints', (req, res) => {
     res.json({ status: true, count: allEndpoints.reduce((t, c) => t + c.items.length, 0), endpoints: allEndpoints });
@@ -224,8 +277,13 @@ app.get('/set', (req, res) => {
     res.json({ status: true, ...set });
 });
 
+// Public: cek require_apikey status
+app.get('/settings/require-apikey', (req, res) => {
+    res.json({ status: true, enabled: requireApikey });
+});
+
 // ════════════════════════════════════════
-//  SERVER INFO ROUTE (public)
+//  SERVER INFO
 // ════════════════════════════════════════
 app.get('/server-info', (req, res) => {
     const os      = require('os');
@@ -234,8 +292,7 @@ app.get('/server-info', (req, res) => {
     const minutes = Math.floor((uptime % 3600) / 60);
     const seconds = Math.floor(uptime % 60);
 
-    // Memory — pakai process.memoryUsage() lebih reliable di serverless
-    const memUsage = process.memoryUsage();
+    const memUsage  = process.memoryUsage();
     const heapUsed  = Math.round(memUsage.heapUsed / 1024 / 1024);
     const heapTotal = Math.round(memUsage.heapTotal / 1024 / 1024);
     const rss       = Math.round(memUsage.rss / 1024 / 1024);
@@ -244,16 +301,16 @@ app.get('/server-info', (req, res) => {
     res.json({
         status:  true,
         server: {
-            region:      set.server?.region      || 'Asia-Southeast',
-            provider:    set.server?.provider    || 'Vercel',
-            version:     set.server?.version     || 'v1.0.0',
-            nodeVersion: process.version,
-            uptime:      `${hours}h ${minutes}m ${seconds}s`,
+            region:        set.server?.region      || 'Asia-Southeast',
+            provider:      set.server?.provider    || 'Vercel',
+            version:       set.server?.version     || 'v1.0.0',
+            nodeVersion:   process.version,
+            uptime:        `${hours}h ${minutes}m ${seconds}s`,
             uptimeSeconds: Math.floor(uptime),
-            memUsed:     memUsed,
-            memDetail:   `${heapUsed}MB / ${heapTotal}MB heap (${rss}MB RSS)`,
-            platform:    os.platform(),
-            arch:        os.arch()
+            memUsed,
+            memDetail:     `${heapUsed}MB / ${heapTotal}MB heap (${rss}MB RSS)`,
+            platform:      os.platform(),
+            arch:          os.arch()
         },
         owner: {
             name:   set.owner?.name   || set.author,
@@ -267,7 +324,7 @@ app.get('/server-info', (req, res) => {
 });
 
 // ════════════════════════════════════════
-//  PUBLIC STATS ROUTE (no auth needed)
+//  STATS
 // ════════════════════════════════════════
 app.get('/stats', async (req, res) => {
     try {
@@ -275,81 +332,42 @@ app.get('/stats', async (req, res) => {
         const traffic = snap.docs.map(d => d.data());
 
         if (!traffic.length) {
-            return res.json({
-                status:       true,
-                totalRequests: 0,
-                successRate:   100,
-                avgDuration:   0,
-                topEndpoints:  [],
-                recentErrors:  0,
-                last24h:       0
-            });
+            return res.json({ status: true, totalRequests: 0, successRate: 100, avgDuration: 0, topEndpoints: [], recentErrors: 0, last24h: 0 });
         }
 
-        // Total requests
-        const total = traffic.length;
+        const total    = traffic.length;
+        const ok       = traffic.filter(t => t.status >= 200 && t.status < 400);
+        const rate     = ((ok.length / total) * 100).toFixed(1);
+        const withDur  = traffic.filter(t => t.duration);
+        const avgDur   = withDur.length ? Math.round(withDur.reduce((s, t) => s + t.duration, 0) / withDur.length) : 0;
 
-        // Success rate
-        const ok    = traffic.filter(t => t.status >= 200 && t.status < 400);
-        const rate  = ((ok.length / total) * 100).toFixed(1);
-
-        // Avg duration
-        const withDur = traffic.filter(t => t.duration);
-        const avgDur  = withDur.length
-            ? Math.round(withDur.reduce((s, t) => s + t.duration, 0) / withDur.length)
-            : 0;
-
-        // Top endpoints
         const pathMap = {};
         traffic.forEach(t => {
             if (!t.path) return;
             if (!pathMap[t.path]) pathMap[t.path] = { count: 0, ok: 0, totalDur: 0 };
             pathMap[t.path].count++;
-            if (t.status >= 200 && t.status < 400) {
-                pathMap[t.path].ok++;
-                pathMap[t.path].totalDur += (t.duration || 0);
-            }
+            if (t.status >= 200 && t.status < 400) { pathMap[t.path].ok++; pathMap[t.path].totalDur += (t.duration || 0); }
         });
 
         const topEndpoints = Object.entries(pathMap)
             .sort((a, b) => b[1].count - a[1].count)
             .slice(0, 10)
-            .map(([path, d]) => ({
-                path,
-                count:       d.count,
-                successRate: ((d.ok / d.count) * 100).toFixed(0),
-                avgDuration: d.ok ? Math.round(d.totalDur / d.ok) : 0
-            }));
+            .map(([path, d]) => ({ path, count: d.count, successRate: ((d.ok / d.count) * 100).toFixed(0), avgDuration: d.ok ? Math.round(d.totalDur / d.ok) : 0 }));
 
-        // Last 24h
-        const now   = Date.now();
-        const last24h = traffic.filter(t => {
-            if (!t.timestamp?.seconds) return false;
-            return (now - t.timestamp.seconds * 1000) <= 24 * 60 * 60 * 1000;
-        }).length;
-
-        // Recent errors
+        const now     = Date.now();
+        const last24h = traffic.filter(t => t.timestamp?.seconds && (now - t.timestamp.seconds * 1000) <= 86400000).length;
         const recentErrors = traffic.filter(t => t.status >= 400).length;
 
-        res.json({
-            status:        true,
-            totalRequests: total,
-            successRate:   parseFloat(rate),
-            avgDuration:   avgDur,
-            topEndpoints,
-            recentErrors,
-            last24h
-        });
+        res.json({ status: true, totalRequests: total, successRate: parseFloat(rate), avgDuration: avgDur, topEndpoints, recentErrors, last24h });
     } catch (e) {
         res.status(500).json({ status: false, message: e.message });
     }
 });
 
 // ════════════════════════════════════════
-//  PUBLIC ENDPOINTS STATUS (no auth)
+//  PUBLIC ENDPOINTS STATUS
 // ════════════════════════════════════════
 app.get('/endpoints-status', (req, res) => {
-    // Baca dari disabledEndpoints cache — zero DB call, aman buat publik
     const list = [...disabledEndpoints].map(key => ({ key, enabled: false }));
     res.json({ status: true, list });
 });
@@ -357,8 +375,6 @@ app.get('/endpoints-status', (req, res) => {
 // ════════════════════════════════════════
 //  REPORT ROUTES
 // ════════════════════════════════════════
-
-// Rate limit khusus report — max 5 per jam per IP
 const reportRateMap = new Map();
 function checkReportLimit(ip) {
     const now   = Date.now();
@@ -371,48 +387,30 @@ function checkReportLimit(ip) {
     return entry.count <= 5;
 }
 
-// POST /report — submit report dari user
 app.post('/report', async (req, res) => {
     const ip = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
-
     if (!checkReportLimit(ip)) {
         return res.status(429).json({ status: false, message: 'Too many reports. Please wait before submitting again.' });
     }
-
     const { endpoint, type, description, email } = req.body;
-
-    if (!endpoint || endpoint.trim().length < 2) {
-        return res.status(400).json({ status: false, message: 'Endpoint URL is required.' });
-    }
-
-    if (!type) {
-        return res.status(400).json({ status: false, message: 'Issue type is required.' });
-    }
-
+    if (!endpoint || endpoint.trim().length < 2) return res.status(400).json({ status: false, message: 'Endpoint URL is required.' });
+    if (!type) return res.status(400).json({ status: false, message: 'Issue type is required.' });
     try {
         await db.collection('reports').add({
-            endpoint:    endpoint.trim(),
-            type,
-            description: description?.trim() || '',
-            email:       email?.trim() || '',
-            ip,
-            status:      'open',
-            timestamp:   admin.firestore.FieldValue.serverTimestamp(),
-            ua:          req.headers['user-agent'] || ''
+            endpoint: endpoint.trim(), type, description: description?.trim() || '',
+            email: email?.trim() || '', ip, status: 'open',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            ua: req.headers['user-agent'] || ''
         });
-
         res.json({ status: true, message: 'Report submitted successfully. Thank you!' });
     } catch (e) {
         res.status(500).json({ status: false, message: e.message });
     }
 });
 
-// GET /admin/reports — list semua report (admin only)
 // ════════════════════════════════════════
-//  ADMIN ROUTES
+//  ADMIN AUTH MIDDLEWARE
 // ════════════════════════════════════════
-
-// Verify Firebase token middleware
 async function verifyAdmin(req, res, next) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ status: false, message: 'Unauthorized' });
@@ -427,23 +425,22 @@ async function verifyAdmin(req, res, next) {
     }
 }
 
-// GET /admin/reports — list semua report
+// ════════════════════════════════════════
+//  ADMIN: REPORTS
+// ════════════════════════════════════════
 app.get('/admin/reports', verifyAdmin, async (req, res) => {
     try {
         const status = req.query.status || null;
         let query    = db.collection('reports').orderBy('timestamp', 'desc').limit(100);
         if (status) query = db.collection('reports').where('status', '==', status).orderBy('timestamp', 'desc').limit(100);
-        const snap   = await query.get();
+        const snap    = await query.get();
         const reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         res.json({ status: true, count: reports.length, reports });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// PATCH /admin/reports/:id — update status report
 app.patch('/admin/reports/:id', verifyAdmin, async (req, res) => {
-    const { id }     = req.params;
+    const { id } = req.params;
     const { status } = req.body;
     if (!['open','in_progress','resolved','dismissed'].includes(status)) {
         return res.status(400).json({ status: false, message: 'Invalid status' });
@@ -451,64 +448,37 @@ app.patch('/admin/reports/:id', verifyAdmin, async (req, res) => {
     try {
         await db.collection('reports').doc(id).update({ status, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
         res.json({ status: true, message: `Report ${id} → ${status}` });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// DELETE /admin/reports/:id — hapus report
 app.delete('/admin/reports/:id', verifyAdmin, async (req, res) => {
-    const { id } = req.params;
     try {
-        await db.collection('reports').doc(id).delete();
-        res.json({ status: true, message: `Report ${id} deleted` });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+        await db.collection('reports').doc(req.params.id).delete();
+        res.json({ status: true, message: `Report ${req.params.id} deleted` });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
 // ════════════════════════════════════════
-//  CHANGELOG ROUTES
+//  ADMIN: CHANGELOG
 // ════════════════════════════════════════
-
-// GET /changelog — public
 app.get('/changelog', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 20;
-        const snap  = await db.collection('changelog')
-            .orderBy('timestamp', 'desc')
-            .limit(limit)
-            .get();
-        const entries = snap.docs.map(d => ({
-            id: d.id,
-            ...d.data(),
-            timestamp: d.data().timestamp?.toDate?.()?.toISOString() || null
-        }));
+        const snap  = await db.collection('changelog').orderBy('timestamp', 'desc').limit(limit).get();
+        const entries = snap.docs.map(d => ({ id: d.id, ...d.data(), timestamp: d.data().timestamp?.toDate?.()?.toISOString() || null }));
         res.json({ status: true, count: entries.length, entries });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// POST /admin/changelog — tambah entry
 app.post('/admin/changelog', verifyAdmin, async (req, res) => {
     try {
         const { version, title, notes, type } = req.body;
-        if (!version || !title || !notes?.length)
-            return res.status(400).json({ status: false, message: 'version, title, notes wajib diisi' });
-        const ref = await db.collection('changelog').add({
-            version, title,
-            notes: Array.isArray(notes) ? notes : [notes],
-            type: type || 'update',
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
+        if (!version || !title || !notes?.length) return res.status(400).json({ status: false, message: 'version, title, notes wajib diisi' });
+        const ref = await db.collection('changelog').add({ version, title, notes: Array.isArray(notes) ? notes : [notes], type: type || 'update', timestamp: admin.firestore.FieldValue.serverTimestamp() });
         res.json({ status: true, id: ref.id });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// PATCH /admin/changelog/:id — edit entry
 app.patch('/admin/changelog/:id', verifyAdmin, async (req, res) => {
     try {
         const { version, title, notes, type } = req.body;
@@ -519,95 +489,80 @@ app.patch('/admin/changelog/:id', verifyAdmin, async (req, res) => {
         if (type)    update.type    = type;
         await db.collection('changelog').doc(req.params.id).update(update);
         res.json({ status: true });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// DELETE /admin/changelog/:id — hapus entry
 app.delete('/admin/changelog/:id', verifyAdmin, async (req, res) => {
     try {
         await db.collection('changelog').doc(req.params.id).delete();
         res.json({ status: true });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// Force reload cache
+// ════════════════════════════════════════
+//  ADMIN: CACHE
+// ════════════════════════════════════════
 app.post('/admin/cache/reload', verifyAdmin, async (req, res) => {
     try {
         await reloadAdminCache();
-        res.json({ status: true, message: 'Cache reloaded', blacklisted: blacklistCache.size, disabled: disabledEndpoints.size });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+        await reloadApikeyCache();
+        res.json({ status: true, message: 'Cache reloaded', blacklisted: blacklistCache.size, disabled: disabledEndpoints.size, apikeys: apikeyCache.size });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// Traffic
+// ════════════════════════════════════════
+//  ADMIN: TRAFFIC
+// ════════════════════════════════════════
 app.get('/admin/traffic', verifyAdmin, async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 100;
-        const snap  = await db.collection('traffic').orderBy('timestamp', 'desc').limit(limit).get();
+        const limit   = parseInt(req.query.limit) || 100;
+        const snap    = await db.collection('traffic').orderBy('timestamp', 'desc').limit(limit).get();
         const traffic = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         res.json({ status: true, count: traffic.length, traffic });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// Blacklist - GET
+// ════════════════════════════════════════
+//  ADMIN: BLACKLIST
+// ════════════════════════════════════════
 app.get('/admin/blacklist', verifyAdmin, async (req, res) => {
     try {
         const snap = await db.collection('blacklist').get();
         const list = snap.docs.map(d => ({ ip: d.id, ...d.data() }));
         res.json({ status: true, list });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// Blacklist - POST
 app.post('/admin/blacklist', verifyAdmin, async (req, res) => {
     const { ip, reason } = req.body;
     if (!ip) return res.status(400).json({ status: false, message: 'IP required' });
     try {
-        await db.collection('blacklist').doc(ip).set({
-            reason:  reason || 'No reason',
-            addedAt: admin.firestore.FieldValue.serverTimestamp(),
-            addedBy: req.admin.email
-        });
+        await db.collection('blacklist').doc(ip).set({ reason: reason || 'No reason', addedAt: admin.firestore.FieldValue.serverTimestamp(), addedBy: req.admin.email });
         await reloadAdminCache();
         res.json({ status: true, message: `IP ${ip} blacklisted` });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// Blacklist - DELETE
 app.delete('/admin/blacklist/:ip', verifyAdmin, async (req, res) => {
     const ip = decodeURIComponent(req.params.ip);
     try {
         await db.collection('blacklist').doc(ip).delete();
         await reloadAdminCache();
         res.json({ status: true, message: `IP ${ip} removed` });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// Endpoints status - GET
+// ════════════════════════════════════════
+//  ADMIN: ENDPOINTS STATUS
+// ════════════════════════════════════════
 app.get('/admin/endpoints-status', verifyAdmin, async (req, res) => {
     try {
         const snap = await db.collection('endpoints_status').get();
         const list = snap.docs.map(d => ({ key: d.id, ...d.data() }));
         res.json({ status: true, list });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// Endpoints status - POST (toggle)
 app.post('/admin/endpoints-status', verifyAdmin, async (req, res) => {
     const { key, enabled } = req.body;
     if (!key) return res.status(400).json({ status: false, message: 'key required' });
@@ -615,9 +570,68 @@ app.post('/admin/endpoints-status', verifyAdmin, async (req, res) => {
         await db.collection('endpoints_status').doc(key).set({ enabled: !!enabled }, { merge: true });
         await reloadAdminCache();
         res.json({ status: true, message: `Endpoint ${key} → ${enabled ? 'enabled' : 'disabled'}` });
-    } catch (e) {
-        res.status(500).json({ status: false, message: e.message });
-    }
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// ════════════════════════════════════════
+//  ADMIN: APIKEY MANAGEMENT
+// ════════════════════════════════════════
+app.get('/admin/apikeys', verifyAdmin, async (req, res) => {
+    try {
+        const snap = await db.collection('apikeys').orderBy('createdAt', 'desc').get();
+        const list = snap.docs.map(d => ({ key: d.id, ...d.data() }));
+        res.json({ status: true, count: list.length, list });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.post('/admin/apikeys', verifyAdmin, async (req, res) => {
+    const { label, note } = req.body;
+    if (!label) return res.status(400).json({ status: false, message: 'label required' });
+    try {
+        const key = 'lmn_' + crypto.randomBytes(20).toString('hex');
+        await db.collection('apikeys').doc(key).set({
+            label, note: note || '', active: true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: req.admin.email
+        });
+        await reloadApikeyCache();
+        res.json({ status: true, key, message: `Apikey "${label}" created` });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.patch('/admin/apikeys/:key', verifyAdmin, async (req, res) => {
+    const { key }    = req.params;
+    const { active } = req.body;
+    try {
+        await db.collection('apikeys').doc(key).update({ active: !!active });
+        await reloadApikeyCache();
+        res.json({ status: true, message: `Apikey ${key} → ${active ? 'active' : 'inactive'}` });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.delete('/admin/apikeys/:key', verifyAdmin, async (req, res) => {
+    const { key } = req.params;
+    try {
+        await db.collection('apikeys').doc(key).delete();
+        await reloadApikeyCache();
+        res.json({ status: true, message: `Apikey ${key} deleted` });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.get('/admin/settings/require-apikey', verifyAdmin, async (req, res) => {
+    try {
+        const doc = await db.collection('settings').doc('require_apikey').get();
+        res.json({ status: true, enabled: doc.exists ? doc.data().enabled : false });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.post('/admin/settings/require-apikey', verifyAdmin, async (req, res) => {
+    const { enabled } = req.body;
+    try {
+        await db.collection('settings').doc('require_apikey').set({ enabled: !!enabled }, { merge: true });
+        requireApikey = !!enabled;
+        res.json({ status: true, enabled: !!enabled, message: `Require apikey → ${enabled ? 'ON' : 'OFF'}` });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
 // ════════════════════════════════════════
