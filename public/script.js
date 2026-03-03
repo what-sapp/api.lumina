@@ -40,14 +40,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         } catch (_) { /* silent */ }
 
         // ── Fetch per-endpoint require key ──
-        let requireKeyEndpoints = new Set();
-        try {
-            const rkRes  = await fetch('/endpoints-require-key');
-            const rkData = await rkRes.json();
-            requireKeyEndpoints = new Set(rkData.keys || []);
-        } catch (_) { /* silent */ }
-
-        window._requireKeyEndpoints = requireKeyEndpoints;
+        async function refreshRequireKeys() {
+            try {
+                const rkRes  = await fetch('/endpoints-require-key');
+                const rkData = await rkRes.json();
+                window._requireKeyEndpoints = new Set(rkData.keys || []);
+                console.log('[Lumina] requireKey endpoints:', [...window._requireKeyEndpoints]);
+            } catch (_) { window._requireKeyEndpoints = new Set(); }
+        }
+        await refreshRequireKeys();
+        window._refreshRequireKeys = refreshRequireKeys; // expose untuk re-call di modal
 
         // ── Load saved apikey dari localStorage ──
         window._savedApikey = localStorage.getItem('lumina_apikey') || '';
@@ -79,7 +81,17 @@ document.addEventListener('DOMContentLoaded', async function () {
         const apiContent = document.getElementById('api-content');
         if (!apiContent) return;
 
-        const categoryData = data.endpoints;
+        // ── Merge kategori duplikat ──
+        const mergeMap = new Map();
+        (data.endpoints || []).forEach(cat => {
+            const key = cat.name.trim().toUpperCase();
+            if (mergeMap.has(key)) {
+                mergeMap.get(key).items.push(...cat.items);
+            } else {
+                mergeMap.set(key, { name: cat.name, items: [...cat.items] });
+            }
+        });
+        const categoryData = [...mergeMap.values()];
 
         function renderCards(grid, items, catIndex) {
             items.forEach((itemData, itemIndex) => {
@@ -93,8 +105,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 card.dataset.category = catIndex;
 
                 card.style.opacity    = '0';
-                card.style.transform  = 'translateY(16px)';
-                card.style.transition = `opacity 0.3s ease ${itemIndex * 0.05}s, transform 0.3s ease ${itemIndex * 0.05}s`;
+                card.style.transition = 'opacity 0.2s ease';
 
                 const endpointKey = (item.path || '/').split('?')[0].replace(/^\//, '').replace(/\//g, '_');
                 const isDisabled  = disabledKeys.has(endpointKey);
@@ -142,14 +153,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                 `;
 
                 if (isDisabled) card.title = 'Endpoint ini sedang offline';
-
                 grid.appendChild(card);
+            });
 
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        card.style.opacity   = isDisabled ? '0.55' : '1';
-                        card.style.transform = 'translateY(0)';
-                    });
+            // Batch fade-in semua card sekaligus — lebih enteng dari per-card RAF
+            requestAnimationFrame(() => {
+                grid.querySelectorAll('.endpoint-card').forEach(c => {
+                    c.style.opacity = c.title === 'Endpoint ini sedang offline' ? '0.55' : '1';
                 });
             });
         }
@@ -164,8 +174,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                 section.dataset.rendered = 'true';
                 renderCards(grid, categoryData[catIndex].items, catIndex);
                 observer.unobserve(section);
+
+                // Update maxHeight kalau accordion open
+                const accContent = section.querySelector('.accordion-content');
+                if (accContent && accContent.classList.contains('open')) {
+                    requestAnimationFrame(() => {
+                        accContent.style.maxHeight = accContent.scrollHeight + 'px';
+                    });
+                }
             });
-        }, { rootMargin: '100px 0px', threshold: 0 });
+        }, { rootMargin: '300px 0px 300px 0px', threshold: 0 });
 
         categoryData.forEach((category, catIndex) => {
             const section = document.createElement('div');
@@ -173,8 +191,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             section.dataset.catIndex = catIndex;
             section.dataset.rendered = 'false';
             section.style.opacity    = '0';
-            section.style.transform  = 'translateY(12px)';
-            section.style.transition = `opacity 0.4s ease ${catIndex * 0.06}s, transform 0.4s ease ${catIndex * 0.06}s`;
+            section.style.transition = 'opacity 0.35s ease';
 
             const totalItems    = category.items.length;
             const disabledCount = category.items.filter(itemData => {
@@ -201,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     </div>
                     <span class="material-icons category-chevron">expand_more</span>
                 </div>
-                <div class="accordion-content">
+                <div class="accordion-content" style="max-height:0; overflow:hidden; transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1);">
                     <div class="endpoint-grid" id="grid-${catIndex}"></div>
                 </div>
             `;
@@ -210,8 +227,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    section.style.opacity   = '1';
-                    section.style.transform = 'translateY(0)';
+                    section.style.opacity = '1';
                 });
             });
 
@@ -225,19 +241,32 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const content  = header.nextElementSibling;
                 const chevron  = header.querySelector('.category-chevron');
                 const icon     = header.querySelector('.category-icon .material-icons');
+                const section  = header.closest('.category-section');
+                const catIndex = Number(section.dataset.catIndex);
+                const grid     = section.querySelector('.endpoint-grid');
                 const isOpen   = content.classList.toggle('open');
                 header.classList.toggle('open', isOpen);
                 chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
                 if (icon) icon.textContent = isOpen ? 'folder_open' : 'folder';
 
-                const section  = header.closest('.category-section');
-                const catIndex = Number(section.dataset.catIndex);
-                const grid     = section.querySelector('.endpoint-grid');
-                if (isOpen && section.dataset.rendered === 'false') {
+                if (!isOpen) {
+                    // Tutup: set ke 0
+                    content.style.maxHeight = '0';
+                    return;
+                }
+
+                if (section.dataset.rendered === 'false') {
                     section.dataset.rendered = 'true';
                     renderCards(grid, categoryData[catIndex].items, catIndex);
                     observer.unobserve(section);
                 }
+
+                // Set maxHeight ke actual scrollHeight setelah render selesai
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    });
+                });
             }
         });
 
@@ -251,7 +280,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // --- 4. MODAL ---
-    function openDocsModal(name, endpoint, description, method = 'GET') {
+    async function openDocsModal(name, endpoint, description, method = 'GET') {
         const paramsContainer   = document.getElementById('params-container');
         const responseContainer = document.getElementById('response-container');
         const responseData      = document.getElementById('response-data');
@@ -271,9 +300,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             apiUrlEl.textContent = `${window.location.origin}${clean}`;
         }
 
-        // ── Apikey field — cek per-endpoint requireKey ──
+        // ── Apikey field — re-fetch requireKey lalu cek ──
+        if (window._refreshRequireKeys) await window._refreshRequireKeys();
         const endpointKey   = endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_');
         const requireApikey = (window._requireKeyEndpoints || new Set()).has(endpointKey);
+        console.log('[Modal] endpointKey:', endpointKey, '| requireApikey:', requireApikey, '| knownKeys:', [...(window._requireKeyEndpoints||new Set())]);
         const savedApikey   = window._savedApikey || '';
 
         const apikeySection = document.createElement('div');
