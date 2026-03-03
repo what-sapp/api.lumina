@@ -37,7 +37,20 @@ document.addEventListener('DOMContentLoaded', async function () {
             (stData.list || []).forEach(s => {
                 if (s.enabled === false) disabledKeys.add(s.key);
             });
-        } catch (_) { /* silent — kalau gagal, anggap semua enabled */ }
+        } catch (_) { /* silent */ }
+
+        // ── Fetch per-endpoint require key ──
+        let requireKeyEndpoints = new Set();
+        try {
+            const rkRes  = await fetch('/endpoints-require-key');
+            const rkData = await rkRes.json();
+            requireKeyEndpoints = new Set(rkData.keys || []);
+        } catch (_) { /* silent */ }
+
+        window._requireKeyEndpoints = requireKeyEndpoints;
+
+        // ── Load saved apikey dari localStorage ──
+        window._savedApikey = localStorage.getItem('lumina_apikey') || '';
 
         setContent('api-icon',       'href',        set.icon);
         setContent('api-title',      'textContent', set.name.main);
@@ -68,7 +81,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         const categoryData = data.endpoints;
 
-        // ── Helper: render endpoint cards ──
         function renderCards(grid, items, catIndex) {
             items.forEach((itemData, itemIndex) => {
                 const itemName = Object.keys(itemData)[0];
@@ -84,18 +96,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                 card.style.transform  = 'translateY(16px)';
                 card.style.transition = `opacity 0.3s ease ${itemIndex * 0.05}s, transform 0.3s ease ${itemIndex * 0.05}s`;
 
-                // ── Cek apakah endpoint di-disable admin ──
                 const endpointKey = (item.path || '/').replace(/^\//, '').replace(/\//g, '_');
                 const isDisabled  = disabledKeys.has(endpointKey);
-
-                // Override status kalau disabled
-                const rawStatus = item.status || 'ready';
-                const status    = isDisabled ? 'disabled' : rawStatus;
+                const rawStatus   = item.status || 'ready';
+                const status      = isDisabled ? 'disabled' : rawStatus;
 
                 const statusMap = {
-                    ready   : { cls: 'status-ready',    icon: 'circle',           label: 'Ready'    },
-                    error   : { cls: 'status-error',    icon: 'cancel',           label: 'Error'    },
-                    update  : { cls: 'status-update',   icon: 'update',           label: 'Update'   },
+                    ready   : { cls: 'status-ready',    icon: 'circle',            label: 'Ready'   },
+                    error   : { cls: 'status-error',    icon: 'cancel',            label: 'Error'   },
+                    update  : { cls: 'status-update',   icon: 'update',            label: 'Update'  },
                     disabled: { cls: 'status-disabled', icon: 'do_not_disturb_on', label: 'Offline' },
                 };
                 const s = statusMap[status] || statusMap.ready;
@@ -103,7 +112,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const method    = (item.method || 'GET').toUpperCase();
                 const methodCls = { GET:'method-get', POST:'method-post', PUT:'method-put', DELETE:'method-delete' }[method] || 'method-get';
 
-                // Kalau disabled, tambah style redup di card
                 if (isDisabled) {
                     card.style.opacity = '0';
                     card.style.filter  = 'grayscale(0.4)';
@@ -133,10 +141,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     </div>
                 `;
 
-                if (isDisabled) {
-                    // Tooltip disabled
-                    card.title = 'Endpoint ini sedang offline';
-                }
+                if (isDisabled) card.title = 'Endpoint ini sedang offline';
 
                 grid.appendChild(card);
 
@@ -149,7 +154,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
         }
 
-        // ── Intersection Observer lazy render ──
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (!entry.isIntersecting) return;
@@ -163,7 +167,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
         }, { rootMargin: '100px 0px', threshold: 0 });
 
-        // ── Buat section skeleton ──
         categoryData.forEach((category, catIndex) => {
             const section = document.createElement('div');
             section.className        = 'category-section';
@@ -173,7 +176,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             section.style.transform  = 'translateY(12px)';
             section.style.transition = `opacity 0.4s ease ${catIndex * 0.06}s, transform 0.4s ease ${catIndex * 0.06}s`;
 
-            // Hitung berapa yang disabled di kategori ini
             const totalItems    = category.items.length;
             const disabledCount = category.items.filter(itemData => {
                 const item = itemData[Object.keys(itemData)[0]];
@@ -216,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             observer.observe(section);
         });
 
-        // ── Accordion toggle ──
+        // Accordion toggle
         apiContent.addEventListener('click', e => {
             const header = e.target.closest('.category-header');
             if (header) {
@@ -239,7 +241,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         });
 
-        // ── Try button ──
+        // Try button
         apiContent.addEventListener('click', e => {
             const btn = e.target.closest('.try-btn');
             if (btn && !btn.disabled) {
@@ -269,6 +271,39 @@ document.addEventListener('DOMContentLoaded', async function () {
             apiUrlEl.textContent = `${window.location.origin}${clean}`;
         }
 
+        // ── Apikey field — cek per-endpoint requireKey ──
+        const endpointKey   = endpoint.split('?')[0].replace(/^//, '').replace(///g, '_');
+        const requireApikey = (window._requireKeyEndpoints || new Set()).has(endpointKey);
+        const savedApikey   = window._savedApikey || '';
+
+        const apikeySection = document.createElement('div');
+        apikeySection.className = 'params-section';
+        apikeySection.id        = 'apikey-section';
+        apikeySection.style.display = requireApikey ? 'block' : 'none';
+        apikeySection.innerHTML = `
+            <div class="params-title">
+                <span class="material-icons" style="font-size:0.75rem;">vpn_key</span>
+                API Key
+                ${requireApikey ? '<span style="font-size:0.6rem; color:var(--error-color); font-weight:700; margin-left:0.25rem;">* required</span>' : ''}
+            </div>
+            <div class="param-group">
+                <div class="param-label" style="display:flex; justify-content:space-between;">
+                    <span>apikey${requireApikey ? '' : ' <span style="font-size:0.62rem;color:var(--text-muted);font-weight:400;">(optional)</span>'}</span>
+                    <span id="apikey-save-hint" style="font-size:0.6rem; color:var(--text-muted); cursor:pointer;" onclick="saveApikeyLocal()">
+                        <span class="material-icons" style="font-size:0.65rem; vertical-align:middle;">bookmark</span> Save key
+                    </span>
+                </div>
+                <input type="text" id="modal-apikey" class="param-input"
+                    placeholder="lmn_xxxxxxxxxxxxxxxx"
+                    value="${savedApikey}"
+                    style="font-family:'Courier New',monospace; font-size:0.75rem;">
+                <div id="error-apikey" style="display:none; font-size:0.65rem; color:var(--error-color); margin-top:0.25rem;">API Key wajib diisi.</div>
+                ${savedApikey ? '<div style="font-size:0.6rem; color:var(--success-color); margin-top:0.25rem;">✓ Saved key loaded</div>' : ''}
+            </div>
+        `;
+        paramsContainer.appendChild(apikeySection);
+
+        // ── Params dari endpoint ──
         const params = [];
         const pathMatches = endpoint.match(/{([^}]+)}/g);
         if (pathMatches) pathMatches.forEach(m => params.push(m.replace(/[{}]/g, '')));
@@ -306,6 +341,19 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (window.openDocsModal) window.openDocsModal();
     }
 
+    // Save apikey ke localStorage
+    window.saveApikeyLocal = function() {
+        const key = document.getElementById('modal-apikey')?.value?.trim();
+        if (!key) return;
+        localStorage.setItem('lumina_apikey', key);
+        window._savedApikey = key;
+        const hint = document.getElementById('apikey-save-hint');
+        if (hint) { hint.innerHTML = '<span class="material-icons" style="font-size:0.65rem; vertical-align:middle; color:var(--success-color);">check</span> Saved!'; }
+        setTimeout(() => {
+            if (hint) hint.innerHTML = '<span class="material-icons" style="font-size:0.65rem; vertical-align:middle;">bookmark</span> Save key';
+        }, 2000);
+    };
+
     // --- 5. LIVE ACTIVITY LOGGER ---
     function logActivity(entry) {
         try {
@@ -330,7 +378,24 @@ document.addEventListener('DOMContentLoaded', async function () {
         let baseUrl     = endpoint.split('?')[0];
         let queryParams = new URLSearchParams();
 
+        // ── Cek apikey ──
+        const requireApikey = (window._requireKeyEndpoints || new Set()).has(endpoint.split('?')[0].replace(/^//, '').replace(///g, '_'));
+        const apikeyInput   = document.getElementById('modal-apikey');
+        const apikeyVal     = apikeyInput?.value?.trim() || '';
+        const apikeyError   = document.getElementById('error-apikey');
+
+        if (requireApikey && !apikeyVal) {
+            isValid = false;
+            if (apikeyInput) apikeyInput.classList.add('invalid');
+            if (apikeyError) apikeyError.style.display = 'block';
+        } else {
+            if (apikeyInput) apikeyInput.classList.remove('invalid');
+            if (apikeyError) apikeyError.style.display = 'none';
+            if (apikeyVal) queryParams.append('apikey', apikeyVal);
+        }
+
         paramsContainer.querySelectorAll('.param-input').forEach(input => {
+            if (input.id === 'modal-apikey') return; // skip apikey input
             const pName = input.id.replace('param-', '');
             const val   = input.value.trim();
             const error = document.getElementById(`error-${pName}`);
