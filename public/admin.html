@@ -633,6 +633,7 @@
         async function loadApikeys() {
             const container = document.getElementById('apikeys-list');
             container.innerHTML = '<div class="empty-state">Loading...</div>';
+            if (!window._idToken) { container.innerHTML = '<div class="empty-state">Auth token not ready, retry in a moment.</div>'; return; }
             try {
                 const res  = await adminFetch('/admin/apikeys');
                 const data = await res.json();
