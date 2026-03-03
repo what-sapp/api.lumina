@@ -1,984 +1,565 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumina | Admin</title>
+const cors    = require('cors');
+const express = require('express');
+const fs      = require('fs');
+const path    = require('path');
+const crypto  = require('crypto');
+const set     = require('./settings');
+const admin   = require('firebase-admin');
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+const app = express();
 
-    <style>
-        .login-screen {
-            position: fixed; inset: 0; background: var(--background-color);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 100; flex-direction: column; gap: 1.5rem;
+// ── Firebase Admin Init ──
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId:   process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        })
+    });
+}
+
+const db = admin.firestore();
+
+// ════════════════════════════════════════
+//  CACHE
+// ════════════════════════════════════════
+let blacklistCache    = new Set();
+let disabledEndpoints = new Set();
+let apikeyCache       = new Set();
+let requireKeyEndpoints = new Set(); // endpoint yang wajib apikey
+
+async function reloadAdminCache() {
+    try {
+        const blSnap = await db.collection('blacklist').get();
+        blacklistCache = new Set(blSnap.docs.map(d => d.id));
+
+        const epSnap = await db.collection('endpoints_status').where('enabled', '==', false).get();
+        disabledEndpoints = new Set(epSnap.docs.map(d => d.id));
+
+        // Load endpoint yang require apikey
+        const rkSnap = await db.collection('endpoints_status').where('requireKey', '==', true).get();
+        requireKeyEndpoints = new Set(rkSnap.docs.map(d => d.id));
+
+        console.log(`Cache refreshed — ${blacklistCache.size} blocked IPs, ${disabledEndpoints.size} disabled, ${requireKeyEndpoints.size} require key`);
+    } catch (e) {
+        console.warn(`Cache reload failed: ${e.message}`);
+    }
+}
+
+async function reloadApikeyCache() {
+    try {
+        const snap = await db.collection('apikeys').where('active', '==', true).get();
+        apikeyCache = new Set(snap.docs.map(d => d.id));
+    } catch (e) {
+        console.warn('Apikey cache reload failed:', e.message);
+    }
+}
+
+reloadAdminCache();
+reloadApikeyCache();
+setInterval(reloadAdminCache,  30000);
+setInterval(reloadApikeyCache, 30000);
+
+// ════════════════════════════════════════
+//  RATE LIMITER
+// ════════════════════════════════════════
+const rateMap     = new Map();
+const RATE_LIMIT  = 60;
+const RATE_WINDOW = 60 * 1000;
+
+function checkRateLimit(ip) {
+    const now   = Date.now();
+    const entry = rateMap.get(ip);
+    if (!entry || now > entry.resetAt) {
+        rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+        return true;
+    }
+    entry.count++;
+    return entry.count <= RATE_LIMIT;
+}
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, entry] of rateMap.entries()) {
+        if (now > entry.resetAt) rateMap.delete(ip);
+    }
+}, 5 * 60 * 1000);
+
+// ════════════════════════════════════════
+//  EXPRESS SETUP
+// ════════════════════════════════════════
+app.set('trust proxy', true);
+app.set('json spaces', 2);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cors({ origin: '*', methods: ['GET','POST','PUT','DELETE','OPTIONS'] }));
+
+app.use('/image', express.static(path.join(__dirname, 'docs', 'image')));
+app.use('/err',   express.static(path.join(__dirname, 'docs', 'err')));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ════════════════════════════════════════
+//  MIDDLEWARE: Blacklist + Rate Limit
+// ════════════════════════════════════════
+app.use((req, res, next) => {
+    const ip       = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
+    const isAdmin  = req.path.startsWith('/admin');
+    const isStatic = req.path.match(/\.(html|css|js|png|ico|jpg|svg|woff2?)$/);
+
+    if (blacklistCache.has(ip)) {
+        return res.status(403).json({ status: false, message: 'Access denied. Your IP has been blocked.' });
+    }
+
+    if (!isAdmin && !isStatic) {
+        if (!checkRateLimit(ip)) {
+            return res.status(429).json({ status: false, message: 'Too many requests. Please slow down.', retryAfter: '60s' });
         }
-        .login-card {
-            background: var(--card-background); border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-lg); padding: 2.5rem;
-            max-width: 380px; width: calc(100% - 2rem); text-align: center;
-            box-shadow: 0 24px 64px rgba(0,0,0,0.1); animation: slideInUp 0.5s ease;
-        }
-        .login-icon {
-            width: 3.5rem; height: 3.5rem; border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;
-        }
-        .login-title { font-size: 1.25rem; font-weight: 800; color: var(--text-color); margin-bottom: 0.35rem; letter-spacing: -0.03em; }
-        .login-sub { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.75rem; line-height: 1.6; }
-        .google-btn {
-            display: flex; align-items: center; justify-content: center; gap: 0.75rem;
-            width: 100%; padding: 0.875rem; background: white; color: #333;
-            border: 1px solid #ddd; border-radius: var(--border-radius-sm);
-            font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600;
-            cursor: pointer; transition: var(--transition); box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        .google-btn:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-1px); }
-        .login-error {
-            font-size: 0.75rem; color: var(--error-color);
-            background: rgba(244,63,94,0.08); border: 1px solid rgba(244,63,94,0.2);
-            border-radius: var(--border-radius-sm); padding: 0.625rem 0.875rem;
-            margin-top: 1rem; display: none;
-        }
-        .admin-content { display: none; }
-        .admin-content.visible { display: block; }
-        .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.875rem; margin-bottom: 1.25rem; }
-        @media (max-width: 640px) { .stats-strip { grid-template-columns: repeat(2, 1fr); } }
-        .stat-card {
-            background: var(--card-background); border: 1px solid var(--border-color);
-            border-radius: var(--border-radius); padding: 1.25rem; box-shadow: var(--card-shadow);
-            position: relative; overflow: hidden; animation: slideInUp 0.4s ease both;
-        }
-        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); }
-        .stat-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); margin-bottom: 0.5rem; }
-        .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--text-color); letter-spacing: -0.04em; line-height: 1; }
-        .stat-sub { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.25rem; }
-        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
-        @media (max-width: 768px) { .admin-grid { grid-template-columns: 1fr; } }
-        .admin-panel { background: var(--card-background); border: 1px solid var(--border-color); border-radius: var(--border-radius); box-shadow: var(--card-shadow); overflow: hidden; }
-        .admin-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 0.875rem 1.25rem; border-bottom: 1px solid var(--border-color); background: var(--background-color); }
-        .admin-panel-title { display: flex; align-items: center; gap: 0.5rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-color); }
-        .admin-panel-body { padding: 1.25rem; }
-        .traffic-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
-        .traffic-table th { text-align: left; padding: 0.5rem 0.625rem; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
-        .traffic-table td { padding: 0.625rem 0.625rem; border-bottom: 1px solid var(--border-color); color: var(--text-color); font-family: 'Courier New', monospace; }
-        .traffic-table tr:last-child td { border-bottom: none; }
-        .traffic-table tr:hover td { background: var(--highlight-color); }
-        .traffic-container { max-height: 320px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--primary-color) transparent; }
-        .ip-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-        .ip-input { flex: 1; padding: 0.6rem 0.875rem; font-family: 'Courier New', monospace; font-size: 0.8rem; color: var(--text-color); background: var(--background-color); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); outline: none; transition: var(--transition); }
-        .ip-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--highlight-color); }
-        .ip-input::placeholder { color: var(--text-muted); opacity: 0.5; }
-        .admin-btn { padding: 0.6rem 1rem; font-family: 'Outfit', sans-serif; font-size: 0.75rem; font-weight: 700; border: none; border-radius: var(--border-radius-sm); cursor: pointer; transition: var(--hover-transition); display: inline-flex; align-items: center; gap: 0.3rem; }
-        .admin-btn-primary { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; box-shadow: 0 2px 8px rgba(79,70,229,0.3); }
-        .admin-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(79,70,229,0.4); }
-        .admin-btn-danger { background: rgba(244,63,94,0.1); color: var(--error-color); }
-        .admin-btn-danger:hover { background: rgba(244,63,94,0.2); }
-        .ip-list-item { display: flex; align-items: center; justify-content: space-between; padding: 0.625rem 0.875rem; background: var(--background-color); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); margin-bottom: 0.5rem; animation: slideInUp 0.2s ease; }
-        .ip-list-item:last-child { margin-bottom: 0; }
-        .ip-addr { font-family: 'Courier New', monospace; font-size: 0.82rem; color: var(--error-color); font-weight: 600; }
-        .ip-reason { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.15rem; }
-        .endpoint-toggle-item { display: flex; align-items: center; justify-content: space-between; padding: 0.625rem 0; border-bottom: 1px solid var(--border-color); }
-        .endpoint-toggle-item:last-child { border-bottom: none; }
-        .endpoint-key { font-family: 'Courier New', monospace; font-size: 0.75rem; color: var(--text-color); }
-        .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; }
-        .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
-        .toggle input { opacity: 0; width: 0; height: 0; }
-        .toggle-slider { position: absolute; inset: 0; background: rgba(100,116,139,0.3); border-radius: 100px; transition: 0.3s; }
-        .toggle-slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
-        .toggle input:checked + .toggle-slider { background: var(--primary-color); }
-        .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
-        .toggle-label { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); }
-        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
-        @media (max-width: 768px) { .chart-grid { grid-template-columns: 1fr; } }
-        .chart-panel { background: var(--card-background); border: 1px solid var(--border-color); border-radius: var(--border-radius); box-shadow: var(--card-shadow); overflow: hidden; }
-        .chart-body { padding: 1.25rem; position: relative; height: 220px; }
-        .logout-btn { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 600; padding: 0.45rem 0.875rem; border-radius: var(--border-radius-sm); background: rgba(244,63,94,0.08); color: var(--error-color); border: 1px solid rgba(244,63,94,0.2); cursor: pointer; transition: var(--transition); }
-        .logout-btn:hover { background: rgba(244,63,94,0.15); }
-        .report-status-badge { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.2rem 0.55rem; border-radius: 100px; white-space: nowrap; }
-        .rs-open        { background: rgba(244,63,94,0.12);  color: #f43f5e; }
-        .rs-in_progress { background: rgba(245,158,11,0.12); color: #f59e0b; }
-        .rs-resolved    { background: rgba(16,185,129,0.12); color: #10b981; }
-        .rs-dismissed   { background: rgba(100,116,139,0.12);color: #64748b; }
-        .report-card { border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 0.875rem 1rem; margin-bottom: 0.625rem; background: var(--background-color); animation: slideInUp 0.2s ease; transition: var(--transition); }
-        .report-card:hover { border-color: rgba(79,70,229,0.25); }
-        .report-card:last-child { margin-bottom: 0; }
-        .report-type-chip { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.15rem 0.5rem; border-radius: 100px; background: var(--highlight-color); color: var(--primary-color); }
-        .report-status-select { font-size: 0.65rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-background); color: var(--text-color); cursor: pointer; outline: none; }
-        .report-scroll { max-height: 420px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--primary-color) transparent; }
-        .report-filter-bar { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-        .filter-pill { font-size: 0.62rem; font-weight: 700; padding: 0.3rem 0.75rem; border-radius: 100px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
-        .filter-pill.active, .filter-pill:hover { background: var(--highlight-color); border-color: var(--primary-color); color: var(--primary-color); }
-        .filter-pill.active { font-weight: 800; }
-        .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.78rem; opacity: 0.5; }
-        .method-xs { font-size: 0.55rem; font-weight: 800; padding: 0.1rem 0.35rem; border-radius: 3px; text-transform: uppercase; }
-        .mx-get    { background: rgba(16,185,129,0.12); color: #059669; }
-        .mx-post   { background: rgba(79,70,229,0.12);  color: var(--primary-color); }
-        .mx-put    { background: rgba(245,158,11,0.12); color: #d97706; }
-        .mx-delete { background: rgba(244,63,94,0.12);  color: #e11d48; }
-        .admin-nav-links { display: flex; align-items: center; gap: 0.25rem; position: absolute; left: 50%; transform: translateX(-50%); }
-        .admin-nav-item { display: flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; font-size: 0.7rem; font-weight: 600; color: rgba(255,255,255,0.55); text-decoration: none; border-radius: 6px; transition: all 0.2s ease; white-space: nowrap; position: relative; }
-        .admin-nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
-        .admin-nav-item.active { color: white; background: rgba(255,255,255,0.15); }
-        .admin-nav-item.active::after { content: ''; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); width: 20px; height: 2px; background: #22d3ee; border-radius: 2px; }
-        .admin-nav-badge { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 100px; background: #f43f5e; color: white; font-size: 0.55rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
-        @media (max-width: 860px) { .admin-nav-links { display: none; } }
-    </style>
-</head>
-<body>
+    }
 
-    <div id="page-loader" class="page-loader"><div class="loader-ring"></div></div>
+    next();
+});
 
-    <!-- ── LOGIN SCREEN ── -->
-    <div class="login-screen" id="login-screen" style="display:none;">
-        <div class="login-card">
-            <div class="login-icon">
-                <span class="material-icons" style="color:white; font-size:1.4rem;">admin_panel_settings</span>
-            </div>
-            <div class="login-title">Admin Access</div>
-            <div class="login-sub">Halaman ini hanya untuk administrator.<br>Login dengan akun Google yang terdaftar.</div>
-            <button class="google-btn" id="google-login-btn">
-                <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
-                Login dengan Google
-            </button>
-            <div class="login-error" id="login-error">Akses ditolak. Email tidak terdaftar sebagai admin.</div>
-        </div>
-    </div>
+// ════════════════════════════════════════
+//  MIDDLEWARE: Response wrapper + Traffic logging
+// ════════════════════════════════════════
+app.use((req, res, next) => {
+    const startTime = Date.now();
+    const ip        = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '');
 
-    <!-- ── NAVBAR ── -->
-    <nav class="main-nav" id="main-nav">
-        <a href="/" class="nav-logo">Lumina <span class="nav-logo-accent">Admin</span></a>
-        <div class="admin-nav-links" id="admin-nav-links">
-            <a href="#section-charts"    class="admin-nav-item active" data-section="section-charts"><span class="material-icons" style="font-size:0.9rem;">bar_chart</span> Traffic</a>
-            <a href="#section-blacklist" class="admin-nav-item" data-section="section-blacklist"><span class="material-icons" style="font-size:0.9rem;">block</span> Blacklist</a>
-            <a href="#section-endpoints" class="admin-nav-item" data-section="section-endpoints"><span class="material-icons" style="font-size:0.9rem;">api</span> Endpoints</a>
-            <a href="#section-apikeys"   class="admin-nav-item" data-section="section-apikeys"><span class="material-icons" style="font-size:0.9rem;">vpn_key</span> API Keys</a>
-            <a href="#section-reports"   class="admin-nav-item" data-section="section-reports"><span class="material-icons" style="font-size:0.9rem;">flag</span> Reports<span class="admin-nav-badge" id="nav-reports-badge" style="display:none;"></span></a>
-            <a href="#section-changelog" class="admin-nav-item" data-section="section-changelog"><span class="material-icons" style="font-size:0.9rem;">new_releases</span> Changelog</a>
-        </div>
-        <div class="hamburger" id="hamburger"><div class="hamburger-inner"><span></span><span></span><span></span></div></div>
-    </nav>
+    const originalJson = res.json;
+    res.json = function (data) {
+        if (data && typeof data === 'object') {
+            const statusCode   = res.statusCode || 200;
+            const responseData = { status: data.status, statusCode, creator: set.author.toLowerCase(), ...data };
 
-    <div class="mobile-overlay" id="mobile-overlay"></div>
-
-    <!-- ── MOBILE MENU ── -->
-    <div class="mobile-menu" id="mobile-menu">
-        <div style="padding:1.5rem;">
-            <div class="menu-header">
-                <div class="menu-header-icon"><span class="material-icons" style="color:white; font-size:1.1rem;">admin_panel_settings</span><div class="menu-header-dot"></div></div>
-                <div><span class="menu-header-title">Admin Panel</span><span class="menu-header-sub" id="admin-email-display">—</span></div>
-            </div>
-            <nav style="display:flex; flex-direction:column; gap:0.25rem;">
-                <a href="#section-charts"    class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)"><div class="menu-icon-box" style="background:rgba(79,70,229,0.15);"><span class="material-icons" style="font-size:1rem; color:var(--primary-color);">bar_chart</span></div><span>Traffic & Charts</span></a>
-                <a href="#section-blacklist" class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)"><div class="menu-icon-box" style="background:rgba(244,63,94,0.1);"><span class="material-icons" style="font-size:1rem; color:#f43f5e;">block</span></div><span>Blacklist IP</span></a>
-                <a href="#section-endpoints" class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)"><div class="menu-icon-box" style="background:rgba(34,211,238,0.1);"><span class="material-icons" style="font-size:1rem; color:var(--accent-color);">api</span></div><span>Endpoints</span></a>
-                <a href="#section-apikeys"   class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)"><div class="menu-icon-box" style="background:rgba(16,185,129,0.1);"><span class="material-icons" style="font-size:1rem; color:var(--success-color);">vpn_key</span></div><span>API Keys</span></a>
-                <a href="#section-reports"   class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)"><div class="menu-icon-box" style="background:rgba(245,158,11,0.1);"><span class="material-icons" style="font-size:1rem; color:#f59e0b;">flag</span></div><span>Reports</span></a>
-                <a href="#section-changelog" class="menu-item admin-mobile-nav" onclick="closeMobileAndScroll(this)"><div class="menu-icon-box" style="background:rgba(16,185,129,0.1);"><span class="material-icons" style="font-size:1rem; color:var(--success-color);">new_releases</span></div><span>Changelog</span></a>
-                <div style="margin-top:0.5rem; padding-top:0.75rem; border-top:1px solid var(--border-color);">
-                    <a href="/" class="menu-item" style="opacity:0.6;"><div class="menu-icon-box" style="background:rgba(100,116,139,0.1);"><span class="material-icons" style="font-size:1rem; color:var(--text-muted);">home</span></div><span>Back to Home</span></a>
-                </div>
-            </nav>
-            <div class="menu-section-divider">
-                <button class="logout-btn" id="logout-btn" style="width:100%; justify-content:center;"><span class="material-icons" style="font-size:1rem;">logout</span>Logout</button>
-            </div>
-            <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border-color);">
-                <div class="color-customizer">
-                    <div class="customizer-header" id="customizer-toggle">
-                        <div style="display:flex; align-items:center; gap:0.5rem;"><span class="material-icons" style="font-size:1rem; color:var(--primary-color);">palette</span><span class="customizer-title">Theme Colors</span></div>
-                        <span class="material-icons" id="customizer-chevron" style="font-size:1rem; color:var(--text-muted); transition:transform 0.3s;">expand_more</span>
-                    </div>
-                    <div class="customizer-panel" id="customizer-panel">
-                        <div class="customizer-section-label">Quick Presets</div>
-                        <div class="preset-grid">
-                            <button class="preset-btn active" data-primary="#4f46e5" data-accent="#22d3ee" data-nav="#1e1b4b"><span style="background:#4f46e5"></span><span style="background:#22d3ee"></span></button>
-                            <button class="preset-btn" data-primary="#7c3aed" data-accent="#a29bfe" data-nav="#1a1035"><span style="background:#7c3aed"></span><span style="background:#a29bfe"></span></button>
-                            <button class="preset-btn" data-primary="#0ea5e9" data-accent="#06b6d4" data-nav="#0c1a2e"><span style="background:#0ea5e9"></span><span style="background:#06b6d4"></span></button>
-                            <button class="preset-btn" data-primary="#10b981" data-accent="#34d399" data-nav="#0a1f18"><span style="background:#10b981"></span><span style="background:#34d399"></span></button>
-                            <button class="preset-btn" data-primary="#f59e0b" data-accent="#fbbf24" data-nav="#1c1505"><span style="background:#f59e0b"></span><span style="background:#fbbf24"></span></button>
-                            <button class="preset-btn" data-primary="#f43f5e" data-accent="#fb7185" data-nav="#1f0a10"><span style="background:#f43f5e"></span><span style="background:#fb7185"></span></button>
-                        </div>
-                        <div class="customizer-section-label" style="margin-top:0.875rem;">Custom</div>
-                        <div class="picker-row">
-                            <label class="picker-label"><span>Primary</span><div class="picker-wrap"><input type="color" id="pick-primary" class="color-picker" value="#4f46e5"><span class="picker-swatch" id="swatch-primary" style="background:#4f46e5"></span></div></label>
-                            <label class="picker-label"><span>Accent</span><div class="picker-wrap"><input type="color" id="pick-accent" class="color-picker" value="#22d3ee"><span class="picker-swatch" id="swatch-accent" style="background:#22d3ee"></span></div></label>
-                            <label class="picker-label"><span>Navbar</span><div class="picker-wrap"><input type="color" id="pick-nav" class="color-picker" value="#1e1b4b"><span class="picker-swatch" id="swatch-nav" style="background:#1e1b4b"></span></div></label>
-                        </div>
-                        <button class="customizer-reset" id="customizer-reset"><span class="material-icons" style="font-size:0.85rem;">refresh</span>Reset to Default</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── ADMIN CONTENT ── -->
-    <div class="admin-content page-wrapper" id="admin-content">
-
-        <!-- Hero -->
-        <div class="hero-banner" style="padding:1.5rem 2rem; margin-bottom:1.25rem;">
-            <div class="corner-dot tl"></div><div class="corner-dot tr"></div><div class="corner-dot bl"></div><div class="corner-dot br"></div>
-            <div class="corner-label tl">SYS::ADMIN</div><div class="corner-label tr">v1.0</div>
-            <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem;">
-                <div>
-                    <div class="hero-badge" style="margin-bottom:0.5rem;">
-                        <span class="material-icons" style="font-size:0.875rem; color:var(--primary-color);">shield</span>
-                        <span>Admin Dashboard</span>
-                        <span style="display:flex; align-items:center; gap:0.35rem; margin-left:0.5rem;"><span class="live-dot"></span><span class="live-label">Live</span></span>
-                    </div>
-                    <h1 style="font-size:clamp(1.25rem,3vw,1.75rem); font-weight:800; letter-spacing:-0.04em; color:var(--text-color); margin-bottom:0.25rem;">Lumina <span class="gradient-text">Control Panel</span></h1>
-                    <p style="font-size:0.8rem; color:var(--text-muted);">Manage endpoints, blacklist IPs, API keys, monitor traffic.</p>
-                </div>
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                    <div style="text-align:right;">
-                        <div style="font-size:0.72rem; font-weight:700; color:var(--text-color);" id="admin-name">—</div>
-                        <div style="font-size:0.6rem; color:var(--text-muted);" id="admin-email">—</div>
-                    </div>
-                    <button class="logout-btn" id="logout-btn-hero"><span class="material-icons" style="font-size:0.9rem;">logout</span>Logout</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats Strip -->
-        <div class="stats-strip">
-            <div class="stat-card" style="animation-delay:0.05s;"><div class="stat-label">Total Requests</div><div class="stat-value" id="stat-total">--</div><div class="stat-sub">all time</div></div>
-            <div class="stat-card" style="animation-delay:0.1s;"><div class="stat-label">Unique IPs</div><div class="stat-value" id="stat-ips">--</div><div class="stat-sub">last 100 requests</div></div>
-            <div class="stat-card" style="animation-delay:0.15s;"><div class="stat-label">Blacklisted IPs</div><div class="stat-value" id="stat-blacklist" style="color:var(--error-color);">--</div><div class="stat-sub">active blocks</div></div>
-            <div class="stat-card" style="animation-delay:0.2s;"><div class="stat-label">Disabled Endpoints</div><div class="stat-value" id="stat-disabled" style="color:var(--warning-color);">--</div><div class="stat-sub">currently off</div></div>
-        </div>
-
-        <!-- Charts -->
-        <div class="chart-grid" id="section-charts">
-            <div class="chart-panel">
-                <div class="admin-panel-header"><div class="admin-panel-title"><span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">show_chart</span>Requests per Jam</div><span style="font-size:0.65rem; color:var(--text-muted);">24 jam terakhir</span></div>
-                <div class="chart-body"><canvas id="chart-hourly"></canvas></div>
-            </div>
-            <div class="chart-panel">
-                <div class="admin-panel-header"><div class="admin-panel-title"><span class="material-icons" style="font-size:0.9rem; color:var(--accent-color);">donut_large</span>Status Code</div><span style="font-size:0.65rem; color:var(--text-muted);">distribusi response</span></div>
-                <div class="chart-body"><canvas id="chart-status"></canvas></div>
-            </div>
-        </div>
-
-        <!-- Admin Grid -->
-        <div class="admin-grid">
-            <!-- Traffic -->
-            <div class="admin-panel" id="section-traffic">
-                <div class="admin-panel-header">
-                    <div class="admin-panel-title"><span class="material-icons" style="font-size:0.9rem; color:var(--accent-color);">timeline</span>Live Traffic</div>
-                    <div style="display:flex; gap:0.4rem;">
-                        <button class="admin-btn admin-btn-primary" onclick="loadTraffic()" style="font-size:0.65rem; padding:0.35rem 0.65rem;"><span class="material-icons" style="font-size:0.8rem;">refresh</span>Refresh</button>
-                        <button class="admin-btn" onclick="forceReloadCache()" style="font-size:0.65rem; padding:0.35rem 0.65rem; background:var(--highlight-color); color:var(--primary-color);" title="Force reload server cache"><span class="material-icons" style="font-size:0.8rem;">sync</span>Sync Cache</button>
-                    </div>
-                </div>
-                <div class="admin-panel-body" style="padding:0;">
-                    <div class="traffic-container">
-                        <table class="traffic-table">
-                            <thead><tr><th>Method</th><th>Path</th><th>IP</th><th>Status</th><th>Time</th></tr></thead>
-                            <tbody id="traffic-tbody"><tr><td colspan="5" class="empty-state">Loading...</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Blacklist -->
-            <div class="admin-panel" id="section-blacklist">
-                <div class="admin-panel-header">
-                    <div class="admin-panel-title"><span class="material-icons" style="font-size:0.9rem; color:var(--error-color);">block</span>IP Blacklist</div>
-                    <span id="blacklist-count" style="font-size:0.65rem; color:var(--text-muted);">0 IPs</span>
-                </div>
-                <div class="admin-panel-body">
-                    <div class="ip-form">
-                        <input type="text" id="ip-input" class="ip-input" placeholder="192.168.1.1">
-                        <input type="text" id="ip-reason" class="ip-input" placeholder="Reason (optional)" style="max-width:140px;">
-                        <button class="admin-btn admin-btn-primary" onclick="addBlacklist()"><span class="material-icons" style="font-size:0.9rem;">add</span>Block</button>
-                    </div>
-                    <div id="blacklist-list"><div class="empty-state">No IPs blacklisted</div></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Endpoints Manager -->
-        <div class="admin-panel" id="section-endpoints" style="margin-bottom:1.25rem;">
-            <div class="admin-panel-header">
-                <div class="admin-panel-title"><span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">toggle_on</span>Endpoint Manager</div>
-                <span style="font-size:0.65rem; color:var(--text-muted);">Toggle on/off without editing code</span>
-            </div>
-            <div class="admin-panel-body"><div id="endpoints-list"><div class="empty-state">Loading endpoints...</div></div></div>
-        </div>
-
-        <!-- ── APIKEY MANAGER ── -->
-        <div class="admin-panel" style="margin-bottom:1.25rem;" id="section-apikeys">
-            <div class="admin-panel-header">
-                <div class="admin-panel-title">
-                    <span class="material-icons" style="font-size:0.9rem; color:var(--accent-color);">vpn_key</span>
-                    API Key Manager
-                    <span id="apikey-count" style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:100px; background:var(--highlight-color); color:var(--primary-color);">0</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:0.625rem;">
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <span style="font-size:0.65rem; font-weight:700; color:var(--text-muted);">Require Key</span>
-                        <label class="toggle" title="Wajibkan apikey untuk semua endpoint">
-                            <input type="checkbox" id="toggle-require-apikey" onchange="toggleRequireApikey(this.checked)">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span id="require-apikey-label" style="font-size:0.65rem; font-weight:700; color:var(--text-muted);">OFF</span>
-                    </div>
-                    <button onclick="showApikeyForm()" style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.68rem; font-weight:700; padding:0.4rem 0.875rem; border-radius:var(--border-radius-sm); background:linear-gradient(135deg,var(--primary-color),var(--secondary-color)); color:white; border:none; cursor:pointer;">
-                        <span class="material-icons" style="font-size:0.85rem;">add</span> Generate Key
-                    </button>
-                </div>
-            </div>
-
-            <!-- Form generate -->
-            <div id="apikey-form" style="display:none; padding:1rem 1.25rem; border-bottom:1px solid var(--border-color); background:var(--highlight-color);">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
-                    <div>
-                        <label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Label *</label>
-                        <input id="ak-label" type="text" placeholder="e.g. Robin Bot" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Note</label>
-                        <input id="ak-note" type="text" placeholder="Optional note" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; box-sizing:border-box;">
-                    </div>
-                </div>
-                <div style="display:flex; gap:0.5rem;">
-                    <button onclick="generateApikey()" style="flex:1; padding:0.6rem; background:linear-gradient(135deg,var(--primary-color),var(--secondary-color)); color:white; border:none; border-radius:var(--border-radius-sm); font-family:inherit; font-size:0.75rem; font-weight:700; cursor:pointer;">Generate Key</button>
-                    <button onclick="hideApikeyForm()" style="padding:0.6rem 1rem; background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); font-family:inherit; font-size:0.75rem; cursor:pointer;">Cancel</button>
-                </div>
-                <div id="ak-result" style="display:none; margin-top:0.75rem; padding:0.75rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:var(--border-radius-sm);">
-                    <div style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--success-color); margin-bottom:0.35rem;">✅ Key Generated — Copy now, tidak bisa dilihat lagi!</div>
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <code id="ak-result-key" style="flex:1; font-family:'Courier New',monospace; font-size:0.75rem; color:var(--text-color); word-break:break-all;"></code>
-                        <button onclick="copyApikey()" style="padding:0.35rem 0.65rem; background:var(--highlight-color); color:var(--primary-color); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); font-size:0.65rem; font-weight:700; cursor:pointer; white-space:nowrap;">
-                            <span class="material-icons" style="font-size:0.8rem; vertical-align:middle;">content_copy</span> Copy
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="admin-panel-body">
-                <div id="apikeys-list"><div class="empty-state">Loading...</div></div>
-            </div>
-        </div>
-
-        <!-- Reports -->
-        <div class="admin-panel" style="margin-bottom:1.25rem;" id="section-reports">
-            <div class="admin-panel-header">
-                <div class="admin-panel-title">
-                    <span class="material-icons" style="font-size:0.9rem; color:#f43f5e;">flag</span>
-                    User Reports
-                    <span id="reports-badge" style="display:none; font-size:0.6rem; font-weight:800; padding:0.1rem 0.45rem; border-radius:100px; background:rgba(244,63,94,0.12); color:#f43f5e; margin-left:0.25rem;">0</span>
-                </div>
-                <button class="admin-btn admin-btn-primary" onclick="loadReports()" style="font-size:0.65rem; padding:0.35rem 0.65rem;"><span class="material-icons" style="font-size:0.8rem;">refresh</span>Refresh</button>
-            </div>
-            <div style="padding:0.75rem 1.25rem; border-bottom:1px solid var(--border-color); background:var(--background-color);">
-                <div class="report-filter-bar">
-                    <button class="filter-pill active" data-filter="all"         onclick="filterReports('all', this)">All</button>
-                    <button class="filter-pill" data-filter="open"               onclick="filterReports('open', this)">🔴 Open</button>
-                    <button class="filter-pill" data-filter="in_progress"        onclick="filterReports('in_progress', this)">🟡 In Progress</button>
-                    <button class="filter-pill" data-filter="resolved"           onclick="filterReports('resolved', this)">🟢 Resolved</button>
-                    <button class="filter-pill" data-filter="dismissed"          onclick="filterReports('dismissed', this)">⚫ Dismissed</button>
-                </div>
-            </div>
-            <div class="admin-panel-body"><div class="report-scroll" id="reports-list"><div class="empty-state">Loading reports...</div></div></div>
-        </div>
-
-        <!-- Changelog -->
-        <div class="admin-panel" style="margin-bottom:1.25rem;" id="section-changelog">
-            <div class="admin-panel-header">
-                <div class="admin-panel-title">
-                    <span class="material-icons" style="font-size:0.9rem; color:var(--primary-color);">new_releases</span>
-                    Changelog
-                    <span id="changelog-count" style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:100px; background:var(--highlight-color); color:var(--primary-color);">0</span>
-                </div>
-                <button onclick="showChangelogForm()" style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.68rem; font-weight:700; padding:0.4rem 0.875rem; border-radius:var(--border-radius-sm); background:linear-gradient(135deg,var(--primary-color),var(--secondary-color)); color:white; border:none; cursor:pointer;">
-                    <span class="material-icons" style="font-size:0.85rem;">add</span> New Entry
-                </button>
-            </div>
-            <div id="changelog-form" style="display:none; padding:1rem 1.25rem; border-bottom:1px solid var(--border-color); background:var(--highlight-color);">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
-                    <div><label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Version *</label><input id="cl-version" type="text" placeholder="e.g. v1.2.0" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; box-sizing:border-box;"></div>
-                    <div><label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Type</label><select id="cl-type" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; cursor:pointer; box-sizing:border-box;"><option value="feature">✨ Feature</option><option value="fix">🐛 Fix</option><option value="update">🔄 Update</option><option value="security">🔒 Security</option><option value="breaking">⚠️ Breaking</option></select></div>
-                </div>
-                <div style="margin-bottom:0.75rem;"><label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Title *</label><input id="cl-title" type="text" placeholder="e.g. Added Apikey System" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; box-sizing:border-box;"></div>
-                <div style="margin-bottom:0.875rem;"><label style="font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); display:block; margin-bottom:0.3rem;">Notes * <span style="opacity:0.6; text-transform:none; letter-spacing:0;">(satu baris = satu item)</span></label><textarea id="cl-notes" rows="4" placeholder="Added apikey management&#10;Fixed modal conflict&#10;Improved performance" style="width:100%; padding:0.5rem 0.75rem; font-family:inherit; font-size:0.78rem; color:var(--text-color); background:var(--card-background); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); outline:none; resize:vertical; line-height:1.6; box-sizing:border-box;"></textarea></div>
-                <div style="display:flex; gap:0.5rem;">
-                    <button onclick="submitChangelog()" style="flex:1; padding:0.6rem; background:linear-gradient(135deg,var(--primary-color),var(--secondary-color)); color:white; border:none; border-radius:var(--border-radius-sm); font-family:inherit; font-size:0.75rem; font-weight:700; cursor:pointer;" id="cl-submit-btn">Submit Entry</button>
-                    <button onclick="hideChangelogForm()" style="padding:0.6rem 1rem; background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); font-family:inherit; font-size:0.75rem; cursor:pointer;">Cancel</button>
-                </div>
-                <input type="hidden" id="cl-edit-id" value="">
-            </div>
-            <div id="changelog-list" style="max-height:420px; overflow-y:auto;"><div class="empty-state">Loading...</div></div>
-        </div>
-
-        <div class="main-footer">
-            <span class="footer-copy">© 2025 Robin • Admin Panel</span>
-            <span class="footer-id">ID::LUM-ADMIN</span>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-
-        const firebaseConfig = {
-            apiKey:            "AIzaSyCZzu6bxJrY6R508H0oJQZiuycya_lLIV0",
-            authDomain:        "apiku-86e76.firebaseapp.com",
-            projectId:         "apiku-86e76",
-            storageBucket:     "apiku-86e76.firebasestorage.app",
-            messagingSenderId: "637345497070",
-            appId:             "1:637345497070:web:62c84a71b6a415206d18ff"
-        };
-
-        const ADMIN_EMAIL = 'hiura0012@gmail.com';
-        const firebaseApp = initializeApp(firebaseConfig);
-        const auth        = getAuth(firebaseApp);
-        const provider    = new GoogleAuthProvider();
-
-        window._auth     = auth;
-        window._provider = provider;
-        window._signOut  = () => signOut(auth);
-
-        function hideLoader() {
-            const loader = document.getElementById('page-loader');
-            if (!loader || loader.dataset.hidden) return;
-            loader.dataset.hidden = '1';
-            loader.style.opacity = '0';
-            setTimeout(() => { loader.style.display = 'none'; }, 400);
-        }
-
-        onAuthStateChanged(auth, async (user) => {
-            const loginScreen  = document.getElementById('login-screen');
-            const adminContent = document.getElementById('admin-content');
-            const loginError   = document.getElementById('login-error');
-
-            if (user && user.email === ADMIN_EMAIL) {
-                loginScreen.style.display = 'none';
-                adminContent.classList.add('visible');
-                document.getElementById('admin-name').textContent          = user.displayName || 'Admin';
-                document.getElementById('admin-email').textContent         = user.email;
-                document.getElementById('admin-email-display').textContent = user.email;
-                window._idToken = await user.getIdToken();
-                setInterval(() => user.getIdToken(true).then(t => { window._idToken = t; }), 50 * 60 * 1000);
-                initCharts();
-                loadTraffic();
-                loadBlacklist();
-                loadEndpointsList();
-                loadApikeys();
-                loadReports();
-                loadChangelog();
-            } else if (user) {
-                await signOut(auth);
-                loginScreen.style.display = 'flex';
-                loginError.style.display  = 'block';
-                loginError.textContent    = `Akses ditolak. ${user.email} bukan admin.`;
-            } else {
-                loginScreen.style.display  = 'flex';
-                adminContent.classList.remove('visible');
+            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info', '/changelog', '/settings'].some(p => req.path.startsWith(p));
+            if (!skip) {
+                db.collection('traffic').add({
+                    path:      req.path,
+                    method:    req.method,
+                    ip:        ip || 'unknown',
+                    status:    statusCode,
+                    duration:  Date.now() - startTime,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    ua:        req.headers['user-agent'] || ''
+                }).catch(() => {});
             }
-            hideLoader();
-        });
 
-        document.getElementById('google-login-btn').addEventListener('click', async () => {
-            try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); }
-        });
-        document.getElementById('logout-btn').addEventListener('click',      () => window._signOut());
-        document.getElementById('logout-btn-hero').addEventListener('click', () => window._signOut());
-    </script>
-
-    <script>
-        // ── API Helper ──
-        async function adminFetch(path, opts = {}) {
-            return fetch(path, { ...opts, headers: { 'Authorization': `Bearer ${window._idToken}`, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+            return originalJson.call(this, responseData);
         }
+        return originalJson.call(this, data);
+    };
+    next();
+});
 
-        // ── Traffic ──
-        async function loadTraffic() {
-            const tbody = document.getElementById('traffic-tbody');
-            tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Loading...</td></tr>';
+String.prototype.capitalize = function () {
+    return this.charAt(0).toUpperCase() + this.slice(1);
+};
+
+// ── Load scraper ──
+(async () => {
+    try {
+        global.scraper = new (await require('./lib/scrape.js'))('./lib/scrape_file');
+        global.scrape  = await scraper.list();
+    } catch (e) {
+        console.error('Failed to load scraper:', e.message);
+    }
+})();
+
+// ════════════════════════════════════════
+//  LOAD ENDPOINTS FROM DIRECTORY
+// ════════════════════════════════════════
+function loadEndpointsFromDirectory(directory, baseRoute = '') {
+    let endpoints = [];
+    const fullPath = path.join(__dirname, directory);
+    if (!fs.existsSync(fullPath)) return endpoints;
+
+    const items = fs.readdirSync(fullPath);
+    items.forEach(item => {
+        const itemPath = path.join(fullPath, item);
+        const stats    = fs.statSync(itemPath);
+
+        if (stats.isDirectory()) {
+            const nested = loadEndpointsFromDirectory(path.join(directory, item), `${baseRoute}/${item}`);
+            endpoints = [...endpoints, ...nested];
+        } else if (stats.isFile() && item.endsWith('.js')) {
             try {
-                const res  = await adminFetch('/admin/traffic?limit=50');
-                const data = await res.json();
-                if (!data.status || !data.traffic.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No traffic data yet</td></tr>'; return; }
-                document.getElementById('stat-total').textContent = data.count;
-                document.getElementById('stat-ips').textContent   = new Set(data.traffic.map(t => t.ip)).size;
-                updateCharts(data.traffic);
-                tbody.innerHTML = data.traffic.map(t => {
-                    const method = t.method || 'GET';
-                    const cls    = { GET:'mx-get', POST:'mx-post', PUT:'mx-put', DELETE:'mx-delete' }[method] || 'mx-get';
-                    const isOk   = t.status >= 200 && t.status < 300;
-                    const ts     = t.timestamp?.seconds ? new Date(t.timestamp.seconds * 1000).toLocaleTimeString() : '--';
-                    return `<tr><td><span class="method-xs ${cls}">${method}</span></td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.path}</td><td>${t.ip}</td><td style="color:${isOk?'var(--success-color)':'var(--error-color)'};">${t.status}</td><td>${t.duration}ms</td></tr>`;
-                }).join('');
-            } catch (e) { tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Error: ${e.message}</td></tr>`; }
-        }
+                const module = require(itemPath);
+                if (module?.run && typeof module.run === 'function') {
+                    const endpointName = item.replace('.js', '');
+                    const endpointPath = `${baseRoute}/${endpointName}`;
 
-        // ── Blacklist ──
-        async function loadBlacklist() {
-            try {
-                const res  = await adminFetch('/admin/blacklist');
-                const data = await res.json();
-                const list = data.list || [];
-                document.getElementById('blacklist-count').textContent = `${list.length} IP${list.length !== 1 ? 's' : ''}`;
-                document.getElementById('stat-blacklist').textContent  = list.length;
-                const container = document.getElementById('blacklist-list');
-                if (!list.length) { container.innerHTML = '<div class="empty-state">No IPs blacklisted</div>'; return; }
-                container.innerHTML = list.map(item => `
-                    <div class="ip-list-item" id="ip-${item.ip.replace(/\./g,'_')}">
-                        <div><div class="ip-addr">${item.ip}</div><div class="ip-reason">${item.reason || 'No reason'}</div></div>
-                        <button class="admin-btn admin-btn-danger" onclick="removeBlacklist('${item.ip}')"><span class="material-icons" style="font-size:0.85rem;">close</span>Unblock</button>
-                    </div>`).join('');
-            } catch (e) { console.error(e); }
-        }
+                    app.all(endpointPath, (req, res, next) => {
+                        const key = endpointPath.replace(/^\//, '').replace(/\//g, '_');
 
-        async function addBlacklist() {
-            const ip = document.getElementById('ip-input').value.trim();
-            const reason = document.getElementById('ip-reason').value.trim();
-            if (!ip) return;
-            try {
-                const res = await adminFetch('/admin/blacklist', { method: 'POST', body: JSON.stringify({ ip, reason }) });
-                const data = await res.json();
-                if (data.status) { document.getElementById('ip-input').value = ''; document.getElementById('ip-reason').value = ''; loadBlacklist(); }
-            } catch (e) { console.error(e); }
-        }
+                        // Cek disabled
+                        if (disabledEndpoints.has(key)) {
+                            return res.status(503).json({ status: false, message: 'This endpoint is temporarily disabled.' });
+                        }
 
-        async function removeBlacklist(ip) {
-            try {
-                const res = await adminFetch(`/admin/blacklist/${encodeURIComponent(ip)}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (data.status) loadBlacklist();
-            } catch (e) { console.error(e); }
-        }
+                        // Cek per-endpoint apikey
+                        if (requireKeyEndpoints.has(key)) {
+                            const apikey = req.query.apikey || req.headers['x-api-key'];
+                            if (!apikey || !apikeyCache.has(apikey)) {
+                                return res.status(401).json({
+                                    status:  false,
+                                    message: 'API key required for this endpoint.',
+                                    hint:    'Pass ?apikey=YOUR_KEY or header X-Api-Key'
+                                });
+                            }
+                        }
 
-        // ── Endpoints ──
-        async function loadEndpointsList() {
-            const container = document.getElementById('endpoints-list');
-            try {
-                const epRes  = await fetch('/endpoints');
-                const epData = await epRes.json();
-                const stRes  = await adminFetch('/admin/endpoints-status');
-                const stData = await stRes.json();
-
-                const statusMap = {};
-                (stData.list || []).forEach(s => { statusMap[s.key] = { enabled: s.enabled, requireKey: s.requireKey || false }; });
-
-                const allItems = [];
-                (epData.endpoints || []).forEach(cat => {
-                    cat.items.forEach(itemObj => {
-                        const name = Object.keys(itemObj)[0];
-                        const item = itemObj[name];
-                        const key  = item.path.replace(/^\//, '').replace(/\//g, '_');
-                        allItems.push({ name, key, path: item.path, method: item.method || 'GET' });
+                        return module.run(req, res, next);
                     });
-                });
 
-                document.getElementById('stat-disabled').textContent = allItems.filter(i => statusMap[i.key]?.enabled === false).length;
+                    let fullPathWithParams = endpointPath;
+                    if (module.params?.length > 0) {
+                        fullPathWithParams += '?' + module.params.map(p => `${p}=`).join('&');
+                    }
 
-                if (!allItems.length) { container.innerHTML = '<div class="empty-state">No endpoints found</div>'; return; }
+                    const category      = module.category || 'Other';
+                    const categoryIndex = endpoints.findIndex(e => e.name === category);
+                    if (categoryIndex === -1) endpoints.push({ name: category, items: [] });
 
-                container.innerHTML = allItems.map(item => {
-                    const enabled    = statusMap[item.key]?.enabled !== false;
-                    const requireKey = statusMap[item.key]?.requireKey || false;
-                    const cls        = { GET:'mx-get', POST:'mx-post', PUT:'mx-put', DELETE:'mx-delete' }[item.method] || 'mx-get';
-                    return `
-                        <div class="endpoint-toggle-item" style="gap:0.5rem; flex-wrap:wrap;">
-                            <div style="display:flex; align-items:center; gap:0.5rem; flex:1; min-width:0;">
-                                <span class="method-xs ${cls}">${item.method}</span>
-                                <span class="endpoint-key" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.path}</span>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:0.875rem;">
-                                <div class="toggle-wrap" title="Enable/Disable endpoint">
-                                    <span class="toggle-label" style="color:${enabled ? 'var(--success-color)' : 'var(--text-muted)'};">${enabled ? 'ON' : 'OFF'}</span>
-                                    <label class="toggle"><input type="checkbox" ${enabled ? 'checked' : ''} data-role="enabled" data-key="${item.key}" onchange="toggleEndpoint('${item.key}', this.checked, this)"><span class="toggle-slider"></span></label>
-                                </div>
-                                <div class="toggle-wrap" title="Wajibkan API Key untuk endpoint ini">
-                                    <span class="material-icons" style="font-size:0.8rem; color:${requireKey ? 'var(--accent-color)' : 'var(--text-muted)'};">vpn_key</span>
-                                    <label class="toggle"><input type="checkbox" ${requireKey ? 'checked' : ''} data-role="requireKey" data-key="${item.key}" onchange="toggleRequireKey('${item.key}', this.checked, this)"><span class="toggle-slider" style="${requireKey ? 'background:var(--accent-color);' : ''}"></span></label>
-                                </div>
-                            </div>
-                        </div>`;
-                }).join('');
-            } catch (e) { container.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`; }
-        }
-
-        async function toggleEndpoint(key, enabled, el) {
-            try {
-                const res  = await adminFetch('/admin/endpoints-status', { method: 'POST', body: JSON.stringify({ key, enabled }) });
-                const data = await res.json();
-                if (!data.status) { el.checked = !enabled; return; }
-                const label = el.closest('.toggle-wrap').querySelector('.toggle-label');
-                if (label) { label.textContent = enabled ? 'ON' : 'OFF'; label.style.color = enabled ? 'var(--success-color)' : 'var(--text-muted)'; }
-                document.getElementById('stat-disabled').textContent = [...document.querySelectorAll('#endpoints-list input[data-role="enabled"]')].filter(t => !t.checked).length;
-            } catch (e) { el.checked = !enabled; }
-        }
-
-        async function toggleRequireKey(key, requireKey, el) {
-            try {
-                const res  = await adminFetch('/admin/endpoints-require-key', { method: 'POST', body: JSON.stringify({ key, requireKey }) });
-                const data = await res.json();
-                if (!data.status) { el.checked = !requireKey; return; }
-                const icon   = el.closest('.toggle-wrap').querySelector('.material-icons');
-                const slider = el.nextElementSibling;
-                if (icon)   icon.style.color      = requireKey ? 'var(--accent-color)' : 'var(--text-muted)';
-                if (slider) slider.style.background = requireKey ? 'var(--accent-color)' : '';
-            } catch (e) { el.checked = !requireKey; }
-        }
-
-        // ── Apikey Manager ──
-        async function loadApikeys() {
-            const container = document.getElementById('apikeys-list');
-            container.innerHTML = '<div class="empty-state">Loading...</div>';
-            try {
-                const res  = await adminFetch('/admin/apikeys');
-                const data = await res.json();
-                const list = data.list || [];
-                document.getElementById('apikey-count').textContent = list.length;
-
-                const setRes  = await adminFetch('/admin/settings/require-apikey');
-                const setData = await setRes.json();
-                const enabled = setData.enabled || false;
-                document.getElementById('toggle-require-apikey').checked       = enabled;
-                document.getElementById('require-apikey-label').textContent    = enabled ? 'ON' : 'OFF';
-                document.getElementById('require-apikey-label').style.color    = enabled ? 'var(--success-color)' : 'var(--text-muted)';
-
-                if (!list.length) { container.innerHTML = '<div class="empty-state">No API keys yet. Generate one above.</div>'; return; }
-
-                container.innerHTML = list.map(item => {
-                    const date   = item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString('id-ID') : '--';
-                    const masked = item.key.slice(0, 10) + '••••••••••••••••' + item.key.slice(-4);
-                    return `
-                        <div class="endpoint-toggle-item" style="gap:0.5rem; flex-wrap:wrap;" id="ak-${item.key.slice(-8)}">
-                            <div style="flex:1; min-width:0;">
-                                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
-                                    <span style="font-size:0.78rem; font-weight:700; color:var(--text-color);">${item.label}</span>
-                                    ${item.note ? `<span style="font-size:0.6rem; color:var(--text-muted);">${item.note}</span>` : ''}
-                                    <span style="font-size:0.55rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:100px; background:${item.active ? 'rgba(16,185,129,0.12)' : 'rgba(100,116,139,0.12)'}; color:${item.active ? 'var(--success-color)' : 'var(--text-muted)'};">${item.active ? 'ACTIVE' : 'INACTIVE'}</span>
-                                </div>
-                                <div style="font-family:'Courier New',monospace; font-size:0.68rem; color:var(--text-muted);">${masked} • ${date}</div>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:0.5rem;">
-                                <label class="toggle"><input type="checkbox" ${item.active ? 'checked' : ''} onchange="toggleApikey('${item.key}', this.checked, this)"><span class="toggle-slider"></span></label>
-                                <button class="admin-btn admin-btn-danger" onclick="deleteApikey('${item.key}')" style="padding:0.3rem 0.5rem;"><span class="material-icons" style="font-size:0.8rem;">delete</span></button>
-                            </div>
-                        </div>`;
-                }).join('');
-            } catch (e) { container.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`; }
-        }
-
-        function showApikeyForm() {
-            document.getElementById('apikey-form').style.display = 'block';
-            document.getElementById('ak-result').style.display   = 'none';
-            document.getElementById('ak-label').value = '';
-            document.getElementById('ak-note').value  = '';
-        }
-
-        function hideApikeyForm() {
-            document.getElementById('apikey-form').style.display = 'none';
-            document.getElementById('ak-result').style.display   = 'none';
-        }
-
-        async function generateApikey() {
-            const label = document.getElementById('ak-label').value.trim();
-            const note  = document.getElementById('ak-note').value.trim();
-            if (!label) { alert('Label wajib diisi!'); return; }
-            try {
-                const res  = await adminFetch('/admin/apikeys', { method: 'POST', body: JSON.stringify({ label, note }) });
-                const data = await res.json();
-                if (data.status) {
-                    document.getElementById('ak-result-key').textContent = data.key;
-                    document.getElementById('ak-result').style.display   = 'block';
-                    loadApikeys();
+                    const categoryObj = endpoints.find(e => e.name === category);
+                    const endpointObj = {};
+                    endpointObj[module.name || endpointName] = {
+                        desc:   module.desc   || 'No description provided',
+                        path:   fullPathWithParams,
+                        method: module.method || 'GET',
+                        params: module.params || []
+                    };
+                    categoryObj.items.push(endpointObj);
                 }
-            } catch (e) { alert('Error: ' + e.message); }
+            } catch (e) {
+                console.error(`Failed to load module ${itemPath}: ${e.message}`);
+            }
         }
+    });
 
-        function copyApikey() {
-            const key = document.getElementById('ak-result-key').textContent;
-            navigator.clipboard.writeText(key).then(() => {
-                const btn = document.querySelector('[onclick="copyApikey()"]');
-                btn.innerHTML = '<span class="material-icons" style="font-size:0.8rem; vertical-align:middle;">check</span> Copied!';
-                btn.style.color = 'var(--success-color)';
-                setTimeout(() => { btn.innerHTML = '<span class="material-icons" style="font-size:0.8rem; vertical-align:middle;">content_copy</span> Copy'; btn.style.color = ''; }, 2000);
-            });
-        }
+    return endpoints;
+}
 
-        async function toggleApikey(key, active, el) {
-            try {
-                const res  = await adminFetch(`/admin/apikeys/${encodeURIComponent(key)}`, { method: 'PATCH', body: JSON.stringify({ active }) });
-                const data = await res.json();
-                if (!data.status) { el.checked = !active; } else loadApikeys();
-            } catch (e) { el.checked = !active; }
-        }
+const allEndpoints = loadEndpointsFromDirectory('api');
 
-        async function deleteApikey(key) {
-            if (!confirm('Hapus API key ini?')) return;
-            try {
-                const res  = await adminFetch(`/admin/apikeys/${encodeURIComponent(key)}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (data.status) loadApikeys();
-            } catch (e) { alert('Error: ' + e.message); }
-        }
+// ════════════════════════════════════════
+//  HTML ROUTES
+// ════════════════════════════════════════
+app.get('/',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/docs',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'docs.html')));
+app.get('/contributors', (req, res) => res.sendFile(path.join(__dirname, 'public', 'contributors.html')));
+app.get('/status',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'status.html')));
+app.get('/luminaai',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'luminaai.html')));
+app.get('/playground',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'playground.html')));
+app.get('/admin',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
-        async function toggleRequireApikey(enabled) {
-            try {
-                const res   = await adminFetch('/admin/settings/require-apikey', { method: 'POST', body: JSON.stringify({ enabled }) });
-                const data  = await res.json();
-                const label = document.getElementById('require-apikey-label');
-                if (data.status) {
-                    label.textContent  = enabled ? 'ON' : 'OFF';
-                    label.style.color  = enabled ? 'var(--success-color)' : 'var(--text-muted)';
-                } else {
-                    document.getElementById('toggle-require-apikey').checked = !enabled;
-                    label.textContent = !enabled ? 'ON' : 'OFF';
-                }
-            } catch (e) { document.getElementById('toggle-require-apikey').checked = !enabled; }
-        }
+// ════════════════════════════════════════
+//  PUBLIC API ROUTES
+// ════════════════════════════════════════
+app.get('/endpoints', (req, res) => {
+    res.json({ status: true, count: allEndpoints.reduce((t, c) => t + c.items.length, 0), endpoints: allEndpoints });
+});
 
-        // ── Charts ──
-        let chartHourly = null, chartStatus = null;
-        function initCharts() {
-            const gridColor = 'rgba(100,116,139,0.1)';
-            chartHourly = new Chart(document.getElementById('chart-hourly').getContext('2d'), { type:'line', data:{ labels:[], datasets:[{ label:'Requests', data:[], borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.08)', borderWidth:2, pointRadius:3, pointHoverRadius:5, fill:true, tension:0.4 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(15,23,42,0.9)', titleColor:'#fff', bodyColor:'#94a3b8', borderColor:'rgba(79,70,229,0.3)', borderWidth:1, padding:10 } }, scales:{ x:{ grid:{color:gridColor}, ticks:{color:'#94a3b8',font:{size:9},maxRotation:0} }, y:{ grid:{color:gridColor}, ticks:{color:'#94a3b8',font:{size:9},precision:0}, beginAtZero:true } } } });
-            chartStatus = new Chart(document.getElementById('chart-status').getContext('2d'), { type:'doughnut', data:{ labels:['2xx OK','4xx Client Error','5xx Server Error'], datasets:[{ data:[0,0,0], backgroundColor:['rgba(16,185,129,0.8)','rgba(245,158,11,0.8)','rgba(244,63,94,0.8)'], borderColor:['rgba(16,185,129,1)','rgba(245,158,11,1)','rgba(244,63,94,1)'], borderWidth:2, hoverOffset:6 }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{ legend:{ position:'bottom', labels:{color:'#94a3b8',font:{size:10},padding:12,boxWidth:10} }, tooltip:{ backgroundColor:'rgba(15,23,42,0.9)', titleColor:'#fff', bodyColor:'#94a3b8', borderColor:'rgba(79,70,229,0.3)', borderWidth:1, padding:10 } } } });
-        }
+app.get('/set', (req, res) => {
+    res.json({ status: true, ...set });
+});
 
-        function updateCharts(trafficData) {
-            if (!trafficData?.length || !chartHourly) return;
-            const now = Date.now(), hourMap = {};
-            for (let i = 23; i >= 0; i--) { const d = new Date(now - i * 3600000); hourMap[d.getHours().toString().padStart(2,'0')+':00'] = 0; }
-            trafficData.forEach(t => { if (!t.timestamp?.seconds) return; const label = new Date(t.timestamp.seconds*1000).getHours().toString().padStart(2,'0')+':00'; if (label in hourMap) hourMap[label]++; });
-            const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#4f46e5';
-            chartHourly.data.labels = Object.keys(hourMap); chartHourly.data.datasets[0].data = Object.values(hourMap); chartHourly.data.datasets[0].borderColor = primary; chartHourly.data.datasets[0].backgroundColor = primary+'15'; chartHourly.update();
-            let ok=0,warn=0,err=0; trafficData.forEach(t => { if(t.status>=200&&t.status<400)ok++; else if(t.status>=400&&t.status<500)warn++; else err++; });
-            chartStatus.data.datasets[0].data=[ok,warn,err]; chartStatus.update();
-        }
+// Public: list endpoint yang require apikey (untuk docs modal)
+app.get('/endpoints-require-key', (req, res) => {
+    res.json({ status: true, keys: [...requireKeyEndpoints] });
+});
 
-        // ── Force Reload Cache ──
-        async function forceReloadCache() {
-            try {
-                const res  = await adminFetch('/admin/cache/reload', { method: 'POST' });
-                const data = await res.json();
-                if (data.status) {
-                    const btn  = document.querySelector('[onclick="forceReloadCache()"]');
-                    const orig = btn.innerHTML;
-                    btn.innerHTML = '<span class="material-icons" style="font-size:0.8rem;">check</span> Synced!';
-                    btn.style.color = 'var(--success-color)';
-                    setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
-                    loadTraffic(); loadBlacklist(); loadEndpointsList(); loadApikeys();
-                }
-            } catch (e) { console.error(e); }
-        }
+// ════════════════════════════════════════
+//  SERVER INFO
+// ════════════════════════════════════════
+app.get('/server-info', (req, res) => {
+    const os      = require('os');
+    const uptime  = process.uptime();
+    const hours   = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = Math.floor(uptime % 60);
 
-        // ── Reports ──
-        let allReports = [], currentFilter = 'all';
-        async function loadReports() {
-            const container = document.getElementById('reports-list');
-            container.innerHTML = '<div class="empty-state">Loading...</div>';
-            try {
-                const res  = await adminFetch('/admin/reports');
-                const data = await res.json();
-                allReports = data.reports || [];
-                const openCount = allReports.filter(r => r.status === 'open').length;
-                const badge     = document.getElementById('reports-badge');
-                badge.textContent   = openCount;
-                badge.style.display = openCount > 0 ? 'inline' : 'none';
-                renderReports(currentFilter);
-            } catch (e) { container.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`; }
-        }
+    const memUsage  = process.memoryUsage();
+    const heapUsed  = Math.round(memUsage.heapUsed / 1024 / 1024);
+    const heapTotal = Math.round(memUsage.heapTotal / 1024 / 1024);
+    const rss       = Math.round(memUsage.rss / 1024 / 1024);
+    const memUsed   = Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100);
 
-        function filterReports(filter, el) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-            el.classList.add('active');
-            renderReports(filter);
-        }
+    res.json({
+        status: true,
+        server: {
+            region: set.server?.region || 'Asia-Southeast', provider: set.server?.provider || 'Vercel',
+            version: set.server?.version || 'v1.0.0', nodeVersion: process.version,
+            uptime: `${hours}h ${minutes}m ${seconds}s`, uptimeSeconds: Math.floor(uptime),
+            memUsed, memDetail: `${heapUsed}MB / ${heapTotal}MB heap (${rss}MB RSS)`,
+            platform: os.platform(), arch: os.arch()
+        },
+        owner: { name: set.owner?.name || set.author, github: set.owner?.github || '', wa: set.owner?.wa || set.info_url, avatar: set.owner?.avatar || set.icon },
+        name: set.name?.main || set.name, description: set.description
+    });
+});
 
-        function renderReports(filter) {
-            const container = document.getElementById('reports-list');
-            const filtered  = filter === 'all' ? allReports : allReports.filter(r => r.status === filter);
-            if (!filtered.length) { container.innerHTML = `<div class="empty-state">No ${filter === 'all' ? '' : filter} reports</div>`; return; }
-            const typeLabel = { timeout:'⏱ Timeout', error_response:'⚠ Error Response', wrong_response:'🔀 Wrong Response', slow:'🐢 Too Slow', down:'🔴 API Down', other:'❓ Other' };
-            container.innerHTML = filtered.map(r => {
-                const ts  = r.timestamp?.seconds ? new Date(r.timestamp.seconds * 1000).toLocaleString('id-ID') : '--';
-                const cls = `rs-${r.status}`;
-                return `
-                    <div class="report-card" id="rcard-${r.id}">
-                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.75rem; margin-bottom:0.5rem;">
-                            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-                                <span class="report-type-chip">${typeLabel[r.type] || r.type}</span>
-                                <span class="report-status-badge ${cls}">${r.status.replace('_',' ')}</span>
-                            </div>
-                            <button class="admin-btn admin-btn-danger" onclick="deleteReport('${r.id}')" style="padding:0.25rem 0.5rem; font-size:0.6rem; flex-shrink:0;"><span class="material-icons" style="font-size:0.75rem;">delete</span></button>
-                        </div>
-                        <div style="font-family:'Courier New',monospace; font-size:0.75rem; color:var(--primary-color); font-weight:600; margin-bottom:0.35rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.endpoint}</div>
-                        ${r.description ? `<div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.5rem; line-height:1.5;">${r.description}</div>` : ''}
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
-                            <div style="display:flex; align-items:center; gap:0.75rem;">
-                                <span style="font-size:0.6rem; color:var(--text-muted); font-family:'Courier New',monospace;">${r.ip}</span>
-                                ${r.email ? `<span style="font-size:0.6rem; color:var(--accent-color);">✉ ${r.email}</span>` : ''}
-                                <span style="font-size:0.6rem; color:var(--text-muted);">${ts}</span>
-                            </div>
-                            <select class="report-status-select" onchange="updateReportStatus('${r.id}', this.value)">
-                                <option value="open"        ${r.status==='open'?'selected':''}>🔴 Open</option>
-                                <option value="in_progress" ${r.status==='in_progress'?'selected':''}>🟡 In Progress</option>
-                                <option value="resolved"    ${r.status==='resolved'?'selected':''}>🟢 Resolved</option>
-                                <option value="dismissed"   ${r.status==='dismissed'?'selected':''}>⚫ Dismissed</option>
-                            </select>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
+// ════════════════════════════════════════
+//  STATS
+// ════════════════════════════════════════
+app.get('/stats', async (req, res) => {
+    try {
+        const snap    = await db.collection('traffic').orderBy('timestamp', 'desc').limit(500).get();
+        const traffic = snap.docs.map(d => d.data());
+        if (!traffic.length) return res.json({ status: true, totalRequests: 0, successRate: 100, avgDuration: 0, topEndpoints: [], recentErrors: 0, last24h: 0 });
 
-        async function updateReportStatus(id, status) {
-            try {
-                const res  = await adminFetch(`/admin/reports/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
-                const data = await res.json();
-                if (data.status) { const r = allReports.find(r => r.id === id); if (r) r.status = status; const openCount = allReports.filter(r => r.status === 'open').length; const badge = document.getElementById('reports-badge'); badge.textContent = openCount; badge.style.display = openCount > 0 ? 'inline' : 'none'; }
-            } catch (e) { console.error(e); }
-        }
+        const total   = traffic.length;
+        const ok      = traffic.filter(t => t.status >= 200 && t.status < 400);
+        const rate    = ((ok.length / total) * 100).toFixed(1);
+        const withDur = traffic.filter(t => t.duration);
+        const avgDur  = withDur.length ? Math.round(withDur.reduce((s, t) => s + t.duration, 0) / withDur.length) : 0;
 
-        async function deleteReport(id) {
-            try {
-                const res  = await adminFetch(`/admin/reports/${id}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (data.status) { allReports = allReports.filter(r => r.id !== id); renderReports(currentFilter); }
-            } catch (e) { console.error(e); }
-        }
+        const pathMap = {};
+        traffic.forEach(t => {
+            if (!t.path) return;
+            if (!pathMap[t.path]) pathMap[t.path] = { count: 0, ok: 0, totalDur: 0 };
+            pathMap[t.path].count++;
+            if (t.status >= 200 && t.status < 400) { pathMap[t.path].ok++; pathMap[t.path].totalDur += (t.duration || 0); }
+        });
 
-        // ── Changelog ──
-        let clEditId = null;
-        async function loadChangelog() {
-            const container = document.getElementById('changelog-list');
-            if (!container) return;
-            container.innerHTML = '<div class="empty-state">Loading...</div>';
-            try {
-                const res     = await fetch('/changelog');
-                const data    = await res.json();
-                const entries = data.entries || [];
-                document.getElementById('changelog-count').textContent = entries.length;
-                if (!entries.length) { container.innerHTML = '<div class="empty-state">Belum ada changelog.</div>'; return; }
-                const typeMap = { feature:{icon:'✨',color:'var(--primary-color)',bg:'rgba(79,70,229,0.1)'}, fix:{icon:'🐛',color:'var(--error-color)',bg:'rgba(244,63,94,0.1)'}, update:{icon:'🔄',color:'var(--accent-color)',bg:'rgba(34,211,238,0.1)'}, security:{icon:'🔒',color:'var(--warning-color)',bg:'rgba(245,158,11,0.1)'}, breaking:{icon:'⚠️',color:'var(--warning-color)',bg:'rgba(245,158,11,0.1)'} };
-                container.innerHTML = entries.map(e => {
-                    const t    = typeMap[e.type] || typeMap.update;
-                    const date = e.timestamp ? new Date(e.timestamp).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : '—';
-                    const notes = (e.notes||[]).map(n=>`<li style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.2rem;">• ${n}</li>`).join('');
-                    return `<div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border-color);">
-                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap;">
-                            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; flex:1; min-width:0;">
-                                <span style="font-size:0.6rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:100px; background:${t.bg}; color:${t.color}; white-space:nowrap;">${t.icon} ${e.type}</span>
-                                <span style="font-size:0.72rem; font-weight:700; color:var(--primary-color);">${e.version||''}</span>
-                                <span style="font-size:0.82rem; font-weight:600; color:var(--text-color);">${e.title}</span>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:0.4rem;">
-                                <span style="font-size:0.6rem; color:var(--text-muted);">${date}</span>
-                                <button onclick="editChangelog('${e.id}')" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:none;color:var(--text-muted);cursor:pointer;"><span class="material-icons" style="font-size:0.85rem;">edit</span></button>
-                                <button onclick="deleteChangelog('${e.id}')" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:none;color:var(--error-color);cursor:pointer;"><span class="material-icons" style="font-size:0.85rem;">delete</span></button>
-                            </div>
-                        </div>
-                        <ul style="margin:0;padding:0;list-style:none;">${notes}</ul>
-                    </div>`;
-                }).join('');
-            } catch (err) { container.innerHTML = `<div class="empty-state" style="color:var(--error-color);">Error: ${err.message}</div>`; }
-        }
+        const topEndpoints = Object.entries(pathMap).sort((a, b) => b[1].count - a[1].count).slice(0, 10)
+            .map(([path, d]) => ({ path, count: d.count, successRate: ((d.ok / d.count) * 100).toFixed(0), avgDuration: d.ok ? Math.round(d.totalDur / d.ok) : 0 }));
 
-        function showChangelogForm() { document.getElementById('changelog-form').style.display='block'; ['cl-version','cl-title','cl-notes','cl-edit-id'].forEach(id=>document.getElementById(id).value=''); document.getElementById('cl-type').value='feature'; document.getElementById('cl-submit-btn').textContent='Submit Entry'; clEditId=null; }
-        function hideChangelogForm() { document.getElementById('changelog-form').style.display='none'; clEditId=null; }
+        const now          = Date.now();
+        const last24h      = traffic.filter(t => t.timestamp?.seconds && (now - t.timestamp.seconds * 1000) <= 86400000).length;
+        const recentErrors = traffic.filter(t => t.status >= 400).length;
 
-        async function editChangelog(id) {
-            try {
-                const res  = await fetch('/changelog');
-                const data = await res.json();
-                const e    = data.entries.find(x => x.id === id);
-                if (!e) return;
-                showChangelogForm();
-                document.getElementById('cl-version').value = e.version||'';
-                document.getElementById('cl-title').value   = e.title||'';
-                document.getElementById('cl-type').value    = e.type||'update';
-                document.getElementById('cl-notes').value   = (e.notes||[]).join('\n');
-                document.getElementById('cl-edit-id').value = e.id;
-                document.getElementById('cl-submit-btn').textContent = 'Update Entry';
-                clEditId = e.id;
-            } catch (err) { alert('Error: '+err.message); }
-        }
+        res.json({ status: true, totalRequests: total, successRate: parseFloat(rate), avgDuration: avgDur, topEndpoints, recentErrors, last24h });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
 
-        async function submitChangelog() {
-            const version = document.getElementById('cl-version').value.trim();
-            const title   = document.getElementById('cl-title').value.trim();
-            const type    = document.getElementById('cl-type').value;
-            const notes   = document.getElementById('cl-notes').value.trim().split('\n').filter(n=>n.trim());
-            if (!version||!title||!notes.length) { alert('Version, title, dan minimal 1 note wajib diisi!'); return; }
-            const btn = document.getElementById('cl-submit-btn');
-            btn.textContent = 'Saving...'; btn.disabled = true;
-            try {
-                const res  = await fetch(clEditId?`/admin/changelog/${clEditId}`:'/admin/changelog', { method:clEditId?'PATCH':'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${window._idToken}`}, body:JSON.stringify({version,title,notes,type}) });
-                const data = await res.json();
-                if (data.status) { hideChangelogForm(); loadChangelog(); } else alert('Error: '+data.message);
-            } catch (err) { alert('Network error: '+err.message); }
-            btn.textContent = clEditId?'Update Entry':'Submit Entry'; btn.disabled = false;
-        }
+// ════════════════════════════════════════
+//  PUBLIC ENDPOINTS STATUS
+// ════════════════════════════════════════
+app.get('/endpoints-status', (req, res) => {
+    const list = [...disabledEndpoints].map(key => ({ key, enabled: false }));
+    res.json({ status: true, list });
+});
 
-        async function deleteChangelog(id) {
-            if (!confirm('Hapus entry ini?')) return;
-            try {
-                const res  = await fetch(`/admin/changelog/${id}`, { method:'DELETE', headers:{'Authorization':`Bearer ${window._idToken}`} });
-                const data = await res.json();
-                if (data.status) loadChangelog(); else alert('Error: '+data.message);
-            } catch (err) { alert('Network error: '+err.message); }
-        }
+// ════════════════════════════════════════
+//  REPORT ROUTES
+// ════════════════════════════════════════
+const reportRateMap = new Map();
+function checkReportLimit(ip) {
+    const now   = Date.now();
+    const entry = reportRateMap.get(ip);
+    if (!entry || now > entry.resetAt) { reportRateMap.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 }); return true; }
+    entry.count++;
+    return entry.count <= 5;
+}
 
-        // Expose globally
-        window.loadTraffic=loadTraffic; window.loadBlacklist=loadBlacklist; window.addBlacklist=addBlacklist; window.removeBlacklist=removeBlacklist;
-        window.loadEndpointsList=loadEndpointsList; window.toggleEndpoint=toggleEndpoint; window.toggleRequireKey=toggleRequireKey; window.forceReloadCache=forceReloadCache;
-        window.loadApikeys=loadApikeys; window.showApikeyForm=showApikeyForm; window.hideApikeyForm=hideApikeyForm;
-        window.generateApikey=generateApikey; window.copyApikey=copyApikey; window.toggleApikey=toggleApikey;
-        window.deleteApikey=deleteApikey; window.toggleRequireApikey=toggleRequireApikey;
-        window.loadReports=loadReports; window.filterReports=filterReports; window.updateReportStatus=updateReportStatus; window.deleteReport=deleteReport;
-        window.loadChangelog=loadChangelog; window.showChangelogForm=showChangelogForm; window.hideChangelogForm=hideChangelogForm;
-        window.editChangelog=editChangelog; window.submitChangelog=submitChangelog; window.deleteChangelog=deleteChangelog;
+app.post('/report', async (req, res) => {
+    const ip = (req.ip || req.headers['x-forwarded-for'] || '').replace('::ffff:', '') || 'unknown';
+    if (!checkReportLimit(ip)) return res.status(429).json({ status: false, message: 'Too many reports. Please wait before submitting again.' });
+    const { endpoint, type, description, email } = req.body;
+    if (!endpoint || endpoint.trim().length < 2) return res.status(400).json({ status: false, message: 'Endpoint URL is required.' });
+    if (!type) return res.status(400).json({ status: false, message: 'Issue type is required.' });
+    try {
+        await db.collection('reports').add({ endpoint: endpoint.trim(), type, description: description?.trim() || '', email: email?.trim() || '', ip, status: 'open', timestamp: admin.firestore.FieldValue.serverTimestamp(), ua: req.headers['user-agent'] || '' });
+        res.json({ status: true, message: 'Report submitted successfully. Thank you!' });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
 
-        // ── Scrollspy ──
-        function closeMobileAndScroll(el) {
-            const menu=document.getElementById('mobile-menu'), overlay=document.getElementById('mobile-overlay'), hb=document.getElementById('hamburger');
-            if (menu?.classList.contains('active')) { menu.classList.remove('active'); overlay?.classList.remove('active'); hb?.classList.remove('active'); document.body.classList.remove('noscroll'); }
-            const target = document.querySelector(el.getAttribute('href'));
-            if (target) setTimeout(() => target.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
-        }
-        window.closeMobileAndScroll = closeMobileAndScroll;
+// ════════════════════════════════════════
+//  ADMIN AUTH MIDDLEWARE
+// ════════════════════════════════════════
+async function verifyAdmin(req, res, next) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ status: false, message: 'Unauthorized' });
+    try {
+        const decoded     = await admin.auth().verifyIdToken(token);
+        const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'hiura0012@gmail.com';
+        if (decoded.email !== ADMIN_EMAIL) return res.status(403).json({ status: false, message: 'Forbidden' });
+        req.admin = decoded;
+        next();
+    } catch (e) { return res.status(401).json({ status: false, message: 'Invalid token' }); }
+}
 
-        function initScrollspy() {
-            const sections = ['section-charts','section-blacklist','section-endpoints','section-apikeys','section-reports','section-changelog'];
-            const navItems = document.querySelectorAll('.admin-nav-item');
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => { if (entry.isIntersecting) { const id = entry.target.id; navItems.forEach(item => item.classList.toggle('active', item.dataset.section === id)); } });
-            }, { rootMargin:'-40% 0px -55% 0px', threshold:0 });
-            sections.forEach(id => { const el = document.getElementById(id); if (el) observer.observe(el); });
-        }
-        document.addEventListener('DOMContentLoaded', () => setTimeout(initScrollspy, 1000));
+// ════════════════════════════════════════
+//  ADMIN: REPORTS
+// ════════════════════════════════════════
+app.get('/admin/reports', verifyAdmin, async (req, res) => {
+    try {
+        const status = req.query.status || null;
+        let query = db.collection('reports').orderBy('timestamp', 'desc').limit(100);
+        if (status) query = db.collection('reports').where('status', '==', status).orderBy('timestamp', 'desc').limit(100);
+        const snap    = await query.get();
+        const reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        res.json({ status: true, count: reports.length, reports });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
 
-        // ── Hamburger ──
-        const hamburger=document.getElementById('hamburger'), mobileMenu=document.getElementById('mobile-menu'), mobileOverlay=document.getElementById('mobile-overlay');
-        function toggleMenu() { hamburger.classList.toggle('active'); mobileMenu.classList.toggle('active'); mobileOverlay.classList.toggle('active'); document.body.classList.toggle('noscroll'); }
-        hamburger.addEventListener('click', toggleMenu);
-        mobileOverlay.addEventListener('click', toggleMenu);
-        mobileMenu.querySelectorAll('a').forEach(l => l.addEventListener('click', () => { if (mobileMenu.classList.contains('active')) toggleMenu(); }));
+app.patch('/admin/reports/:id', verifyAdmin, async (req, res) => {
+    const { id } = req.params; const { status } = req.body;
+    if (!['open','in_progress','resolved','dismissed'].includes(status)) return res.status(400).json({ status: false, message: 'Invalid status' });
+    try { await db.collection('reports').doc(id).update({ status, updatedAt: admin.firestore.FieldValue.serverTimestamp() }); res.json({ status: true }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
 
-        // ── Color Customizer ──
-        const root=document.documentElement, nav=document.getElementById('main-nav'), STORAGE='lumina-theme', DEFAULTS={primary:'#4f46e5',accent:'#22d3ee',nav:'#1e1b4b'};
-        function hexToHsl(hex){let r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}return[Math.round(h*360),Math.round(s*100),Math.round(l*100)];}
-        function hslToHex(h,s,l){s/=100;l/=100;const a=s*Math.min(l,1-l);const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c).toString(16).padStart(2,'0');};return`#${f(0)}${f(8)}${f(4)}`;}
-        function applyTheme(c){const[ph,ps,pl]=hexToHsl(c.primary);root.style.setProperty('--primary-color',c.primary);root.style.setProperty('--primary-hover',hslToHex(ph,ps,Math.max(pl-8,10)));root.style.setProperty('--secondary-color',hslToHex(ph,Math.max(ps-15,0),Math.min(pl+18,90)));root.style.setProperty('--accent-color',c.accent);root.style.setProperty('--highlight-color',`${c.primary}18`);const[nh,ns,nl]=hexToHsl(c.nav);nav.style.background=`linear-gradient(135deg,${c.nav},${hslToHex(nh,ns,Math.min(nl+6,50))})`;nav.style.boxShadow=`0 4px 24px ${c.primary}40`;document.getElementById('pick-primary').value=c.primary;document.getElementById('pick-accent').value=c.accent;document.getElementById('pick-nav').value=c.nav;document.getElementById('swatch-primary').style.background=c.primary;document.getElementById('swatch-accent').style.background=c.accent;document.getElementById('swatch-nav').style.background=c.nav;localStorage.setItem(STORAGE,JSON.stringify(c));}
-        const saved=JSON.parse(localStorage.getItem(STORAGE)||'null'); if(saved) applyTheme(saved);
-        document.querySelectorAll('.preset-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyTheme({primary:btn.dataset.primary,accent:btn.dataset.accent,nav:btn.dataset.nav});});});
-        function onPickerChange(){document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));applyTheme({primary:document.getElementById('pick-primary').value,accent:document.getElementById('pick-accent').value,nav:document.getElementById('pick-nav').value});}
-        ['pick-primary','pick-accent','pick-nav'].forEach(id=>document.getElementById(id).addEventListener('input',onPickerChange));
-        document.getElementById('customizer-reset').addEventListener('click',()=>{document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===0));['--primary-color','--primary-hover','--secondary-color','--accent-color','--highlight-color'].forEach(p=>root.style.removeProperty(p));nav.style.background='';nav.style.boxShadow='';localStorage.removeItem(STORAGE);applyTheme(DEFAULTS);});
-        const custToggle=document.getElementById('customizer-toggle'),custPanel=document.getElementById('customizer-panel'),custChevron=document.getElementById('customizer-chevron');
-        custToggle.addEventListener('click',()=>{const open=custPanel.classList.toggle('open');custChevron.style.transform=open?'rotate(180deg)':'rotate(0deg)';});
-    </script>
-</body>
-</html>
+app.delete('/admin/reports/:id', verifyAdmin, async (req, res) => {
+    try { await db.collection('reports').doc(req.params.id).delete(); res.json({ status: true }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// ════════════════════════════════════════
+//  ADMIN: CHANGELOG
+// ════════════════════════════════════════
+app.get('/changelog', async (req, res) => {
+    try {
+        const snap    = await db.collection('changelog').orderBy('timestamp', 'desc').limit(parseInt(req.query.limit)||20).get();
+        const entries = snap.docs.map(d => ({ id: d.id, ...d.data(), timestamp: d.data().timestamp?.toDate?.()?.toISOString() || null }));
+        res.json({ status: true, count: entries.length, entries });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.post('/admin/changelog', verifyAdmin, async (req, res) => {
+    try {
+        const { version, title, notes, type } = req.body;
+        if (!version || !title || !notes?.length) return res.status(400).json({ status: false, message: 'version, title, notes wajib diisi' });
+        const ref = await db.collection('changelog').add({ version, title, notes: Array.isArray(notes) ? notes : [notes], type: type || 'update', timestamp: admin.firestore.FieldValue.serverTimestamp() });
+        res.json({ status: true, id: ref.id });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.patch('/admin/changelog/:id', verifyAdmin, async (req, res) => {
+    try {
+        const { version, title, notes, type } = req.body;
+        const update = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+        if (version) update.version = version; if (title) update.title = title;
+        if (notes) update.notes = Array.isArray(notes) ? notes : [notes]; if (type) update.type = type;
+        await db.collection('changelog').doc(req.params.id).update(update);
+        res.json({ status: true });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.delete('/admin/changelog/:id', verifyAdmin, async (req, res) => {
+    try { await db.collection('changelog').doc(req.params.id).delete(); res.json({ status: true }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// ════════════════════════════════════════
+//  ADMIN: CACHE
+// ════════════════════════════════════════
+app.post('/admin/cache/reload', verifyAdmin, async (req, res) => {
+    try {
+        await reloadAdminCache();
+        await reloadApikeyCache();
+        res.json({ status: true, message: 'Cache reloaded', blacklisted: blacklistCache.size, disabled: disabledEndpoints.size, requireKey: requireKeyEndpoints.size, apikeys: apikeyCache.size });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// ════════════════════════════════════════
+//  ADMIN: TRAFFIC
+// ════════════════════════════════════════
+app.get('/admin/traffic', verifyAdmin, async (req, res) => {
+    try {
+        const snap    = await db.collection('traffic').orderBy('timestamp', 'desc').limit(parseInt(req.query.limit)||100).get();
+        const traffic = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        res.json({ status: true, count: traffic.length, traffic });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// ════════════════════════════════════════
+//  ADMIN: BLACKLIST
+// ════════════════════════════════════════
+app.get('/admin/blacklist', verifyAdmin, async (req, res) => {
+    try { const snap = await db.collection('blacklist').get(); res.json({ status: true, list: snap.docs.map(d => ({ ip: d.id, ...d.data() })) }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.post('/admin/blacklist', verifyAdmin, async (req, res) => {
+    const { ip, reason } = req.body;
+    if (!ip) return res.status(400).json({ status: false, message: 'IP required' });
+    try { await db.collection('blacklist').doc(ip).set({ reason: reason || 'No reason', addedAt: admin.firestore.FieldValue.serverTimestamp(), addedBy: req.admin.email }); await reloadAdminCache(); res.json({ status: true, message: `IP ${ip} blacklisted` }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.delete('/admin/blacklist/:ip', verifyAdmin, async (req, res) => {
+    const ip = decodeURIComponent(req.params.ip);
+    try { await db.collection('blacklist').doc(ip).delete(); await reloadAdminCache(); res.json({ status: true, message: `IP ${ip} removed` }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// ════════════════════════════════════════
+//  ADMIN: ENDPOINTS STATUS (+ requireKey)
+// ════════════════════════════════════════
+app.get('/admin/endpoints-status', verifyAdmin, async (req, res) => {
+    try { const snap = await db.collection('endpoints_status').get(); res.json({ status: true, list: snap.docs.map(d => ({ key: d.id, ...d.data() })) }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// Toggle enabled ON/OFF
+app.post('/admin/endpoints-status', verifyAdmin, async (req, res) => {
+    const { key, enabled } = req.body;
+    if (!key) return res.status(400).json({ status: false, message: 'key required' });
+    try {
+        await db.collection('endpoints_status').doc(key).set({ enabled: !!enabled }, { merge: true });
+        await reloadAdminCache();
+        res.json({ status: true, message: `Endpoint ${key} → ${enabled ? 'enabled' : 'disabled'}` });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// Toggle requireKey per endpoint
+app.post('/admin/endpoints-require-key', verifyAdmin, async (req, res) => {
+    const { key, requireKey } = req.body;
+    if (!key) return res.status(400).json({ status: false, message: 'key required' });
+    try {
+        await db.collection('endpoints_status').doc(key).set({ requireKey: !!requireKey }, { merge: true });
+        await reloadAdminCache();
+        res.json({ status: true, message: `Endpoint ${key} requireKey → ${requireKey ? 'ON' : 'OFF'}` });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// ════════════════════════════════════════
+//  ADMIN: APIKEY MANAGEMENT
+// ════════════════════════════════════════
+app.get('/admin/apikeys', verifyAdmin, async (req, res) => {
+    try { const snap = await db.collection('apikeys').orderBy('createdAt', 'desc').get(); res.json({ status: true, count: snap.docs.length, list: snap.docs.map(d => ({ key: d.id, ...d.data() })) }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.post('/admin/apikeys', verifyAdmin, async (req, res) => {
+    const { label, note } = req.body;
+    if (!label) return res.status(400).json({ status: false, message: 'label required' });
+    try {
+        const key = 'lmn_' + crypto.randomBytes(20).toString('hex');
+        await db.collection('apikeys').doc(key).set({ label, note: note || '', active: true, createdAt: admin.firestore.FieldValue.serverTimestamp(), createdBy: req.admin.email });
+        await reloadApikeyCache();
+        res.json({ status: true, key, message: `Apikey "${label}" created` });
+    } catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.patch('/admin/apikeys/:key', verifyAdmin, async (req, res) => {
+    try { await db.collection('apikeys').doc(req.params.key).update({ active: !!req.body.active }); await reloadApikeyCache(); res.json({ status: true }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+app.delete('/admin/apikeys/:key', verifyAdmin, async (req, res) => {
+    try { await db.collection('apikeys').doc(req.params.key).delete(); await reloadApikeyCache(); res.json({ status: true }); }
+    catch (e) { res.status(500).json({ status: false, message: e.message }); }
+});
+
+// ════════════════════════════════════════
+//  ERROR HANDLERS
+// ════════════════════════════════════════
+app.use((req, res, next) => {
+    const errorPath = path.join(__dirname, 'docs', 'err', '404.html');
+    if (fs.existsSync(errorPath)) res.status(404).sendFile(errorPath);
+    else res.status(404).json({ error: 'Not Found' });
+});
+
+app.use((err, req, res, next) => {
+    console.error(`500: ${err.message}`);
+    const errorPath = path.join(__dirname, 'docs', 'err', '500.html');
+    if (fs.existsSync(errorPath)) res.status(500).sendFile(errorPath);
+    else res.status(500).json({ error: 'Internal Server Error' });
+});
+
+module.exports = app;
