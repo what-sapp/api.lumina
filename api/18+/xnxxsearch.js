@@ -1,13 +1,13 @@
 const axios = require('axios');
 
 /**
- * XN SEARCH
+ * XNXX SEARCH
  * Source: api.deline.web.id
  * Creator: Shannz
  */
 module.exports = {
-    name: "XNSearch",
-    desc: "Cari video di XN berdasarkan keyword.",
+    name: "XNXXSearch",
+    desc: "Cari video di XNXX berdasarkan keyword.",
     category: "18+",
     params: ["q"],
 
@@ -40,13 +40,12 @@ module.exports = {
                     'sec-fetch-site': 'same-origin',
                 },
                 timeout: 15000,
-                // Jangan auto-parse, cek dulu
                 responseType: 'text'
             });
 
             const raw = response.data;
 
-            // Cek apakah response HTML (kena block/redirect)
+            // Kena block / return HTML
             if (typeof raw === 'string' && raw.trim().startsWith('<')) {
                 return res.status(502).json({
                     status: false,
@@ -55,7 +54,6 @@ module.exports = {
                 });
             }
 
-            // Parse JSON manual
             let data;
             try {
                 data = typeof raw === 'string' ? JSON.parse(raw) : raw;
