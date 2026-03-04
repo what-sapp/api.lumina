@@ -501,6 +501,14 @@ document.addEventListener('DOMContentLoaded', async function () {
             } else {
                 responseData.textContent = await res.text();
             }
+            // Smooth scroll modal ke response section — tidak jumping
+            setTimeout(() => {
+                const modal = document.getElementById('api-modal');
+                const respEl = document.getElementById('response-container');
+                if (modal && respEl) {
+                    modal.scrollTo({ top: modal.scrollHeight, behavior: 'smooth' });
+                }
+            }, 50);
         } catch (err) {
             const duration = Date.now() - start;
             statusEl.textContent = 'Error';
