@@ -304,11 +304,23 @@ document.addEventListener('DOMContentLoaded', async function () {
             apiUrlEl.textContent = `${window.location.origin}${clean}`;
         }
 
-        // ── Apikey field — re-fetch requireKey lalu cek ──
-        if (window._refreshRequireKeys) await window._refreshRequireKeys();
-        const endpointKey   = endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_');
-        const requireApikey = (window._requireKeyEndpoints || new Set()).has(endpointKey);
-        console.log('[Modal] endpointKey:', endpointKey, '| requireApikey:', requireApikey, '| knownKeys:', [...(window._requireKeyEndpoints||new Set())]);
+        // ── Cek requireKey dari cache (instant) ──
+        const endpointKey = endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_');
+        let requireApikey = (window._requireKeyEndpoints || new Set()).has(endpointKey);
+
+        // Fetch di background — update apikey field kalau state berubah
+        if (window._refreshRequireKeys) {
+            window._refreshRequireKeys().then(() => {
+                const fresh = (window._requireKeyEndpoints || new Set()).has(endpointKey);
+                if (fresh !== requireApikey) {
+                    requireApikey = fresh;
+                    const sec = document.getElementById('apikey-section');
+                    if (sec) {
+                        sec.style.display = fresh ? 'block' : 'none';
+                    }
+                }
+            });
+        }
         const savedApikey   = window._savedApikey || '';
 
         const apikeySection = document.createElement('div');
