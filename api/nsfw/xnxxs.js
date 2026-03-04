@@ -8,7 +8,7 @@ const axios = require('axios');
 module.exports = {
     name: "XNXXSearch",
     desc: "Cari video di XNXX berdasarkan keyword.",
-    category: "18+",
+    category: "NSFW",
     params: ["q"],
 
     async run(req, res) {
