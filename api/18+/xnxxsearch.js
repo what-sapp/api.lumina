@@ -6,7 +6,7 @@ const axios = require('axios');
  * Creator: Shannz
  */
 module.exports = {
-    name: "XNXX Search",
+    name: "XNSearch",
     desc: "Cari video di XN berdasarkan keyword.",
     category: "18+",
     params: ["q"],
@@ -25,15 +25,47 @@ module.exports = {
 
             const UA = 'Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36';
 
-            const { data } = await axios.get('https://api.deline.web.id/search/xnxx', {
+            const response = await axios.get('https://api.deline.web.id/search/xnxx', {
                 params: { q: q.trim() },
                 headers: {
                     'User-Agent': UA,
-                    'Accept': 'application/json',
-                    'Referer': 'https://api.deline.web.id/'
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8',
+                    'Referer': 'https://api.deline.web.id/',
+                    'Origin': 'https://api.deline.web.id',
+                    'sec-ch-ua': '"Chromium";v="107", "Not=A?Brand";v="24"',
+                    'sec-ch-ua-mobile': '?1',
+                    'sec-fetch-dest': 'empty',
+                    'sec-fetch-mode': 'cors',
+                    'sec-fetch-site': 'same-origin',
                 },
-                timeout: 15000
+                timeout: 15000,
+                // Jangan auto-parse, cek dulu
+                responseType: 'text'
             });
+
+            const raw = response.data;
+
+            // Cek apakah response HTML (kena block/redirect)
+            if (typeof raw === 'string' && raw.trim().startsWith('<')) {
+                return res.status(502).json({
+                    status: false,
+                    creator: "Shannz",
+                    error: "Source API mengembalikan HTML, kemungkinan kena rate limit atau block."
+                });
+            }
+
+            // Parse JSON manual
+            let data;
+            try {
+                data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            } catch (e) {
+                return res.status(502).json({
+                    status: false,
+                    creator: "Shannz",
+                    error: "Gagal parse response dari source API."
+                });
+            }
 
             if (!data || !data.status || !data.result || data.result.length === 0) {
                 return res.status(404).json({
