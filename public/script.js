@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         sendBtn.onclick = () => handleApiRequest(endpoint, paramsContainer);
 
-        if (window.openDocsModal) window.openDocsModal();
+        if (window.openApiModal) window.openApiModal();
     }
 
     // Save apikey ke localStorage
