@@ -237,6 +237,8 @@
                         opacity 0.25s ease,
                         visibility 0.25s ease;
             will-change: transform, opacity;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
             scrollbar-color: var(--primary-color) transparent;
         }
@@ -701,7 +703,11 @@
             modalBox.classList.remove('closing');
             modalBackdrop.classList.add('open');
             document.body.classList.add('noscroll');
-            // Double rAF — pastiin browser render state awal dulu baru animasi
+            // Cegah scroll background tembus ke body
+            document.documentElement.style.overflow = 'hidden';
+            document.documentElement.style.overscrollBehavior = 'none';
+            // Scroll modal ke atas dulu sebelum buka
+            modalBox.scrollTop = 0;
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     modalBox.classList.add('open');
@@ -719,6 +725,8 @@
                 modalBackdrop.style.opacity = '';
                 if (!mobileMenu.classList.contains('active')) {
                     document.body.classList.remove('noscroll');
+                    document.documentElement.style.overflow = '';
+                    document.documentElement.style.overscrollBehavior = '';
                 }
             }, 220);
         }
