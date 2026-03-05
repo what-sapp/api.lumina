@@ -52,7 +52,10 @@ async function byGenre(genre, page = 1) {
 }
 
 module.exports = {
-    name: "NimegamiGenre", desc: "Mendapatkan anime dari nimegami.id berdasarkan genre.", category: "Anime", params: ["genre","page"],
+    name: "NimegamiGenre", 
+    desc: "Mendapatkan anime dari nimegami.id berdasarkan genre.", 
+    category: "Anime", 
+    params: ["genre","page"],
     async run(req, res) {
         try {
             const { genre, page } = req.query;
