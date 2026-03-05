@@ -14,24 +14,24 @@ const headers = {
     'Referer': 'https://movieku.space/',
 };
 
-// Extract PixelDrain direct stream URL dari download links
+// Extract semua PixelDrain direct stream URLs dari download links (semua resolusi)
 function extractPixelDrain(downloads) {
+    const results = [];
     for (const dl of downloads) {
         for (const link of dl.links) {
             if (link.url.includes('pixeldrain.com')) {
                 const match = link.url.match(/pixeldrain\.com\/(?:u|api\/file)\/([a-zA-Z0-9]+)/);
                 if (match) {
-                    return {
-                        id: match[1],
+                    results.push({
                         quality: dl.quality,
-                        direct: `https://pixeldrain.com/api/file/${match[1]}`,
-                        page: `https://pixeldrain.com/u/${match[1]}`,
-                    };
+                        url: `https://pixeldrain.com/api/file/${match[1]}`,
+                    });
+                    break; // 1 per quality cukup
                 }
             }
         }
     }
-    return null;
+    return results.length > 0 ? results : null;
 }
 
 async function resolveStream(shortUrl) {
@@ -130,14 +130,12 @@ module.exports = {
                     rating: rating ? { value: rating, votes } : null,
                     info,
                     stream: {
-                        // Embed player (iframe)
                         embed: embedUrl || null,
                         player: playerUrl || null,
-                        // Direct stream via PixelDrain (best for video player)
+                        // Direct stream via PixelDrain — pilih resolusi sesuai koneksi
                         direct: pixeldrain ? {
-                            quality: pixeldrain.quality,
-                            url: pixeldrain.direct,
-                            note: 'Direct MKV/MP4 stream, no auth required'
+                            note: 'Direct MKV/MP4 stream, no auth required',
+                            qualities: pixeldrain // [ { quality: "1080p", url: "..." }, { quality: "720p", ... }, ... ]
                         } : null,
                     },
                     downloads: { total: downloads.length, data: downloads },
