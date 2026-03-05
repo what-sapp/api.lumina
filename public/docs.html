@@ -100,7 +100,6 @@
         }
         .category-header.open .category-chevron { transform: rotate(180deg); }
 
-        /* Accordion content */
         .accordion-content {
             max-height: 0;
             overflow: hidden;
@@ -116,7 +115,6 @@
         }
         @media (max-width: 640px) { .endpoint-grid { grid-template-columns: 1fr; } }
 
-        /* Endpoint card */
         .endpoint-card {
             background: var(--background-color);
             border: 1px solid var(--border-color);
@@ -193,7 +191,6 @@
         .try-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(79,70,229,0.35); }
         .try-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        /* No results */
         .no-results {
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
@@ -385,6 +382,81 @@
             .param-input { padding: 0.5rem 0.75rem; font-size: 0.78rem; }
             .response-pre { font-size: 0.65rem; max-height: 12rem; }
         }
+
+        /* ── HERO BG PATCH ── */
+        .hero-banner {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+        }
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: -2;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 1s ease;
+            filter: blur(3px) saturate(0.7);
+            transform: scale(1.05);
+        }
+        .hero-banner.bg-loaded::before { opacity: 1; }
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            background: linear-gradient(
+                135deg,
+                rgba(15,17,32,0.82) 0%,
+                rgba(15,17,32,0.65) 50%,
+                rgba(15,17,32,0.80) 100%
+            );
+        }
+        .hero-banner > * { position: relative; z-index: 1; }
+
+        .hero-bg-refresh {
+            position: absolute;
+            top: 0.75rem; right: 0.75rem;
+            z-index: 5;
+            width: 1.85rem; height: 1.85rem;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.12);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            color: rgba(255,255,255,0.6);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .hero-banner.bg-loaded .hero-bg-refresh {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .hero-bg-refresh:hover {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border-color: rgba(255,255,255,0.25);
+        }
+        .hero-bg-refresh:active { transform: rotate(180deg); }
+        .hero-bg-refresh .material-icons { font-size: 0.9rem; }
+
+        .hero-bg-source {
+            position: absolute;
+            bottom: 0.6rem; right: 1rem;
+            z-index: 5;
+            font-size: 0.55rem; font-weight: 700;
+            letter-spacing: 0.15em; text-transform: uppercase;
+            color: rgba(255,255,255,0.25);
+            opacity: 0; transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        .hero-banner.bg-loaded .hero-bg-source { opacity: 1; }
     </style>
 </head>
 <body>
@@ -703,15 +775,11 @@
             modalBox.classList.remove('closing');
             modalBackdrop.classList.add('open');
             document.body.classList.add('noscroll');
-            // Cegah scroll background tembus ke body
             document.documentElement.style.overflow = 'hidden';
             document.documentElement.style.overscrollBehavior = 'none';
-            // Scroll modal ke atas dulu sebelum buka
             modalBox.scrollTop = 0;
             requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    modalBox.classList.add('open');
-                });
+                requestAnimationFrame(() => { modalBox.classList.add('open'); });
             });
         }
 
@@ -734,12 +802,10 @@
         modalBackdrop.addEventListener('click', closeModal);
         closeModalBtn.addEventListener('click', closeModal);
 
-        // Expose ke script.js
         window.openApiModal  = openModal;
-        window.openDocsModal = openModal; // alias — dipanggil script.js
+        window.openDocsModal = openModal;
         window.closeApiModal = closeModal;
 
-        // Safety: unlock noscroll kalau modal & menu udah tutup
         setInterval(() => {
             const modalOpen = modalBox.classList.contains('open');
             const menuOpen  = mobileMenu.classList.contains('active');
@@ -825,6 +891,61 @@
             const open = custPanel.classList.toggle('open');
             custChevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
         });
+
+        // ── HERO BG PATCH ── //
+        (function() {
+            const TAGS = ['waifu','neko','shinobu','megumin','awoo','wave','smile','uniform'];
+            let isFetching = false;
+
+            const hero = document.querySelector('.hero-banner');
+            if (!hero) return;
+
+            const refreshBtn = document.createElement('button');
+            refreshBtn.className = 'hero-bg-refresh';
+            refreshBtn.title = 'Gambar lain';
+            refreshBtn.innerHTML = '<span class="material-icons">refresh</span>';
+            hero.appendChild(refreshBtn);
+
+            const sourceLabel = document.createElement('span');
+            sourceLabel.className = 'hero-bg-source';
+            sourceLabel.textContent = 'waifu.pics';
+            hero.appendChild(sourceLabel);
+
+            async function fetchBg() {
+                if (isFetching) return;
+                isFetching = true;
+
+                if (hero.classList.contains('bg-loaded')) {
+                    hero.classList.remove('bg-loaded');
+                    await new Promise(r => setTimeout(r, 400));
+                }
+
+                try {
+                    const tag = TAGS[Math.floor(Math.random() * TAGS.length)];
+                    const res = await fetch('https://api.waifu.pics/sfw/' + tag);
+                    const { url } = await res.json();
+                    if (url) {
+                        const img = new Image();
+                        img.onload = () => {
+                            let styleEl = document.getElementById('hero-bg-dynamic');
+                            if (!styleEl) {
+                                styleEl = document.createElement('style');
+                                styleEl.id = 'hero-bg-dynamic';
+                                document.head.appendChild(styleEl);
+                            }
+                            styleEl.textContent = ".hero-banner::before { background-image: url('" + url + "'); }";
+                            hero.classList.add('bg-loaded');
+                            isFetching = false;
+                        };
+                        img.onerror = () => { isFetching = false; };
+                        img.src = url;
+                    }
+                } catch(e) { isFetching = false; }
+            }
+
+            refreshBtn.addEventListener('click', fetchBg);
+            fetchBg();
+        })();
     </script>
     <script src="/report-component.js" defer></script>
 </body>
