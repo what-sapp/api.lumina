@@ -14,20 +14,39 @@ const headers = {
     'Referer': 'https://movieku.space/',
 };
 
+// Extract PixelDrain direct stream URL dari download links
+function extractPixelDrain(downloads) {
+    for (const dl of downloads) {
+        for (const link of dl.links) {
+            if (link.url.includes('pixeldrain.com')) {
+                const match = link.url.match(/pixeldrain\.com\/(?:u|api\/file)\/([a-zA-Z0-9]+)/);
+                if (match) {
+                    return {
+                        id: match[1],
+                        quality: dl.quality,
+                        direct: `https://pixeldrain.com/api/file/${match[1]}`,
+                        page: `https://pixeldrain.com/u/${match[1]}`,
+                    };
+                }
+            }
+        }
+    }
+    return null;
+}
+
 async function resolveStream(shortUrl) {
     try {
         const { request } = await axios.get(shortUrl, {
             headers, timeout: 10000, maxRedirects: 5, validateStatus: () => true
         });
-        const final = request?.res?.responseUrl || request?.path || '';
-        return final || shortUrl;
+        return request?.res?.responseUrl || shortUrl;
     } catch(e) { return shortUrl; }
 }
 
 module.exports = {
     name: 'MoviekuEpisode',
-    desc: 'Download & streaming links per episode dari movieku.space.',
-    category: 'TEST',
+    desc: 'Download & streaming links per episode dari movieku.space. Termasuk direct stream via PixelDrain.',
+    category: 'Movie',
     params: ['slug'],
 
     async run(req, res) {
@@ -77,23 +96,17 @@ module.exports = {
                 if (links.length > 0) downloads.push({ quality, links });
             });
 
-            // ── Stream — iframe di #embed_holder ──
+            // ── Stream ──
+            // 1. AbyssCDN embed (dari iframe)
             const iframeSrc = $('#embed_holder iframe').attr('src') || '';
-            let streamUrl = '';
-            let streamEmbed = '';
+            const embedUrl = iframeSrc ? iframeSrc.replace('short.ink', 'short.icu') : null;
+            const playerUrl = embedUrl ? await resolveStream(embedUrl) : null;
 
-            if (iframeSrc) {
-                // short.icu → abysscdn, short.ink → short.icu → abysscdn
-                const normalized = iframeSrc.replace('short.ink', 'short.icu');
-                streamEmbed = normalized;
-                // Resolve redirect ke final URL
-                streamUrl = await resolveStream(normalized);
-            }
+            // 2. PixelDrain direct stream (no auth needed)
+            const pixeldrain = extractPixelDrain(downloads);
 
             // ── Navigation ──
-            const allEpisodesUrl = $('a:contains("All Episodes")').attr('href') || '';
-
-            // Cek prev/next dari episode nav
+            const allEpisodesUrl = $('a:contains("All Episodes")').attr('href') || null;
             const prevEp = $('a.ts-watch-prev-nav').attr('href') || '';
             const nextEp = $('a.ts-watch-next-nav').attr('href') || '';
 
@@ -116,13 +129,20 @@ module.exports = {
                     title, slug: slug.trim(), url, poster,
                     rating: rating ? { value: rating, votes } : null,
                     info,
-                    stream: iframeSrc ? {
-                        embed: streamEmbed,
-                        player: streamUrl,
-                    } : null,
+                    stream: {
+                        // Embed player (iframe)
+                        embed: embedUrl || null,
+                        player: playerUrl || null,
+                        // Direct stream via PixelDrain (best for video player)
+                        direct: pixeldrain ? {
+                            quality: pixeldrain.quality,
+                            url: pixeldrain.direct,
+                            note: 'Direct MKV/MP4 stream, no auth required'
+                        } : null,
+                    },
                     downloads: { total: downloads.length, data: downloads },
                     navigation: {
-                        all_episodes: allEpisodesUrl || null,
+                        all_episodes: allEpisodesUrl,
                         prev: prevEp && prevEp !== '#/' ? { url: prevEp, slug: prevEp.replace(BASE,'').replace(/\//g,'') } : null,
                         next: nextEp && nextEp !== '#/' ? { url: nextEp, slug: nextEp.replace(BASE,'').replace(/\//g,'') } : null,
                     },
