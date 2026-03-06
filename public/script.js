@@ -213,6 +213,25 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
+            // Tutup semua accordion lain (exclusive) tanpa bikin scroll jump
+            const scrollY = window.scrollY;
+            apiContent.querySelectorAll('.category-section').forEach(otherSection => {
+                if (otherSection === section) return;
+                const otherContent = otherSection.querySelector('.accordion-content');
+                const otherHeader  = otherSection.querySelector('.category-header');
+                const otherChevron = otherSection.querySelector('.category-chevron');
+                const otherIcon    = otherSection.querySelector('.category-icon .material-icons');
+                if (otherContent.classList.contains('open')) {
+                    otherContent.classList.remove('open');
+                    otherHeader.classList.remove('open');
+                    otherContent.style.maxHeight = '0';
+                    if (otherChevron) otherChevron.style.transform = 'rotate(0deg)';
+                    if (otherIcon) otherIcon.textContent = 'folder';
+                }
+            });
+            // Restore scroll position biar ga jump
+            window.scrollTo({ top: scrollY, behavior: 'instant' });
+
             // Lazy render saat accordion dibuka
             if (section.dataset.rendered === 'false') {
                 section.dataset.rendered = 'true';
