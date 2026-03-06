@@ -2,13 +2,13 @@ module.exports = {
     name: {
         main:      'Lumina APIs',
         short:     'Lumina',
-        copyright: 'Robin'
+        copyright: 'Xena'
     },
     description: 'Integrated API solution for your modern application development needs. Fast, secure, and reliable access.',
     icon:     '/image/icon.png',
-    author:   'Robin',
+    author:   'Xena',
     owner: {
-        name:   'Robin',
+        name:   'Xena',
         github: 'https://github.com/hiuraaaaa',
         wa:     'https://whatsapp.com/channel/0029Vb9MIdiDDmFXasVPVG1t',
         avatar: '/image/icon.png'
