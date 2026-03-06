@@ -24,11 +24,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     }, 5000);
 
     // --- 2. DATA FETCHING ---
-    // ── Angkat ke scope atas biar accessible di semua fungsi ──
     let categoryData = [];
     let disabledKeys = new Set();
 
-    // ── renderCards di scope atas juga ──
+    // ── endpoint paramsSchema cache (untuk deteksi file input) ──
+    const endpointSchemaMap = new Map();
+
     const statusMap = {
         ready   : { cls: 'status-ready',    icon: 'circle',            label: 'Ready'   },
         error   : { cls: 'status-error',    icon: 'cancel',            label: 'Error'   },
@@ -51,10 +52,16 @@ document.addEventListener('DOMContentLoaded', async function () {
             const disabledStyle  = isDisabled ? 'opacity:0.55; filter:grayscale(0.4);' : '';
             const disabledTitle  = isDisabled ? 'title="Endpoint ini sedang offline"' : '';
 
+            // Simpan paramsSchema ke map
+            if (item.paramsSchema) {
+                endpointSchemaMap.set(endpointKey, item.paramsSchema);
+            }
+
             return `<div class="endpoint-card" style="${disabledStyle}" ${disabledTitle}
                 data-name="${itemName.toLowerCase()}"
                 data-desc="${(item.desc || '').toLowerCase().replace(/"/g, '&quot;')}"
-                data-category="${catIndex}">
+                data-category="${catIndex}"
+                data-schema="${endpointKey}">
                 <div class="endpoint-card-header">
                     <span class="method-badge ${methodCls}">${method}</span>
                     <span class="endpoint-name">${itemName}</span>
@@ -71,6 +78,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         data-name="${itemName}"
                         data-desc="${(item.desc || '').replace(/"/g, '&quot;')}"
                         data-method="${method}"
+                        data-schema="${endpointKey}"
                         ${isTryDisabled}>
                         <span class="material-icons" style="font-size:0.75rem;">send</span>
                         Try
@@ -131,7 +139,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         const apiContent = document.getElementById('api-content');
         if (!apiContent) return;
 
-        // Merge kategori duplikat
         const mergeMap = new Map();
         (data.endpoints || []).forEach(cat => {
             const key = cat.name.trim().toUpperCase();
@@ -141,7 +148,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 mergeMap.set(key, { name: cat.name, items: [...cat.items] });
             }
         });
-        // Simpan ke scope atas
         categoryData = [...mergeMap.values()];
 
         const fragment = document.createDocumentFragment();
@@ -185,11 +191,10 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         apiContent.appendChild(fragment);
 
-        // Accordion + Try button — single event delegation
         apiContent.addEventListener('click', e => {
             const btn = e.target.closest('.try-btn');
             if (btn && !btn.disabled) {
-                openDocsModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc, btn.dataset.method);
+                openDocsModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc, btn.dataset.method, btn.dataset.schema);
                 return;
             }
 
@@ -229,14 +234,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             });
 
-            // Hitung posisi header SETELAH accordion lain nutup (DOM sudah update)
             requestAnimationFrame(() => {
                 const newRect = header.getBoundingClientRect();
                 const targetScrollY = window.scrollY + newRect.top - 70;
                 window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
             });
 
-            // Lazy render saat accordion dibuka
             if (section.dataset.rendered === 'false') {
                 section.dataset.rendered = 'true';
                 renderCards(grid, categoryData[catIndex].items, catIndex);
@@ -249,7 +252,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // --- 4. MODAL ---
-    async function openDocsModal(name, endpoint, description, method = 'GET') {
+    async function openDocsModal(name, endpoint, description, method = 'GET', schemaKey = '') {
         const paramsContainer   = document.getElementById('params-container');
         const responseContainer = document.getElementById('response-container');
         const responseData      = document.getElementById('response-data');
@@ -270,6 +273,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         const endpointKey  = endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_');
+        const schema       = endpointSchemaMap.get(schemaKey || endpointKey) || {};
         let requireApikey  = (window._requireKeyEndpoints || new Set()).has(endpointKey);
 
         if (window._refreshRequireKeys) {
@@ -326,24 +330,64 @@ document.addEventListener('DOMContentLoaded', async function () {
             section.className = 'params-section';
             section.innerHTML = `<div class="params-title"><span class="material-icons" style="font-size:0.75rem;">tune</span> Parameters</div>`;
             params.forEach(p => {
-                const isOptional = p.startsWith('_');
-                const cleanName  = isOptional ? p.substring(1) : p;
-                const group      = document.createElement('div');
-                group.className  = 'param-group';
-                group.innerHTML  = `
-                    <div class="param-label">
-                        ${cleanName}
-                        ${!isOptional ? '<span class="param-required">*required</span>' : '<span style="font-size:0.62rem;color:var(--text-muted);font-weight:400;">(optional)</span>'}
-                    </div>
-                    <input type="text" id="param-${p}" class="param-input" placeholder="Enter ${cleanName}...">
-                    <div id="error-${p}" style="display:none;font-size:0.65rem;color:var(--error-color);margin-top:0.25rem;">This field is required.</div>
-                `;
-                section.appendChild(group);
+                const isOptional  = p.startsWith('_');
+                const cleanName   = isOptional ? p.substring(1) : p;
+                const paramSchema = schema[cleanName] || schema[p] || {};
+                const isFile      = paramSchema.type === 'file';
+                const group       = document.createElement('div');
+                group.className   = 'param-group';
+
+                if (isFile) {
+                    // ── File input ──
+                    group.innerHTML = `
+                        <div class="param-label">
+                            ${cleanName}
+                            ${!isOptional ? '<span class="param-required">*required</span>' : '<span style="font-size:0.62rem;color:var(--text-muted);font-weight:400;">(optional)</span>'}
+                        </div>
+                        <label class="file-input-label" id="label-${p}">
+                            <span class="material-icons" style="font-size:1.25rem;color:var(--primary-color);">upload_file</span>
+                            <span class="file-input-text" id="file-text-${p}">Tap to choose file</span>
+                            <input type="file" id="param-${p}" class="param-file-input" style="display:none;">
+                        </label>
+                        <div id="error-${p}" style="display:none;font-size:0.65rem;color:var(--error-color);margin-top:0.25rem;">File wajib dipilih.</div>
+                    `;
+                    section.appendChild(group);
+
+                    // Update label setelah file dipilih
+                    setTimeout(() => {
+                        const fileInput = document.getElementById(`param-${p}`);
+                        const fileText  = document.getElementById(`file-text-${p}`);
+                        const label     = document.getElementById(`label-${p}`);
+                        if (fileInput) {
+                            fileInput.addEventListener('change', () => {
+                                if (fileInput.files[0]) {
+                                    const f    = fileInput.files[0];
+                                    const size = f.size > 1024*1024
+                                        ? (f.size/1024/1024).toFixed(1) + ' MB'
+                                        : (f.size/1024).toFixed(1) + ' KB';
+                                    fileText.textContent = `${f.name} (${size})`;
+                                    if (label) label.style.borderColor = 'var(--primary-color)';
+                                }
+                            });
+                        }
+                    }, 0);
+                } else {
+                    // ── Text input biasa ──
+                    group.innerHTML = `
+                        <div class="param-label">
+                            ${cleanName}
+                            ${!isOptional ? '<span class="param-required">*required</span>' : '<span style="font-size:0.62rem;color:var(--text-muted);font-weight:400;">(optional)</span>'}
+                        </div>
+                        <input type="text" id="param-${p}" class="param-input" placeholder="Enter ${cleanName}...">
+                        <div id="error-${p}" style="display:none;font-size:0.65rem;color:var(--error-color);margin-top:0.25rem;">This field is required.</div>
+                    `;
+                    section.appendChild(group);
+                }
             });
             paramsContainer.appendChild(section);
         }
 
-        sendBtn.onclick = () => handleApiRequest(endpoint, paramsContainer);
+        sendBtn.onclick = () => handleApiRequest(endpoint, paramsContainer, method, schema);
         if (window.openApiModal) window.openApiModal();
     }
 
@@ -372,7 +416,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // --- 6. REQUEST HANDLER ---
-    async function handleApiRequest(endpoint, paramsContainer) {
+    async function handleApiRequest(endpoint, paramsContainer, method = 'GET', schema = {}) {
         const sendBtn           = document.getElementById('submit-api');
         const responseContainer = document.getElementById('response-container');
         const responseData      = document.getElementById('response-data');
@@ -382,6 +426,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         let isValid     = true;
         let baseUrl     = endpoint.split('?')[0];
         let queryParams = new URLSearchParams();
+        let hasFileInput = false;
+        let formData     = null;
 
         const requireApikey = (window._requireKeyEndpoints || new Set()).has(endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_'));
         const apikeyInput   = document.getElementById('modal-apikey');
@@ -398,24 +444,51 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (apikeyVal) queryParams.append('apikey', apikeyVal);
         }
 
-        paramsContainer.querySelectorAll('.param-input').forEach(input => {
-            if (input.id === 'modal-apikey') return;
-            const pName = input.id.replace('param-', '');
-            const val   = input.value.trim();
-            const error = document.getElementById(`error-${pName}`);
+        // Cek apakah ada file input
+        paramsContainer.querySelectorAll('input[type="file"]').forEach(input => {
+            hasFileInput = true;
+        });
 
-            if (!pName.startsWith('_') && !val) {
-                isValid = false;
-                input.classList.add('invalid');
-                if (error) error.style.display = 'block';
+        if (hasFileInput) formData = new FormData();
+
+        paramsContainer.querySelectorAll('.param-input, .param-file-input').forEach(input => {
+            if (input.id === 'modal-apikey') return;
+            const pName    = input.id.replace('param-', '');
+            const isFile   = input.type === 'file';
+            const error    = document.getElementById(`error-${pName}`);
+            const isOptional = pName.startsWith('_');
+
+            if (isFile) {
+                if (!isOptional && (!input.files || !input.files[0])) {
+                    isValid = false;
+                    const label = document.getElementById(`label-${pName}`);
+                    if (label) label.style.borderColor = 'var(--error-color)';
+                    if (error) error.style.display = 'block';
+                } else {
+                    const label = document.getElementById(`label-${pName}`);
+                    if (label) label.style.borderColor = '';
+                    if (error) error.style.display = 'none';
+                    if (input.files && input.files[0]) {
+                        formData.append(pName, input.files[0]);
+                    }
+                }
             } else {
-                input.classList.remove('invalid');
-                if (error) error.style.display = 'none';
-                if (val) {
-                    if (baseUrl.includes(`{${pName}}`)) {
-                        baseUrl = baseUrl.replace(`{${pName}}`, encodeURIComponent(val));
-                    } else {
-                        queryParams.append(pName, val);
+                const val = input.value.trim();
+                if (!isOptional && !val) {
+                    isValid = false;
+                    input.classList.add('invalid');
+                    if (error) error.style.display = 'block';
+                } else {
+                    input.classList.remove('invalid');
+                    if (error) error.style.display = 'none';
+                    if (val) {
+                        if (baseUrl.includes(`{${pName}}`)) {
+                            baseUrl = baseUrl.replace(`{${pName}}`, encodeURIComponent(val));
+                        } else if (hasFileInput && formData) {
+                            formData.append(pName, val);
+                        } else {
+                            queryParams.append(pName, val);
+                        }
                     }
                 }
             }
@@ -432,7 +505,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         const start = Date.now();
         try {
-            const res         = await fetch(finalUrl);
+            const fetchOptions = hasFileInput
+                ? { method: 'POST', body: formData }
+                : { method: method.toUpperCase() };
+
+            const res         = await fetch(finalUrl, fetchOptions);
             const duration    = Date.now() - start;
             const contentType = res.headers.get('content-type') || '';
 
@@ -460,7 +537,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             setTimeout(() => {
-                const modal  = document.getElementById('api-modal');
+                const modal = document.getElementById('api-modal');
                 if (modal) modal.scrollTo({ top: modal.scrollHeight, behavior: 'smooth' });
             }, 50);
         } catch (err) {
@@ -488,14 +565,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const term = e.target.value.toLowerCase().trim();
 
                 document.querySelectorAll('.category-section').forEach(section => {
-                    const header  = section.querySelector('.category-header');
-                    const content = section.querySelector('.accordion-content');
-                    const chevron = header.querySelector('.category-chevron');
-                    const icon    = header.querySelector('.category-icon .material-icons');
+                    const header   = section.querySelector('.category-header');
+                    const content  = section.querySelector('.accordion-content');
+                    const chevron  = header.querySelector('.category-chevron');
+                    const icon     = header.querySelector('.category-icon .material-icons');
                     const catIndex = Number(section.dataset.catIndex);
-                    const grid    = section.querySelector('.endpoint-grid');
+                    const grid     = section.querySelector('.endpoint-grid');
 
-                    // Render dulu sebelum search kalau belum
                     if (term && section.dataset.rendered === 'false') {
                         section.dataset.rendered = 'true';
                         renderCards(grid, categoryData[catIndex].items, catIndex);
