@@ -213,8 +213,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
-            // Tutup semua accordion lain (exclusive) tanpa bikin scroll jump
-            const scrollY = window.scrollY;
+            // Tutup semua accordion lain — pin scroll ke header yg diklik biar ga jump
+            const headerRect = header.getBoundingClientRect();
+            const targetScrollY = window.scrollY + headerRect.top - 70; // 70 = navbar height
+
             apiContent.querySelectorAll('.category-section').forEach(otherSection => {
                 if (otherSection === section) return;
                 const otherContent = otherSection.querySelector('.accordion-content');
@@ -229,8 +231,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                     if (otherIcon) otherIcon.textContent = 'folder';
                 }
             });
-            // Restore scroll position biar ga jump
-            window.scrollTo({ top: scrollY, behavior: 'instant' });
+
+            // Scroll ke posisi header B setelah A nutup
+            requestAnimationFrame(() => {
+                window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+            });
 
             // Lazy render saat accordion dibuka
             if (section.dataset.rendered === 'false') {
