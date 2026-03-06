@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// script.js  —  Lumina Docs (docs.html) — updated for new UI
+// script.js  —  Lumina Docs (docs.html) — performance optimized
 // ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         }, 800);
     };
 
-    // Safety: force unlock setelah 5 detik
     setTimeout(() => {
         document.body.classList.remove('noscroll');
         if (pageLoader) { pageLoader.style.opacity = '0'; pageLoader.style.display = 'none'; }
@@ -29,7 +28,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         const endpoints = await (await fetch('/endpoints')).json();
         const set       = await (await fetch('/set')).json();
 
-        // ── Fetch endpoint status dari admin (public, no auth) ──
         let disabledKeys = new Set();
         try {
             const stRes  = await fetch('/endpoints-status');
@@ -37,21 +35,17 @@ document.addEventListener('DOMContentLoaded', async function () {
             (stData.list || []).forEach(s => {
                 if (s.enabled === false) disabledKeys.add(s.key);
             });
-        } catch (_) { /* silent */ }
+        } catch (_) {}
 
-        // ── Fetch per-endpoint require key ──
         async function refreshRequireKeys() {
             try {
                 const rkRes  = await fetch('/endpoints-require-key');
                 const rkData = await rkRes.json();
                 window._requireKeyEndpoints = new Set(rkData.keys || []);
-                console.log('[Lumina] requireKey endpoints:', [...window._requireKeyEndpoints]);
             } catch (_) { window._requireKeyEndpoints = new Set(); }
         }
         await refreshRequireKeys();
-        window._refreshRequireKeys = refreshRequireKeys; // expose untuk re-call di modal
-
-        // ── Load saved apikey dari localStorage ──
+        window._refreshRequireKeys = refreshRequireKeys;
         window._savedApikey = localStorage.getItem('lumina_apikey') || '';
 
         setContent('api-icon',       'href',        set.icon);
@@ -81,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const apiContent = document.getElementById('api-content');
         if (!apiContent) return;
 
-        // ── Merge kategori duplikat ──
+        // Merge kategori duplikat
         const mergeMap = new Map();
         (data.endpoints || []).forEach(cat => {
             const key = cat.name.trim().toUpperCase();
@@ -93,46 +87,33 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
         const categoryData = [...mergeMap.values()];
 
+        // ── Render cards pakai innerHTML batch — JAUH lebih cepat dari createElement loop ──
         function renderCards(grid, items, catIndex) {
-            items.forEach((itemData, itemIndex) => {
-                const itemName = Object.keys(itemData)[0];
-                const item     = itemData[itemName];
+            const statusMap = {
+                ready   : { cls: 'status-ready',    icon: 'circle',            label: 'Ready'   },
+                error   : { cls: 'status-error',    icon: 'cancel',            label: 'Error'   },
+                update  : { cls: 'status-update',   icon: 'update',            label: 'Update'  },
+                disabled: { cls: 'status-disabled', icon: 'do_not_disturb_on', label: 'Offline' },
+            };
+            const methodClsMap = { GET:'method-get', POST:'method-post', PUT:'method-put', DELETE:'method-delete' };
 
-                const card = document.createElement('div');
-                card.className = 'endpoint-card';
-                card.style.userSelect        = 'none';
-                card.style.webkitUserSelect  = 'none';
-                card.style.webkitTouchCallout = 'none';
-                card.style.webkitTapHighlightColor = 'transparent';
-                card.dataset.name     = itemName.toLowerCase();
-                card.dataset.desc     = (item.desc || '').toLowerCase();
-                card.dataset.category = catIndex;
-
-                card.style.opacity    = '0';
-                card.style.transition = 'opacity 0.2s ease';
-
+            const html = items.map((itemData) => {
+                const itemName   = Object.keys(itemData)[0];
+                const item       = itemData[itemName];
                 const endpointKey = (item.path || '/').split('?')[0].replace(/^\//, '').replace(/\//g, '_');
                 const isDisabled  = disabledKeys.has(endpointKey);
-                const rawStatus   = item.status || 'ready';
-                const status      = isDisabled ? 'disabled' : rawStatus;
+                const status      = isDisabled ? 'disabled' : (item.status || 'ready');
+                const s           = statusMap[status] || statusMap.ready;
+                const method      = (item.method || 'GET').toUpperCase();
+                const methodCls   = methodClsMap[method] || 'method-get';
+                const isTryDisabled = (status === 'error' || isDisabled) ? 'disabled' : '';
+                const disabledStyle = isDisabled ? 'opacity:0.55; filter:grayscale(0.4);' : '';
+                const disabledTitle = isDisabled ? 'title="Endpoint ini sedang offline"' : '';
 
-                const statusMap = {
-                    ready   : { cls: 'status-ready',    icon: 'circle',            label: 'Ready'   },
-                    error   : { cls: 'status-error',    icon: 'cancel',            label: 'Error'   },
-                    update  : { cls: 'status-update',   icon: 'update',            label: 'Update'  },
-                    disabled: { cls: 'status-disabled', icon: 'do_not_disturb_on', label: 'Offline' },
-                };
-                const s = statusMap[status] || statusMap.ready;
-
-                const method    = (item.method || 'GET').toUpperCase();
-                const methodCls = { GET:'method-get', POST:'method-post', PUT:'method-put', DELETE:'method-delete' }[method] || 'method-get';
-
-                if (isDisabled) {
-                    card.style.opacity = '0';
-                    card.style.filter  = 'grayscale(0.4)';
-                }
-
-                card.innerHTML = `
+                return `<div class="endpoint-card" style="${disabledStyle}" ${disabledTitle}
+                    data-name="${(itemName).toLowerCase()}"
+                    data-desc="${(item.desc || '').toLowerCase().replace(/"/g, '&quot;')}"
+                    data-category="${catIndex}">
                     <div class="endpoint-card-header">
                         <span class="method-badge ${methodCls}">${method}</span>
                         <span class="endpoint-name">${itemName}</span>
@@ -147,55 +128,27 @@ document.addEventListener('DOMContentLoaded', async function () {
                         <button class="try-btn"
                             data-path="${item.path || ''}"
                             data-name="${itemName}"
-                            data-desc="${item.desc || ''}"
+                            data-desc="${(item.desc || '').replace(/"/g, '&quot;')}"
                             data-method="${method}"
-                            ${(status === 'error' || isDisabled) ? 'disabled' : ''}>
+                            ${isTryDisabled}>
                             <span class="material-icons" style="font-size:0.75rem;">send</span>
                             Try
                         </button>
                     </div>
-                `;
+                </div>`;
+            }).join('');
 
-                if (isDisabled) card.title = 'Endpoint ini sedang offline';
-                grid.appendChild(card);
-            });
-
-            // Batch fade-in semua card sekaligus — lebih enteng dari per-card RAF
-            requestAnimationFrame(() => {
-                grid.querySelectorAll('.endpoint-card').forEach(c => {
-                    c.style.opacity = c.title === 'Endpoint ini sedang offline' ? '0.55' : '1';
-                });
-            });
+            grid.innerHTML = html;
         }
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (!entry.isIntersecting) return;
-                const section  = entry.target;
-                const catIndex = Number(section.dataset.catIndex);
-                const grid     = section.querySelector('.endpoint-grid');
-                if (section.dataset.rendered === 'true') return;
-                section.dataset.rendered = 'true';
-                renderCards(grid, categoryData[catIndex].items, catIndex);
-                observer.unobserve(section);
-
-                // Update maxHeight kalau accordion open
-                const accContent = section.querySelector('.accordion-content');
-                if (accContent && accContent.classList.contains('open')) {
-                    requestAnimationFrame(() => {
-                        accContent.style.maxHeight = accContent.scrollHeight + 'px';
-                    });
-                }
-            });
-        }, { rootMargin: '300px 0px 300px 0px', threshold: 0 });
+        // ── Fragment batch insert semua category sekaligus ──
+        const fragment = document.createDocumentFragment();
 
         categoryData.forEach((category, catIndex) => {
             const section = document.createElement('div');
             section.className        = 'category-section';
             section.dataset.catIndex = catIndex;
             section.dataset.rendered = 'false';
-            section.style.opacity    = '0';
-            section.style.transition = 'opacity 0.35s ease';
 
             const totalItems    = category.items.length;
             const disabledCount = category.items.filter(itemData => {
@@ -206,80 +159,71 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             const countHtml = disabledCount > 0
                 ? `<span class="category-count">${totalItems}</span>
-                   <span style="font-size:0.6rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:100px; background:rgba(244,63,94,0.1); color:#f43f5e; margin-left:0.25rem;">
-                       ${disabledCount} offline
-                   </span>`
+                   <span style="font-size:0.6rem;font-weight:700;padding:0.2rem 0.5rem;border-radius:100px;background:rgba(244,63,94,0.1);color:#f43f5e;margin-left:0.25rem;">${disabledCount} offline</span>`
                 : `<span class="category-count">${totalItems}</span>`;
 
             section.innerHTML = `
                 <div class="category-header" data-category="${catIndex}">
                     <div class="category-header-left">
                         <div class="category-icon">
-                            <span class="material-icons" style="font-size:1.1rem; color:var(--primary-color);">folder</span>
+                            <span class="material-icons" style="font-size:1.1rem;color:var(--primary-color);">folder</span>
                         </div>
                         <span class="category-name">${category.name}</span>
                         ${countHtml}
                     </div>
                     <span class="material-icons category-chevron">expand_more</span>
                 </div>
-                <div class="accordion-content" style="max-height:0; overflow:hidden; transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1);">
+                <div class="accordion-content" style="max-height:0;overflow:hidden;transition:max-height 0.3s cubic-bezier(0.4,0,0.2,1);">
                     <div class="endpoint-grid" id="grid-${catIndex}"></div>
                 </div>
             `;
 
-            apiContent.appendChild(section);
-
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    section.style.opacity = '1';
-                });
-            });
-
-            observer.observe(section);
+            fragment.appendChild(section);
         });
 
-        // Accordion toggle
+        // Single DOM write
+        apiContent.appendChild(fragment);
+
+        // Accordion toggle — event delegation (1 listener, bukan N)
         apiContent.addEventListener('click', e => {
-            const header = e.target.closest('.category-header');
-            if (header) {
-                const content  = header.nextElementSibling;
-                const chevron  = header.querySelector('.category-chevron');
-                const icon     = header.querySelector('.category-icon .material-icons');
-                const section  = header.closest('.category-section');
-                const catIndex = Number(section.dataset.catIndex);
-                const grid     = section.querySelector('.endpoint-grid');
-                const isOpen   = content.classList.toggle('open');
-                header.classList.toggle('open', isOpen);
-                chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-                if (icon) icon.textContent = isOpen ? 'folder_open' : 'folder';
-
-                if (!isOpen) {
-                    // Tutup: set ke 0
-                    content.style.maxHeight = '0';
-                    return;
-                }
-
-                if (section.dataset.rendered === 'false') {
-                    section.dataset.rendered = 'true';
-                    renderCards(grid, categoryData[catIndex].items, catIndex);
-                    observer.unobserve(section);
-                }
-
-                // Set maxHeight ke actual scrollHeight setelah render selesai
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        content.style.maxHeight = content.scrollHeight + 'px';
-                    });
-                });
-            }
-        });
-
-        // Try button
-        apiContent.addEventListener('click', e => {
+            // Try button
             const btn = e.target.closest('.try-btn');
             if (btn && !btn.disabled) {
                 openDocsModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc, btn.dataset.method);
+                return;
             }
+
+            // Accordion header
+            const header = e.target.closest('.category-header');
+            if (!header) return;
+
+            const section  = header.closest('.category-section');
+            const content  = header.nextElementSibling;
+            const chevron  = header.querySelector('.category-chevron');
+            const icon     = header.querySelector('.category-icon .material-icons');
+            const catIndex = Number(section.dataset.catIndex);
+            const grid     = section.querySelector('.endpoint-grid');
+            const isOpen   = content.classList.toggle('open');
+
+            header.classList.toggle('open', isOpen);
+            chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (icon) icon.textContent = isOpen ? 'folder_open' : 'folder';
+
+            if (!isOpen) {
+                content.style.maxHeight = '0';
+                return;
+            }
+
+            // Lazy render — hanya saat accordion dibuka
+            if (section.dataset.rendered === 'false') {
+                section.dataset.rendered = 'true';
+                renderCards(grid, categoryData[catIndex].items, catIndex);
+            }
+
+            // Set maxHeight setelah render
+            requestAnimationFrame(() => {
+                content.style.maxHeight = content.scrollHeight + 'px';
+            });
         });
     }
 
@@ -304,53 +248,48 @@ document.addEventListener('DOMContentLoaded', async function () {
             apiUrlEl.textContent = `${window.location.origin}${clean}`;
         }
 
-        // ── Cek requireKey dari cache (instant) ──
-        const endpointKey = endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_');
-        let requireApikey = (window._requireKeyEndpoints || new Set()).has(endpointKey);
+        const endpointKey  = endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_');
+        let requireApikey  = (window._requireKeyEndpoints || new Set()).has(endpointKey);
 
-        // Fetch di background — update apikey field kalau state berubah
         if (window._refreshRequireKeys) {
             window._refreshRequireKeys().then(() => {
                 const fresh = (window._requireKeyEndpoints || new Set()).has(endpointKey);
                 if (fresh !== requireApikey) {
                     requireApikey = fresh;
                     const sec = document.getElementById('apikey-section');
-                    if (sec) {
-                        sec.style.display = fresh ? 'block' : 'none';
-                    }
+                    if (sec) sec.style.display = fresh ? 'block' : 'none';
                 }
             });
         }
-        const savedApikey   = window._savedApikey || '';
 
+        const savedApikey   = window._savedApikey || '';
         const apikeySection = document.createElement('div');
-        apikeySection.className = 'params-section';
-        apikeySection.id        = 'apikey-section';
+        apikeySection.className     = 'params-section';
+        apikeySection.id            = 'apikey-section';
         apikeySection.style.display = requireApikey ? 'block' : 'none';
         apikeySection.innerHTML = `
             <div class="params-title">
                 <span class="material-icons" style="font-size:0.75rem;">vpn_key</span>
                 API Key
-                ${requireApikey ? '<span style="font-size:0.6rem; color:var(--error-color); font-weight:700; margin-left:0.25rem;">* required</span>' : ''}
+                ${requireApikey ? '<span style="font-size:0.6rem;color:var(--error-color);font-weight:700;margin-left:0.25rem;">* required</span>' : ''}
             </div>
             <div class="param-group">
-                <div class="param-label" style="display:flex; justify-content:space-between;">
-                    <span>apikey${requireApikey ? '' : ' <span style="font-size:0.62rem;color:var(--text-muted);font-weight:400;">(optional)</span>'}</span>
-                    <span id="apikey-save-hint" style="font-size:0.6rem; color:var(--text-muted); cursor:pointer;" onclick="saveApikeyLocal()">
-                        <span class="material-icons" style="font-size:0.65rem; vertical-align:middle;">bookmark</span> Save key
+                <div class="param-label" style="display:flex;justify-content:space-between;">
+                    <span>apikey</span>
+                    <span id="apikey-save-hint" style="font-size:0.6rem;color:var(--text-muted);cursor:pointer;" onclick="saveApikeyLocal()">
+                        <span class="material-icons" style="font-size:0.65rem;vertical-align:middle;">bookmark</span> Save key
                     </span>
                 </div>
                 <input type="text" id="modal-apikey" class="param-input"
                     placeholder="lmn_xxxxxxxxxxxxxxxx"
                     value="${savedApikey}"
-                    style="font-family:'Courier New',monospace; font-size:0.75rem;">
-                <div id="error-apikey" style="display:none; font-size:0.65rem; color:var(--error-color); margin-top:0.25rem;">API Key wajib diisi.</div>
-                ${savedApikey ? '<div style="font-size:0.6rem; color:var(--success-color); margin-top:0.25rem;">✓ Saved key loaded</div>' : ''}
+                    style="font-family:'Courier New',monospace;font-size:0.75rem;">
+                <div id="error-apikey" style="display:none;font-size:0.65rem;color:var(--error-color);margin-top:0.25rem;">API Key wajib diisi.</div>
+                ${savedApikey ? '<div style="font-size:0.6rem;color:var(--success-color);margin-top:0.25rem;">✓ Saved key loaded</div>' : ''}
             </div>
         `;
         paramsContainer.appendChild(apikeySection);
 
-        // ── Params dari endpoint ──
         const params = [];
         const pathMatches = endpoint.match(/{([^}]+)}/g);
         if (pathMatches) pathMatches.forEach(m => params.push(m.replace(/[{}]/g, '')));
@@ -376,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         ${!isOptional ? '<span class="param-required">*required</span>' : '<span style="font-size:0.62rem;color:var(--text-muted);font-weight:400;">(optional)</span>'}
                     </div>
                     <input type="text" id="param-${p}" class="param-input" placeholder="Enter ${cleanName}...">
-                    <div id="error-${p}" style="display:none; font-size:0.65rem; color:var(--error-color); margin-top:0.25rem;">This field is required.</div>
+                    <div id="error-${p}" style="display:none;font-size:0.65rem;color:var(--error-color);margin-top:0.25rem;">This field is required.</div>
                 `;
                 section.appendChild(group);
             });
@@ -384,20 +323,18 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         sendBtn.onclick = () => handleApiRequest(endpoint, paramsContainer);
-
         if (window.openApiModal) window.openApiModal();
     }
 
-    // Save apikey ke localStorage
     window.saveApikeyLocal = function() {
         const key = document.getElementById('modal-apikey')?.value?.trim();
         if (!key) return;
         localStorage.setItem('lumina_apikey', key);
         window._savedApikey = key;
         const hint = document.getElementById('apikey-save-hint');
-        if (hint) { hint.innerHTML = '<span class="material-icons" style="font-size:0.65rem; vertical-align:middle; color:var(--success-color);">check</span> Saved!'; }
+        if (hint) { hint.innerHTML = '<span class="material-icons" style="font-size:0.65rem;vertical-align:middle;color:var(--success-color);">check</span> Saved!'; }
         setTimeout(() => {
-            if (hint) hint.innerHTML = '<span class="material-icons" style="font-size:0.65rem; vertical-align:middle;">bookmark</span> Save key';
+            if (hint) hint.innerHTML = '<span class="material-icons" style="font-size:0.65rem;vertical-align:middle;">bookmark</span> Save key';
         }, 2000);
     };
 
@@ -425,7 +362,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         let baseUrl     = endpoint.split('?')[0];
         let queryParams = new URLSearchParams();
 
-        // ── Cek apikey ──
         const requireApikey = (window._requireKeyEndpoints || new Set()).has(endpoint.split('?')[0].replace(/^\//, '').replace(/\//g, '_'));
         const apikeyInput   = document.getElementById('modal-apikey');
         const apikeyVal     = apikeyInput?.value?.trim() || '';
@@ -442,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         paramsContainer.querySelectorAll('.param-input').forEach(input => {
-            if (input.id === 'modal-apikey') return; // skip apikey input
+            if (input.id === 'modal-apikey') return;
             const pName = input.id.replace('param-', '');
             const val   = input.value.trim();
             const error = document.getElementById(`error-${pName}`);
@@ -469,9 +405,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         const finalUrl = queryParams.toString() ? `${baseUrl}?${queryParams}` : baseUrl;
 
         sendBtn.disabled = true;
-        sendBtn.innerHTML = `<span class="material-icons" style="font-size:1rem; animation:spin 0.8s linear infinite;">refresh</span> Sending...`;
+        sendBtn.innerHTML = `<span class="material-icons" style="font-size:1rem;animation:spin 0.8s linear infinite;">refresh</span> Sending...`;
         responseContainer.classList.add('visible');
-        responseData.innerHTML = `<span style="opacity:0.5; font-size:0.72rem;">Processing request...</span>`;
+        responseData.innerHTML = `<span style="opacity:0.5;font-size:0.72rem;">Processing request...</span>`;
 
         const start = Date.now();
         try {
@@ -489,9 +425,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const blob   = await res.blob();
                 const imgUrl = URL.createObjectURL(blob);
                 responseData.innerHTML = `
-                    <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem;">
-                        <img src="${imgUrl}" style="max-width:100%; height:auto; border-radius:var(--border-radius-sm); border:1px solid var(--border-color);">
-                        <a href="${imgUrl}" download="result.jpg" class="try-btn" style="text-decoration:none; font-size:0.7rem;">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;">
+                        <img src="${imgUrl}" style="max-width:100%;height:auto;border-radius:var(--border-radius-sm);border:1px solid var(--border-color);">
+                        <a href="${imgUrl}" download="result.jpg" class="try-btn" style="text-decoration:none;font-size:0.7rem;">
                             <span class="material-icons" style="font-size:0.75rem;">download</span> Download
                         </a>
                     </div>`;
@@ -501,20 +437,18 @@ document.addEventListener('DOMContentLoaded', async function () {
             } else {
                 responseData.textContent = await res.text();
             }
-            // Smooth scroll modal ke response section — tidak jumping
+
             setTimeout(() => {
-                const modal = document.getElementById('api-modal');
+                const modal  = document.getElementById('api-modal');
                 const respEl = document.getElementById('response-container');
-                if (modal && respEl) {
-                    modal.scrollTo({ top: modal.scrollHeight, behavior: 'smooth' });
-                }
+                if (modal && respEl) modal.scrollTo({ top: modal.scrollHeight, behavior: 'smooth' });
             }, 50);
         } catch (err) {
             const duration = Date.now() - start;
             statusEl.textContent = 'Error';
             statusEl.className   = 'response-status error';
             timeEl.textContent   = `${duration}ms`;
-            responseData.innerHTML = `<span style="color:var(--error-color); font-weight:600;">Error: ${err.message}</span>`;
+            responseData.innerHTML = `<span style="color:var(--error-color);font-weight:600;">Error: ${err.message}</span>`;
             logActivity({ endpoint: finalUrl, status: 0, ok: false, duration, error: err.message, timestamp: Date.now() });
         } finally {
             sendBtn.disabled = false;
@@ -527,39 +461,53 @@ document.addEventListener('DOMContentLoaded', async function () {
         const searchInput = document.getElementById('api-search');
         if (!searchInput) return;
 
+        let searchTimer;
         searchInput.addEventListener('input', e => {
-            const term = e.target.value.toLowerCase().trim();
+            // Debounce 150ms — jangan fire tiap keystroke
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                const term = e.target.value.toLowerCase().trim();
 
-            document.querySelectorAll('.category-section').forEach(section => {
-                const header   = section.querySelector('.category-header');
-                const content  = section.querySelector('.accordion-content');
-                const chevron  = header.querySelector('.category-chevron');
-                const icon     = header.querySelector('.category-icon .material-icons');
-                let   hasMatch = false;
+                document.querySelectorAll('.category-section').forEach(section => {
+                    const header  = section.querySelector('.category-header');
+                    const content = section.querySelector('.accordion-content');
+                    const chevron = header.querySelector('.category-chevron');
+                    const icon    = header.querySelector('.category-icon .material-icons');
 
-                section.querySelectorAll('.endpoint-card').forEach(card => {
-                    const match = !term || card.dataset.name.includes(term) || card.dataset.desc.includes(term);
-                    card.style.display = match ? '' : 'none';
-                    if (match) hasMatch = true;
-                });
-
-                if (term) {
-                    if (hasMatch) {
-                        content.classList.add('open');
-                        header.classList.add('open');
-                        chevron.style.transform = 'rotate(180deg)';
-                        if (icon) icon.textContent = 'folder_open';
+                    // Kalau belum dirender, render dulu sebelum search
+                    if (term && section.dataset.rendered === 'false') {
+                        const catIndex = Number(section.dataset.catIndex);
+                        // Ambil categoryData dari closure
+                        section.dataset.rendered = 'true';
                     }
-                    section.style.display = hasMatch ? '' : 'none';
-                } else {
-                    content.classList.remove('open');
-                    header.classList.remove('open');
-                    chevron.style.transform = 'rotate(0deg)';
-                    if (icon) icon.textContent = 'folder';
-                    section.style.display = '';
-                    section.querySelectorAll('.endpoint-card').forEach(c => c.style.display = '');
-                }
-            });
+
+                    let hasMatch = false;
+                    section.querySelectorAll('.endpoint-card').forEach(card => {
+                        const match = !term || card.dataset.name.includes(term) || card.dataset.desc.includes(term);
+                        card.style.display = match ? '' : 'none';
+                        if (match) hasMatch = true;
+                    });
+
+                    if (term) {
+                        if (hasMatch) {
+                            content.classList.add('open');
+                            header.classList.add('open');
+                            chevron.style.transform = 'rotate(180deg)';
+                            if (icon) icon.textContent = 'folder_open';
+                            content.style.maxHeight = content.scrollHeight + 'px';
+                        }
+                        section.style.display = hasMatch ? '' : 'none';
+                    } else {
+                        content.classList.remove('open');
+                        header.classList.remove('open');
+                        content.style.maxHeight = '0';
+                        chevron.style.transform = 'rotate(0deg)';
+                        if (icon) icon.textContent = 'folder';
+                        section.style.display = '';
+                        section.querySelectorAll('.endpoint-card').forEach(c => c.style.display = '');
+                    }
+                });
+            }, 150);
         });
     }
 
@@ -568,10 +516,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         const container = document.getElementById('api-links');
         if (!container || !set.links) return;
         container.innerHTML = set.links.map(l => `
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-                <div style="width:4px; height:4px; background:var(--primary-color); border-radius:50%; opacity:0.5;"></div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+                <div style="width:4px;height:4px;background:var(--primary-color);border-radius:50%;opacity:0.5;"></div>
                 <a href="${l.url}" target="_blank"
-                   style="font-size:0.72rem; color:var(--text-muted); text-decoration:none; text-transform:uppercase; letter-spacing:0.08em; transition:var(--transition);"
+                   style="font-size:0.72rem;color:var(--text-muted);text-decoration:none;text-transform:uppercase;letter-spacing:0.08em;transition:var(--transition);"
                    onmouseover="this.style.color='var(--primary-color)'"
                    onmouseout="this.style.color='var(--text-muted)'">${l.name}</a>
             </div>
