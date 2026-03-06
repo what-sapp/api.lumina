@@ -30,20 +30,20 @@ async function searchBible(question, lang = "id-ID") {
 }
 
 module.exports = {
-    name: "BibleAI",
+    name: "Bible AI",
     desc: "Cari jawaban Alkitab secara instan tanpa ribet.",
-    category: "TEST",
+    category: "AI CHAT",
     params: ["text", "lang"],
 
     async run(req, res) {
         const { text, lang } = req.query;
-        if (!text) return res.status(400).json({ status: false, creator: "Xena", error: "Tanya apa, Senior?" });
+        if (!text) return res.status(400).json({ status: false, error: "Tanya apa, Senior?" });
 
         try {
             const result = await searchBible(text, lang || "id-ID");
             res.status(200).json({
                 status: true,
-                creator: "Xena",
+                //creator: "Xena",
                 result: result
             });
         } catch (err) {
