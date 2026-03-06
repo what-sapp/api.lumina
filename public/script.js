@@ -209,13 +209,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (icon) icon.textContent = isOpen ? 'folder_open' : 'folder';
 
             if (!isOpen) {
-                // Kalau lagi 'none', set dulu ke scrollHeight sebelum animate ke 0
-                if (content.style.maxHeight === 'none' || !content.style.maxHeight) {
-                    content.style.maxHeight = content.scrollHeight + 'px';
-                }
-                requestAnimationFrame(() => {
-                    content.style.maxHeight = '0';
-                });
+                content.style.maxHeight = '0';
                 return;
             }
 
@@ -225,27 +219,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                 renderCards(grid, categoryData[catIndex].items, catIndex);
             }
 
-            // Paksa overflow visible dulu, lalu ukur scrollHeight yang real
-            content.style.overflow  = 'visible';
-            content.style.maxHeight = 'none';
-
+            // Ukur tinggi real pakai temporary visibility trick
+            content.style.transition = 'none';
+            content.style.maxHeight  = '999999px';
             const fullH = content.scrollHeight;
+            content.style.maxHeight  = '0';
 
-            content.style.overflow  = 'hidden';
-            content.style.maxHeight = '0';
-
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    content.style.maxHeight = fullH + 'px';
-                    // Setelah animasi, buka overflow + maxHeight none biar tidak clipping
-                    setTimeout(() => {
-                        if (content.classList.contains('open')) {
-                            content.style.maxHeight = 'none';
-                            content.style.overflow  = 'visible';
-                        }
-                    }, 350);
-                });
-            });
+            // Trigger reflow, lalu animate
+            content.offsetHeight; // force reflow
+            content.style.transition = '';
+            content.style.maxHeight  = fullH + 'px';
         });
     }
 
@@ -496,7 +479,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const chevron = header.querySelector('.category-chevron');
                     const icon    = header.querySelector('.category-icon .material-icons');
 
-                    // Kalau belum dirender, render dulu sebelum search
+                    // Lazy render dulu sebelum search
                     if (term && section.dataset.rendered === 'false') {
                         const catIndex = Number(section.dataset.catIndex);
                         const grid     = section.querySelector('.endpoint-grid');
@@ -517,7 +500,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                             header.classList.add('open');
                             chevron.style.transform = 'rotate(180deg)';
                             if (icon) icon.textContent = 'folder_open';
-                            content.style.maxHeight = content.scrollHeight + 'px';
+                            // Ukur ulang setelah card show/hide
+                            content.style.transition = 'none';
+                            content.style.maxHeight  = '999999px';
+                            const h = content.scrollHeight;
+                            content.style.maxHeight  = h + 'px';
+                            content.style.transition = '';
                         }
                         section.style.display = hasMatch ? '' : 'none';
                     } else {
