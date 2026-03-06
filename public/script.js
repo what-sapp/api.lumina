@@ -24,11 +24,68 @@ document.addEventListener('DOMContentLoaded', async function () {
     }, 5000);
 
     // --- 2. DATA FETCHING ---
+    // ── Angkat ke scope atas biar accessible di semua fungsi ──
+    let categoryData = [];
+    let disabledKeys = new Set();
+
+    // ── renderCards di scope atas juga ──
+    const statusMap = {
+        ready   : { cls: 'status-ready',    icon: 'circle',            label: 'Ready'   },
+        error   : { cls: 'status-error',    icon: 'cancel',            label: 'Error'   },
+        update  : { cls: 'status-update',   icon: 'update',            label: 'Update'  },
+        disabled: { cls: 'status-disabled', icon: 'do_not_disturb_on', label: 'Offline' },
+    };
+    const methodClsMap = { GET:'method-get', POST:'method-post', PUT:'method-put', DELETE:'method-delete' };
+
+    function renderCards(grid, items, catIndex) {
+        const html = items.map((itemData) => {
+            const itemName    = Object.keys(itemData)[0];
+            const item        = itemData[itemName];
+            const endpointKey = (item.path || '/').split('?')[0].replace(/^\//, '').replace(/\//g, '_');
+            const isDisabled  = disabledKeys.has(endpointKey);
+            const status      = isDisabled ? 'disabled' : (item.status || 'ready');
+            const s           = statusMap[status] || statusMap.ready;
+            const method      = (item.method || 'GET').toUpperCase();
+            const methodCls   = methodClsMap[method] || 'method-get';
+            const isTryDisabled  = (status === 'error' || isDisabled) ? 'disabled' : '';
+            const disabledStyle  = isDisabled ? 'opacity:0.55; filter:grayscale(0.4);' : '';
+            const disabledTitle  = isDisabled ? 'title="Endpoint ini sedang offline"' : '';
+
+            return `<div class="endpoint-card" style="${disabledStyle}" ${disabledTitle}
+                data-name="${itemName.toLowerCase()}"
+                data-desc="${(item.desc || '').toLowerCase().replace(/"/g, '&quot;')}"
+                data-category="${catIndex}">
+                <div class="endpoint-card-header">
+                    <span class="method-badge ${methodCls}">${method}</span>
+                    <span class="endpoint-name">${itemName}</span>
+                </div>
+                <div class="endpoint-path">${item.path || '/'}</div>
+                <div class="endpoint-desc">${item.desc || 'No description available.'}</div>
+                <div class="endpoint-card-footer">
+                    <span class="status-badge ${s.cls}">
+                        <span class="material-icons" style="font-size:0.6rem;">${s.icon}</span>
+                        ${s.label}
+                    </span>
+                    <button class="try-btn"
+                        data-path="${item.path || ''}"
+                        data-name="${itemName}"
+                        data-desc="${(item.desc || '').replace(/"/g, '&quot;')}"
+                        data-method="${method}"
+                        ${isTryDisabled}>
+                        <span class="material-icons" style="font-size:0.75rem;">send</span>
+                        Try
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+
+        grid.innerHTML = html;
+    }
+
     try {
         const endpoints = await (await fetch('/endpoints')).json();
         const set       = await (await fetch('/set')).json();
 
-        let disabledKeys = new Set();
         try {
             const stRes  = await fetch('/endpoints-status');
             const stData = await stRes.json();
@@ -56,7 +113,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         setContent('api-desc',       'textContent', set.description);
         setContent('api-copyright',  'textContent', `© 2025 ${set.name.copyright}. All rights reserved.`);
 
-        setupApiContent(endpoints, disabledKeys);
+        setupApiContent(endpoints);
         setupSearchFunctionality();
         hideLoader();
     } catch (error) {
@@ -70,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // --- 3. UI GENERATION ---
-    function setupApiContent(data, disabledKeys) {
+    function setupApiContent(data) {
         const apiContent = document.getElementById('api-content');
         if (!apiContent) return;
 
@@ -84,63 +141,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                 mergeMap.set(key, { name: cat.name, items: [...cat.items] });
             }
         });
-        const categoryData = [...mergeMap.values()];
+        // Simpan ke scope atas
+        categoryData = [...mergeMap.values()];
 
-        // ── Render cards pakai innerHTML batch — JAUH lebih cepat dari createElement loop ──
-        function renderCards(grid, items, catIndex) {
-            const statusMap = {
-                ready   : { cls: 'status-ready',    icon: 'circle',            label: 'Ready'   },
-                error   : { cls: 'status-error',    icon: 'cancel',            label: 'Error'   },
-                update  : { cls: 'status-update',   icon: 'update',            label: 'Update'  },
-                disabled: { cls: 'status-disabled', icon: 'do_not_disturb_on', label: 'Offline' },
-            };
-            const methodClsMap = { GET:'method-get', POST:'method-post', PUT:'method-put', DELETE:'method-delete' };
-
-            const html = items.map((itemData) => {
-                const itemName   = Object.keys(itemData)[0];
-                const item       = itemData[itemName];
-                const endpointKey = (item.path || '/').split('?')[0].replace(/^\//, '').replace(/\//g, '_');
-                const isDisabled  = disabledKeys.has(endpointKey);
-                const status      = isDisabled ? 'disabled' : (item.status || 'ready');
-                const s           = statusMap[status] || statusMap.ready;
-                const method      = (item.method || 'GET').toUpperCase();
-                const methodCls   = methodClsMap[method] || 'method-get';
-                const isTryDisabled = (status === 'error' || isDisabled) ? 'disabled' : '';
-                const disabledStyle = isDisabled ? 'opacity:0.55; filter:grayscale(0.4);' : '';
-                const disabledTitle = isDisabled ? 'title="Endpoint ini sedang offline"' : '';
-
-                return `<div class="endpoint-card" style="${disabledStyle}" ${disabledTitle}
-                    data-name="${(itemName).toLowerCase()}"
-                    data-desc="${(item.desc || '').toLowerCase().replace(/"/g, '&quot;')}"
-                    data-category="${catIndex}">
-                    <div class="endpoint-card-header">
-                        <span class="method-badge ${methodCls}">${method}</span>
-                        <span class="endpoint-name">${itemName}</span>
-                    </div>
-                    <div class="endpoint-path">${item.path || '/'}</div>
-                    <div class="endpoint-desc">${item.desc || 'No description available.'}</div>
-                    <div class="endpoint-card-footer">
-                        <span class="status-badge ${s.cls}">
-                            <span class="material-icons" style="font-size:0.6rem;">${s.icon}</span>
-                            ${s.label}
-                        </span>
-                        <button class="try-btn"
-                            data-path="${item.path || ''}"
-                            data-name="${itemName}"
-                            data-desc="${(item.desc || '').replace(/"/g, '&quot;')}"
-                            data-method="${method}"
-                            ${isTryDisabled}>
-                            <span class="material-icons" style="font-size:0.75rem;">send</span>
-                            Try
-                        </button>
-                    </div>
-                </div>`;
-            }).join('');
-
-            grid.innerHTML = html;
-        }
-
-        // ── Fragment batch insert semua category sekaligus ──
         const fragment = document.createDocumentFragment();
 
         categoryData.forEach((category, catIndex) => {
@@ -180,19 +183,16 @@ document.addEventListener('DOMContentLoaded', async function () {
             fragment.appendChild(section);
         });
 
-        // Single DOM write
         apiContent.appendChild(fragment);
 
-        // Accordion toggle — event delegation (1 listener, bukan N)
+        // Accordion + Try button — single event delegation
         apiContent.addEventListener('click', e => {
-            // Try button
             const btn = e.target.closest('.try-btn');
             if (btn && !btn.disabled) {
                 openDocsModal(btn.dataset.name, btn.dataset.path, btn.dataset.desc, btn.dataset.method);
                 return;
             }
 
-            // Accordion header
             const header = e.target.closest('.category-header');
             if (!header) return;
 
@@ -213,22 +213,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
-            // Lazy render — hanya saat accordion dibuka
+            // Lazy render saat accordion dibuka
             if (section.dataset.rendered === 'false') {
                 section.dataset.rendered = 'true';
                 renderCards(grid, categoryData[catIndex].items, catIndex);
             }
 
-            // Ukur tinggi real pakai temporary visibility trick
-            content.style.transition = 'none';
-            content.style.maxHeight  = '999999px';
-            const fullH = content.scrollHeight;
-            content.style.maxHeight  = '0';
-
-            // Trigger reflow, lalu animate
-            content.offsetHeight; // force reflow
-            content.style.transition = '';
-            content.style.maxHeight  = fullH + 'px';
+            requestAnimationFrame(() => {
+                content.style.maxHeight = content.scrollHeight + 'px';
+            });
         });
     }
 
@@ -445,8 +438,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             setTimeout(() => {
                 const modal  = document.getElementById('api-modal');
-                const respEl = document.getElementById('response-container');
-                if (modal && respEl) modal.scrollTo({ top: modal.scrollHeight, behavior: 'smooth' });
+                if (modal) modal.scrollTo({ top: modal.scrollHeight, behavior: 'smooth' });
             }, 50);
         } catch (err) {
             const duration = Date.now() - start;
@@ -468,7 +460,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         let searchTimer;
         searchInput.addEventListener('input', e => {
-            // Debounce 150ms — jangan fire tiap keystroke
             clearTimeout(searchTimer);
             searchTimer = setTimeout(() => {
                 const term = e.target.value.toLowerCase().trim();
@@ -478,11 +469,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const content = section.querySelector('.accordion-content');
                     const chevron = header.querySelector('.category-chevron');
                     const icon    = header.querySelector('.category-icon .material-icons');
+                    const catIndex = Number(section.dataset.catIndex);
+                    const grid    = section.querySelector('.endpoint-grid');
 
-                    // Lazy render dulu sebelum search
+                    // Render dulu sebelum search kalau belum
                     if (term && section.dataset.rendered === 'false') {
-                        const catIndex = Number(section.dataset.catIndex);
-                        const grid     = section.querySelector('.endpoint-grid');
                         section.dataset.rendered = 'true';
                         renderCards(grid, categoryData[catIndex].items, catIndex);
                     }
@@ -500,12 +491,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                             header.classList.add('open');
                             chevron.style.transform = 'rotate(180deg)';
                             if (icon) icon.textContent = 'folder_open';
-                            // Ukur ulang setelah card show/hide
-                            content.style.transition = 'none';
-                            content.style.maxHeight  = '999999px';
-                            const h = content.scrollHeight;
-                            content.style.maxHeight  = h + 'px';
-                            content.style.transition = '';
+                            requestAnimationFrame(() => {
+                                content.style.maxHeight = content.scrollHeight + 'px';
+                            });
                         }
                         section.style.display = hasMatch ? '' : 'none';
                     } else {
@@ -521,7 +509,5 @@ document.addEventListener('DOMContentLoaded', async function () {
             }, 150);
         });
     }
-
-
 
 });
