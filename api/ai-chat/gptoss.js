@@ -45,15 +45,15 @@ if (require.main === module) {
 } else {
     module.exports = {
         name:     "GPT OSS 120B",
-        desc:     "Chat dengan GPT OSS 120B via deepai.org — gratis tanpa login.",
-        category: "AI Tools",
+        desc:     "Chat dengan GPT OSS 120B.",
+        category: "AI CHAT",
         params:   ["prompt", "_system"],
         async run(req, res) {
             try {
                 const { prompt, _system } = req.query;
                 if (!prompt) return res.status(400).json({ status: false, error: 'Parameter "prompt" wajib diisi!' });
                 const result = await gptoss(prompt, _system);
-                return res.status(200).json({ status: true, creator: "Shannz x Xena", result });
+                return res.status(200).json({ status: true, result });
             } catch (e) {
                 return res.status(500).json({ status: false, error: e.message });
             }
