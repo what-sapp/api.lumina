@@ -209,7 +209,13 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (icon) icon.textContent = isOpen ? 'folder_open' : 'folder';
 
             if (!isOpen) {
-                content.style.maxHeight = '0';
+                // Kalau lagi 'none', set dulu ke scrollHeight sebelum animate ke 0
+                if (content.style.maxHeight === 'none' || !content.style.maxHeight) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                }
+                requestAnimationFrame(() => {
+                    content.style.maxHeight = '0';
+                });
                 return;
             }
 
@@ -219,13 +225,24 @@ document.addEventListener('DOMContentLoaded', async function () {
                 renderCards(grid, categoryData[catIndex].items, catIndex);
             }
 
-            // Double RAF — biar browser sempat paint cards ke DOM dulu
+            // Paksa overflow visible dulu, lalu ukur scrollHeight yang real
+            content.style.overflow  = 'visible';
+            content.style.maxHeight = 'none';
+
+            const fullH = content.scrollHeight;
+
+            content.style.overflow  = 'hidden';
+            content.style.maxHeight = '0';
+
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    content.style.maxHeight = content.scrollHeight + 'px';
-                    // Setelah animasi selesai, set none agar tidak clipping saat resize
+                    content.style.maxHeight = fullH + 'px';
+                    // Setelah animasi, buka overflow + maxHeight none biar tidak clipping
                     setTimeout(() => {
-                        if (content.classList.contains('open')) content.style.maxHeight = 'none';
+                        if (content.classList.contains('open')) {
+                            content.style.maxHeight = 'none';
+                            content.style.overflow  = 'visible';
+                        }
                     }, 350);
                 });
             });
