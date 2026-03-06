@@ -219,9 +219,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                 renderCards(grid, categoryData[catIndex].items, catIndex);
             }
 
-            // Set maxHeight setelah render
+            // Double RAF — biar browser sempat paint cards ke DOM dulu
             requestAnimationFrame(() => {
-                content.style.maxHeight = content.scrollHeight + 'px';
+                requestAnimationFrame(() => {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    // Setelah animasi selesai, set none agar tidak clipping saat resize
+                    setTimeout(() => {
+                        if (content.classList.contains('open')) content.style.maxHeight = 'none';
+                    }, 350);
+                });
             });
         });
     }
@@ -476,8 +482,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                     // Kalau belum dirender, render dulu sebelum search
                     if (term && section.dataset.rendered === 'false') {
                         const catIndex = Number(section.dataset.catIndex);
-                        // Ambil categoryData dari closure
+                        const grid     = section.querySelector('.endpoint-grid');
                         section.dataset.rendered = 'true';
+                        renderCards(grid, categoryData[catIndex].items, catIndex);
                     }
 
                     let hasMatch = false;
