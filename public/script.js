@@ -56,7 +56,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         setContent('api-desc',       'textContent', set.description);
         setContent('api-copyright',  'textContent', `© 2025 ${set.name.copyright}. All rights reserved.`);
 
-        setupApiLinks(set);
         setupApiContent(endpoints, disabledKeys);
         setupSearchFunctionality();
         hideLoader();
@@ -511,19 +510,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    // --- 8. API LINKS ---
-    function setupApiLinks(set) {
-        const container = document.getElementById('api-links');
-        if (!container || !set.links) return;
-        container.innerHTML = set.links.map(l => `
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-                <div style="width:4px;height:4px;background:var(--primary-color);border-radius:50%;opacity:0.5;"></div>
-                <a href="${l.url}" target="_blank"
-                   style="font-size:0.72rem;color:var(--text-muted);text-decoration:none;text-transform:uppercase;letter-spacing:0.08em;transition:var(--transition);"
-                   onmouseover="this.style.color='var(--primary-color)'"
-                   onmouseout="this.style.color='var(--text-muted)'">${l.name}</a>
-            </div>
-        `).join('');
-    }
+
 
 });
