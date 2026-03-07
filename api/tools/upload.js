@@ -18,6 +18,7 @@ module.exports = {
     name:        'FileUpload',
     desc:        'Upload file sementara, URL otomatis expired setelah 5 menit.',
     category:    'Tools',
+    method:      'POST',
     methods:     ['POST'],
     params:      ['file'],
     paramsSchema: {
@@ -34,7 +35,7 @@ module.exports = {
             });
 
             if (!req.file) return res.status(400).json({
-                status: false,
+                status: false, creator: 'Shannz',
                 error: 'No file uploaded. Gunakan form-data dengan field "file".'
             });
 
@@ -53,7 +54,7 @@ module.exports = {
 
             return res.status(200).json({
                 status:    true,
-                //creator:   'Shannz',
+                creator:   'Shannz',
                 result: {
                     url:       fileUrl,
                     filename:  randomName,
@@ -64,7 +65,7 @@ module.exports = {
                 }
             });
         } catch (e) {
-            return res.status(500).json({ status: false, error: e.message });
+            return res.status(500).json({ status: false, creator: 'Shannz', error: e.message });
         }
     }
 };
