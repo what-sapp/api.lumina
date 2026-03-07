@@ -9,8 +9,8 @@ const fs     = require('fs');
  * form-data: file = [binary]
  */
 
-const uploadDir = path.join(process.cwd(), 'files');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+const uploadDir = '/tmp/lumina-uploads';
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -18,7 +18,7 @@ module.exports = {
     name:        'FileUpload',
     desc:        'Upload file sementara, URL otomatis expired setelah 5 menit.',
     category:    'Tools',
-    //methods:     ['POST'],
+    methods:     ['POST'],
     params:      ['file'],
     paramsSchema: {
         file: { type: 'file', required: true },
@@ -68,4 +68,3 @@ module.exports = {
         }
     }
 };
-
