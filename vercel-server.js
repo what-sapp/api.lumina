@@ -24,7 +24,7 @@ const db = admin.firestore();
 
 // ── File Upload Setup ──
 const uploadDir = '/tmp/lumina-uploads';
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const upload = multer({ storage: multer.memoryStorage() });
 
 // ════════════════════════════════════════
