@@ -241,6 +241,24 @@
             .endpoint-grid { grid-template-columns: 1fr; }
         }
 
+        /* ── File Input ── */
+       .file-input-label {
+       display: flex; flex-direction: column;
+       align-items: center; justify-content: center;
+       gap: 0.4rem; width: 100%; padding: 1rem;
+       border: 2px dashed var(--border-color);
+       border-radius: var(--border-radius-sm);
+       cursor: pointer; transition: var(--transition);
+       background: var(--background-color); text-align: center;
+       }
+       .file-input-label:hover {
+       border-color: var(--primary-color);
+       background: var(--highlight-color);
+       }
+      .file-input-text {
+       font-size: 0.72rem; color: var(--text-muted); word-break: break-all;
+       }
+
         /* ── MODAL ── */
         .modal-backdrop {
             position: fixed; inset: 0;
