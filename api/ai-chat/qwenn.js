@@ -1,10 +1,33 @@
 const crypto = require("crypto");
 
 module.exports = {
-    name: "QwenChat",
-    desc: "Chat dengan Qwen AI dari APK resmi.",
-    category: "AI Tools",
-    params: ["prompt", "model"],
+    name:     "QwenChat",
+    desc:     "Chat dengan Qwen AI dari APK resmi.",
+    category: "AI",
+    method:   "GET",
+    params:   ["prompt", "_model"],
+    paramsSchema: {
+        prompt: { type: "text", required: true },
+        _model: {
+            type: "select",
+            required: false,
+            default: "qwen3.5-plus",
+            options: [
+                { label: "Qwen 3.5 Flash",        value: "qwen3.5-flash" },
+                { label: "Qwen 3.5 397B",         value: "qwen3.5-397b-a17b" },
+                { label: "Qwen 3.5 122B",         value: "qwen3.5-122b-a10b" },
+                { label: "Qwen 3.5 27B",          value: "qwen3.5-27b" },
+                { label: "Qwen 3.5 35B",          value: "qwen3.5-35b-a3b" },
+                { label: "Qwen 3 Max",            value: "qwen3-max-2026-01-23" },
+                { label: "Qwen Plus",             value: "qwen-plus-2025-07-28" },
+                { label: "Qwen 3 Coder Plus",     value: "qwen3-coder-plus" },
+                { label: "Qwen 3 VL Plus",        value: "qwen3-vl-plus" },
+                { label: "Qwen 3 Omni Flash",     value: "qwen3-omni-flash-2025-12-01" },
+                { label: "Qwen Max Latest",       value: "qwen-max-latest" },
+                { label: "Qwen 3.5 Plus",         value: "qwen3.5-plus" },
+            ]
+        },
+    },
 
     BASE_URL: "https://chat.qwen.ai/api/v2",
     HEADERS: {
@@ -18,25 +41,13 @@ module.exports = {
     },
 
     MODELS: [
-        "qwen3.5-flash",
-        "qwen3.5-397b-a17b",
-        "qwen3.5-122b-a10b",
-        "qwen3.5-27b",
-        "qwen3.5-35b-a3b",
-        "qwen3-max-2026-01-23",
-        "qwen-plus-2025-07-28",
-        "qwen3-coder-plus",
-        "qwen3-vl-plus",
-        "qwen3-omni-flash-2025-12-01",
-        "qwen-max-latest",
-        "qwen3.5-plus"
+        "qwen3.5-flash", "qwen3.5-397b-a17b", "qwen3.5-122b-a10b",
+        "qwen3.5-27b", "qwen3.5-35b-a3b", "qwen3-max-2026-01-23",
+        "qwen-plus-2025-07-28", "qwen3-coder-plus", "qwen3-vl-plus",
+        "qwen3-omni-flash-2025-12-01", "qwen-max-latest", "qwen3.5-plus"
     ],
 
-    // Credentials — ganti jika expired
-    CREDS: {
-        email: "robinvschina@gmail.com",
-        password: "ROBIN12345"
-    },
+    CREDS: { email: "robinvschina@gmail.com", password: "ROBIN12345" },
     TOKEN: null,
 
     genUUID() { return crypto.randomUUID(); },
@@ -114,14 +125,13 @@ module.exports = {
             })
         });
 
-        // Parse SSE
         const text = await res.text();
         let fullText = "";
         for (const line of text.split("\n")) {
             if (!line.startsWith("data:")) continue;
             try {
                 const parsed = JSON.parse(line.substring(5).trim());
-                const delta = parsed.choices?.[0]?.delta;
+                const delta  = parsed.choices?.[0]?.delta;
                 if (delta?.phase === "answer" && delta.content) fullText += delta.content;
             } catch (e) {}
         }
@@ -130,39 +140,30 @@ module.exports = {
 
     async run(req, res) {
         const prompt = req.query.prompt;
-        const model = req.query.model || "qwen3.5-plus";
+        const model  = req.query.model || "qwen3.5-plus";
+
         if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' diperlukan." });
         if (!this.MODELS.includes(model)) return res.status(400).json({ status: false, error: `Model tidak valid. Pilihan: ${this.MODELS.join(", ")}` });
 
-        try {
-            const token = this.TOKEN || await this.login();
-            const chatId = await this.createSession(token);
+        const doChat = async (token) => {
+            const chatId   = await this.createSession(token);
             const response = await this.chat(token, chatId, prompt, model);
             await this.deleteSession(token, chatId);
+            return response;
+        };
 
-            res.status(200).json({
-                status: true,
-                creator: "Xena",
-                result: { model, response }
-            });
+        try {
+            const token    = this.TOKEN || await this.login();
+            const response = await doChat(token);
+            return res.json({ status: true, creator: "Xena", result: { model, response } });
         } catch (e) {
-            // Coba re-login jika token expired
-            if (e.message.includes("auth") || e.message.includes("token")) {
-                try {
-                    const token = await this.login();
-                    const chatId = await this.createSession(token);
-                    const response = await this.chat(token, chatId, prompt, model);
-                    await this.deleteSession(token, chatId);
-                    return res.status(200).json({
-                        status: true,
-                        creator: "Xena",
-                        result: { model, response }
-                    });
-                } catch (e2) {
-                    return res.status(500).json({ status: false, error: e2.message });
-                }
+            try {
+                const token    = await this.login();
+                const response = await doChat(token);
+                return res.json({ status: true, creator: "Xena", result: { model, response } });
+            } catch (e2) {
+                return res.status(500).json({ status: false, error: e2.message });
             }
-            res.status(500).json({ status: false, error: e.message });
         }
     }
 };
