@@ -19,9 +19,9 @@
     --border-color: rgba(0, 0, 0, 0.07);
     --highlight-color: rgba(79, 70, 229, 0.08);
 
-    --border-radius-sm: 8px;
-    --border-radius: 12px;
-    --border-radius-lg: 20px;
+    --border-radius-sm: 0px;
+    --border-radius: 0px;
+    --border-radius-lg: 0px;
 
     --shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
     --hover-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
@@ -60,6 +60,7 @@
     box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    border-radius: 0 !important;
 }
 
 body {
@@ -100,7 +101,7 @@ body.noscroll {
 .loader-ring {
     width: 44px;
     height: 44px;
-    border-radius: 50%;
+    border-radius: 50% !important;
     border: 3px solid var(--highlight-color);
     border-top-color: var(--primary-color);
     animation: spin 0.8s linear infinite;
@@ -159,7 +160,6 @@ body.noscroll {
     justify-content: center;
     cursor: pointer;
     background: rgba(255, 255, 255, 0.08);
-    border-radius: var(--border-radius-sm);
     transition: var(--transition);
 }
 
@@ -179,7 +179,6 @@ body.noscroll {
     position: absolute;
     height: 2px;
     background: white;
-    border-radius: 2px;
     left: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -228,7 +227,6 @@ body.noscroll {
 .mobile-menu::-webkit-scrollbar { width: 4px; }
 .mobile-menu::-webkit-scrollbar-thumb {
     background: linear-gradient(var(--primary-color), var(--secondary-color));
-    border-radius: 10px;
 }
 
 .mobile-menu.active {
@@ -263,7 +261,6 @@ body.noscroll {
     font-size: 0.82rem;
     font-weight: 500;
     color: var(--text-muted);
-    border-radius: var(--border-radius-sm);
     transition: var(--transition);
     text-decoration: none;
     position: relative;
@@ -278,7 +275,6 @@ body.noscroll {
     background: linear-gradient(to bottom, var(--primary-color), var(--accent-color));
     transform: scaleY(0);
     transition: transform 0.25s ease;
-    border-radius: 0 3px 3px 0;
 }
 
 .menu-item:hover {
@@ -305,7 +301,6 @@ body.noscroll {
 .menu-icon-box {
     width: 2rem;
     height: 2rem;
-    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -317,7 +312,6 @@ body.noscroll {
     width: 2.5rem;
     height: 2.5rem;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -333,7 +327,6 @@ body.noscroll {
     width: 12px;
     height: 12px;
     background: var(--success-color);
-    border-radius: 50%;
     border: 2px solid var(--card-background);
 }
 
@@ -375,7 +368,6 @@ body.noscroll {
     font-size: 0.6rem;
     font-weight: 700;
     padding: 0.2rem 0.6rem;
-    border-radius: 100px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     white-space: nowrap;
@@ -396,7 +388,6 @@ body.noscroll {
     padding: 0.875rem 1rem;
     background: linear-gradient(135deg, #1e1b4b, #312e81);
     color: white;
-    border-radius: var(--border-radius-sm);
     text-decoration: none;
     font-size: 0.82rem;
     font-weight: 500;
@@ -415,7 +406,6 @@ body.noscroll {
     width: 2rem;
     height: 2rem;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -431,7 +421,6 @@ body.noscroll {
 .stats-card {
     background: var(--highlight-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
     padding: 1rem;
     margin-top: 1rem;
 }
@@ -457,7 +446,6 @@ body.noscroll {
 .stats-item {
     background: var(--card-background);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
     padding: 0.625rem;
     transition: var(--transition);
 }
@@ -489,7 +477,7 @@ body.noscroll {
     width: 8px;
     height: 8px;
     background: var(--success-color);
-    border-radius: 50%;
+    border-radius: 50% !important;
     animation: pulse-live 2s infinite;
     flex-shrink: 0;
 }
@@ -513,7 +501,6 @@ body.noscroll {
 .hero-banner {
     background: var(--card-background);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-lg);
     padding: 3rem;
     position: relative;
     overflow: hidden;
@@ -522,25 +509,21 @@ body.noscroll {
     animation: slideInUp 0.7s ease-out;
 }
 
-/* Ambient glow top-right */
 .hero-banner::before {
     content: '';
     position: absolute;
     top: -80px; right: -80px;
     width: 320px; height: 320px;
     background: radial-gradient(circle, rgba(79, 70, 229, 0.1) 0%, transparent 70%);
-    border-radius: 50%;
     pointer-events: none;
 }
 
-/* Ambient glow bottom-left */
 .hero-banner::after {
     content: '';
     position: absolute;
     bottom: -60px; left: -60px;
     width: 250px; height: 250px;
     background: radial-gradient(circle, rgba(0, 206, 201, 0.08) 0%, transparent 70%);
-    border-radius: 50%;
     pointer-events: none;
 }
 
@@ -549,7 +532,6 @@ body.noscroll {
     position: absolute;
     width: 10px; height: 10px;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    border-radius: 50%;
     z-index: 5;
 }
 .corner-dot.tl { top: -5px; left: -5px; }
@@ -646,7 +628,6 @@ body.noscroll {
     font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    border-radius: var(--border-radius-sm);
     text-decoration: none;
     box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
     transition: var(--hover-transition);
@@ -685,7 +666,6 @@ body.noscroll {
     font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    border-radius: var(--border-radius-sm);
     text-decoration: none;
     transition: var(--hover-transition);
     background: transparent;
@@ -711,7 +691,6 @@ body.noscroll {
 .feature-card {
     background: var(--card-background);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
     padding: 1.5rem;
     position: relative;
     overflow: hidden;
@@ -724,7 +703,6 @@ body.noscroll {
 .feature-card:nth-child(2) { animation-delay: 0.2s; }
 .feature-card:nth-child(3) { animation-delay: 0.3s; }
 
-/* Top-right corner accent */
 .feature-card::after {
     content: '';
     position: absolute;
@@ -753,7 +731,6 @@ body.noscroll {
     justify-content: center;
     width: 2.75rem;
     height: 2.75rem;
-    border-radius: var(--border-radius-sm);
     background: var(--highlight-color);
     margin-bottom: 1rem;
     transition: var(--transition);
@@ -804,7 +781,6 @@ body.noscroll {
     color: var(--text-muted);
     cursor: pointer;
     padding: 0.25rem;
-    border-radius: 6px;
     transition: var(--transition);
     display: inline-flex;
     align-items: center;
@@ -864,7 +840,6 @@ body.noscroll {
     width: 44px;
     height: 22px;
     background: var(--border-color);
-    border-radius: 100px;
     position: relative;
     transition: var(--transition);
 }
@@ -880,7 +855,7 @@ body.noscroll {
     width: 16px;
     height: 16px;
     background: white;
-    border-radius: 50%;
+    border-radius: 50% !important;
     transition: var(--transition);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
@@ -927,7 +902,6 @@ body.noscroll {
 
     .hero-banner {
         padding: 1.5rem 1.25rem;
-        border-radius: var(--border-radius);
         margin-bottom: 1rem;
     }
     .hero-title { font-size: 1.75rem; margin-bottom: 0.75rem; }
@@ -993,7 +967,6 @@ body.noscroll {
    ================================================ */
 .color-customizer {
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
     overflow: hidden;
     background: var(--card-background);
 }
@@ -1020,7 +993,6 @@ body.noscroll {
     letter-spacing: 0.08em;
 }
 
-/* Panel hidden by default, open via JS class */
 .customizer-panel {
     max-height: 0;
     overflow: hidden;
@@ -1043,7 +1015,6 @@ body.noscroll {
     margin-bottom: 0.5rem;
 }
 
-/* Preset grid */
 .preset-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -1053,7 +1024,6 @@ body.noscroll {
 .preset-btn {
     width: 100%;
     aspect-ratio: 1;
-    border-radius: var(--border-radius-sm);
     border: 2px solid transparent;
     cursor: pointer;
     overflow: hidden;
@@ -1080,7 +1050,6 @@ body.noscroll {
     transform: scale(1.08);
 }
 
-/* Custom pickers row */
 .picker-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1107,7 +1076,6 @@ body.noscroll {
     position: relative;
     width: 100%;
     height: 2.2rem;
-    border-radius: var(--border-radius-sm);
     overflow: hidden;
     border: 1px solid var(--border-color);
     transition: var(--transition);
@@ -1118,7 +1086,6 @@ body.noscroll {
     box-shadow: 0 0 0 2px var(--highlight-color);
 }
 
-/* Hide default color input, show swatch on top */
 .color-picker {
     position: absolute;
     inset: 0;
@@ -1135,13 +1102,11 @@ body.noscroll {
     position: absolute;
     inset: 0;
     display: block;
-    border-radius: inherit;
     pointer-events: none;
     z-index: 1;
     transition: background 0.2s ease;
 }
 
-/* Reset button */
 .customizer-reset {
     display: flex;
     align-items: center;
@@ -1152,7 +1117,6 @@ body.noscroll {
     padding: 0.5rem;
     background: none;
     border: 1px dashed var(--border-color);
-    border-radius: var(--border-radius-sm);
     color: var(--text-muted);
     font-size: 0.72rem;
     font-weight: 600;
@@ -1167,6 +1131,7 @@ body.noscroll {
     color: var(--error-color);
     background: rgba(244, 63, 94, 0.05);
 }
+
 /* ================================================
    FIX ANDROID GOOGLE SEARCH POPUP
    ================================================ */
@@ -1183,7 +1148,6 @@ body.noscroll {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* Input di modal tetap bisa di-select */
 .param-input,
 .modal-box input,
 .modal-box textarea {
@@ -1191,13 +1155,12 @@ body.noscroll {
     user-select: text;
 }
 
-/* Global tap highlight off */
 * {
     -webkit-tap-highlight-color: transparent;
 }
 
 /* ================================================
-   ACCORDION FIX — pakai scrollHeight bukan 5000px
+   ACCORDION FIX
    ================================================ */
 .accordion-content {
     max-height: 0;
@@ -1206,7 +1169,5 @@ body.noscroll {
 }
 
 .accordion-content.open {
-    max-height: none; /* di-override JS pakai scrollHeight */
+    max-height: none;
 }
-
-
