@@ -64,7 +64,7 @@ module.exports = {
                 }
             });
         } catch (e) {
-            return res.status(500).json({ status: false, creator: 'Shannz', error: e.message });
+            return res.status(500).json({ status: false, error: e.message });
         }
     }
 };
