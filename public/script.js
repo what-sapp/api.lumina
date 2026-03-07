@@ -478,7 +478,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         } else {
             if (apikeyInput) apikeyInput.classList.remove('invalid');
             if (apikeyError) apikeyError.style.display = 'none';
-            if (apikeyVal) queryParams.append('apikey', apikeyVal);
+            // Hanya append apikey kalau endpoint memang butuh
+            if (requireApikey && apikeyVal) queryParams.append('apikey', apikeyVal);
         }
 
         paramsContainer.querySelectorAll('input[type="file"]').forEach(() => { hasFileInput = true; });
@@ -599,12 +600,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                 responseData.dataset.raw = text;
             }
 
-            // Generate cURL — pakai full URL
+            // Generate cURL — full URL
             const curlEl  = document.getElementById('curl-data');
-            const fullUrl = finalUrl.startsWith('http') ? finalUrl : `${window.location.origin}${finalUrl}`;
+            const origin  = window.location.origin || '';
+            const fullUrl = (finalUrl.startsWith('http://') || finalUrl.startsWith('https://'))
+                ? finalUrl
+                : origin + finalUrl;
             if (curlEl) {
-                const curlCmd = `curl -X ${method.toUpperCase()} \\\n  "${fullUrl}"`;
-                curlEl.dataset.raw = curlCmd;
+                const maskedUrl = fullUrl.replace(/(apikey=)[^&]+/, '$1YOUR_API_KEY');
+                const curlCmd   = `curl -X ${method.toUpperCase()} \\\n  "${maskedUrl}"`;
+                curlEl.dataset.raw = `curl -X ${method.toUpperCase()} \\\n  "${fullUrl}"`;
                 curlEl.innerHTML = curlCmd
                     .replace(/^(curl)/, '<span class="curl-keyword">curl</span>')
                     .replace(/(-X \w+)/g, '<span class="curl-flag">$1</span>')
