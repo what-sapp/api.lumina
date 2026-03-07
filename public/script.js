@@ -599,16 +599,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                 responseData.dataset.raw = text;
             }
 
-            // Generate cURL
-            const curlEl = document.getElementById('curl-data');
-            if (curlEl && window.generateCurl) {
-                const curlCmd = window.generateCurl(finalUrl, method);
+            // Generate cURL — pakai full URL
+            const curlEl  = document.getElementById('curl-data');
+            const fullUrl = finalUrl.startsWith('http') ? finalUrl : `${window.location.origin}${finalUrl}`;
+            if (curlEl) {
+                const curlCmd = `curl -X ${method.toUpperCase()} \\\n  "${fullUrl}"`;
                 curlEl.dataset.raw = curlCmd;
                 curlEl.innerHTML = curlCmd
-                    .replace(/^(curl)/,   '<span class="curl-keyword">curl</span>')
+                    .replace(/^(curl)/, '<span class="curl-keyword">curl</span>')
                     .replace(/(-X \w+)/g, '<span class="curl-flag">$1</span>')
-                    .replace(/(-H "[^"]*")/g, '<span class="curl-flag">$1</span>')
-                    .replace(/(-d '[^']*')/gs,'<span class="curl-string">$1</span>')
                     .replace(/"(https?:\/\/[^"]+)"/g, '"<span class="curl-url">$1</span>"');
             }
 
