@@ -34,6 +34,9 @@
     --header-height: 64px;
     --nav-width: 300px;
     --background-color-rgb: 248, 249, 253;
+
+    --grid-color: rgba(79, 70, 229, 0.10);
+    --grid-size: 32px;
 }
 
 .dark-mode {
@@ -51,6 +54,8 @@
     --hover-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
     --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     --background-color-rgb: 15, 17, 32;
+
+    --grid-color: rgba(129, 140, 248, 0.05);
 }
 
 /* ================================================
@@ -72,12 +77,10 @@ body {
     padding-bottom: 5rem;
     transition: var(--transition);
     overflow-x: hidden;
-    background-image: radial-gradient(circle, rgba(79, 70, 229, 0.07) 1px, transparent 1px);
-    background-size: 28px 28px;
-}
-
-.dark-mode body {
-    background-image: radial-gradient(circle, rgba(129, 140, 248, 0.06) 1px, transparent 1px);
+    background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: var(--grid-size) var(--grid-size);
 }
 
 body.noscroll {
@@ -362,7 +365,6 @@ body.noscroll {
     border-top: 1px solid var(--border-color);
 }
 
-/* Badge inside menu */
 .menu-badge {
     margin-left: auto;
     font-size: 0.6rem;
@@ -380,7 +382,6 @@ body.noscroll {
     color: white;
 }
 
-/* GitHub link */
 .github-link {
     display: flex;
     align-items: center;
@@ -417,7 +418,6 @@ body.noscroll {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* Stats card */
 .stats-card {
     background: var(--highlight-color);
     border: 1px solid var(--border-color);
@@ -527,7 +527,6 @@ body.noscroll {
     pointer-events: none;
 }
 
-/* Corner dots */
 .corner-dot {
     position: absolute;
     width: 10px; height: 10px;
@@ -539,7 +538,6 @@ body.noscroll {
 .corner-dot.bl { bottom: -5px; left: -5px; }
 .corner-dot.br { bottom: -5px; right: -5px; }
 
-/* Corner labels */
 .corner-label {
     position: absolute;
     font-size: 0.55rem;
@@ -584,7 +582,6 @@ body.noscroll {
     margin-bottom: 1rem;
 }
 
-/* Gradient text */
 .gradient-text {
     background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
     -webkit-background-clip: text;
@@ -760,7 +757,6 @@ body.noscroll {
     margin: 0;
 }
 
-/* IP display */
 .ip-row {
     display: flex;
     align-items: center;
@@ -947,9 +943,9 @@ body.noscroll {
     .stats-value { font-size: 1rem; }
     .ip-code { font-size: 0.85rem; }
 
-    body {
-        background-image: radial-gradient(circle, rgba(79, 70, 229, 0.04) 1px, transparent 1px);
-        background-size: 24px 24px;
+    :root {
+        --grid-size: 24px;
+        --grid-color: rgba(79, 70, 229, 0.04);
     }
 }
 
