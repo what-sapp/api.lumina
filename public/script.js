@@ -583,11 +583,43 @@ document.addEventListener('DOMContentLoaded', async function () {
                             <span class="material-icons" style="font-size:0.75rem;">download</span> Download
                         </a>
                     </div>`;
+                responseData.dataset.raw = imgUrl;
             } else if (contentType.includes('application/json')) {
-                const json = await res.json();
-                responseData.textContent = JSON.stringify(json, null, 2);
+                const json    = await res.json();
+                const raw     = JSON.stringify(json, null, 2);
+                responseData.dataset.raw = raw;
+                if (window.highlightJson) {
+                    responseData.innerHTML = window.highlightJson(raw);
+                } else {
+                    responseData.textContent = raw;
+                }
             } else {
-                responseData.textContent = await res.text();
+                const text = await res.text();
+                responseData.textContent = text;
+                responseData.dataset.raw = text;
+            }
+
+            // Generate cURL
+            const curlEl = document.getElementById('curl-data');
+            if (curlEl && window.generateCurl) {
+                const curlCmd = window.generateCurl(finalUrl, method);
+                curlEl.dataset.raw = curlCmd;
+                curlEl.innerHTML = curlCmd
+                    .replace(/^(curl)/,   '<span class="curl-keyword">curl</span>')
+                    .replace(/(-X \w+)/g, '<span class="curl-flag">$1</span>')
+                    .replace(/(-H "[^"]*")/g, '<span class="curl-flag">$1</span>')
+                    .replace(/(-d '[^']*')/gs,'<span class="curl-string">$1</span>')
+                    .replace(/"(https?:\/\/[^"]+)"/g, '"<span class="curl-url">$1</span>"');
+            }
+
+            // Reset ke tab response setiap kali ada response baru
+            const tabResponse   = document.getElementById('tab-response');
+            const tabCurl       = document.getElementById('tab-curl');
+            const panelResponse = document.getElementById('panel-response');
+            const panelCurl     = document.getElementById('panel-curl');
+            if (tabResponse && tabCurl) {
+                tabResponse.classList.add('active'); tabCurl.classList.remove('active');
+                panelResponse.style.display = ''; panelCurl.style.display = 'none';
             }
 
             setTimeout(() => {
