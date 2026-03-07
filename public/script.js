@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     let categoryData = [];
     let disabledKeys = new Set();
 
-    // ── endpoint paramsSchema cache (untuk deteksi file input) ──
     const endpointSchemaMap = new Map();
 
     const statusMap = {
@@ -52,7 +51,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             const disabledStyle  = isDisabled ? 'opacity:0.55; filter:grayscale(0.4);' : '';
             const disabledTitle  = isDisabled ? 'title="Endpoint ini sedang offline"' : '';
 
-            // Simpan paramsSchema ke map
             if (item.paramsSchema) {
                 endpointSchemaMap.set(endpointKey, item.paramsSchema);
             }
@@ -218,7 +216,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
-            // Tutup semua accordion lain
             apiContent.querySelectorAll('.category-section').forEach(otherSection => {
                 if (otherSection === section) return;
                 const otherContent = otherSection.querySelector('.accordion-content');
@@ -329,11 +326,13 @@ document.addEventListener('DOMContentLoaded', async function () {
             const section = document.createElement('div');
             section.className = 'params-section';
             section.innerHTML = `<div class="params-title"><span class="material-icons" style="font-size:0.75rem;">tune</span> Parameters</div>`;
+
             params.forEach(p => {
                 const isOptional  = p.startsWith('_');
                 const cleanName   = isOptional ? p.substring(1) : p;
                 const paramSchema = schema[cleanName] || schema[p] || {};
                 const isFile      = paramSchema.type === 'file';
+                const isSelect    = paramSchema.type === 'select';
                 const group       = document.createElement('div');
                 group.className   = 'param-group';
 
@@ -353,7 +352,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                     `;
                     section.appendChild(group);
 
-                    // Update label setelah file dipilih
                     setTimeout(() => {
                         const fileInput = document.getElementById(`param-${p}`);
                         const fileText  = document.getElementById(`file-text-${p}`);
@@ -371,6 +369,29 @@ document.addEventListener('DOMContentLoaded', async function () {
                             });
                         }
                     }, 0);
+
+                } else if (isSelect) {
+                    // ── Select / Dropdown ──
+                    const optionsHtml = (paramSchema.options || []).map(opt => {
+                        const val     = typeof opt === 'object' ? opt.value : opt;
+                        const label   = typeof opt === 'object' ? opt.label : opt;
+                        const selected = val === (paramSchema.default || '') ? 'selected' : '';
+                        return `<option value="${val}" ${selected}>${label}</option>`;
+                    }).join('');
+
+                    group.innerHTML = `
+                        <div class="param-label">
+                            ${cleanName}
+                            ${!isOptional ? '<span class="param-required">*required</span>' : '<span style="font-size:0.62rem;color:var(--text-muted);font-weight:400;">(optional)</span>'}
+                        </div>
+                        <select id="param-${p}" class="param-select">
+                            ${isOptional ? '<option value="">— optional —</option>' : ''}
+                            ${optionsHtml}
+                        </select>
+                        <div id="error-${p}" style="display:none;font-size:0.65rem;color:var(--error-color);margin-top:0.25rem;">This field is required.</div>
+                    `;
+                    section.appendChild(group);
+
                 } else {
                     // ── Text input biasa ──
                     group.innerHTML = `
@@ -423,9 +444,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         const statusEl          = document.getElementById('response-status');
         const timeEl            = document.getElementById('response-time');
 
-        let isValid     = true;
-        let baseUrl     = endpoint.split('?')[0];
-        let queryParams = new URLSearchParams();
+        let isValid      = true;
+        let baseUrl      = endpoint.split('?')[0];
+        let queryParams  = new URLSearchParams();
         let hasFileInput = false;
         let formData     = null;
 
@@ -444,18 +465,15 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (apikeyVal) queryParams.append('apikey', apikeyVal);
         }
 
-        // Cek apakah ada file input
-        paramsContainer.querySelectorAll('input[type="file"]').forEach(input => {
-            hasFileInput = true;
-        });
-
+        paramsContainer.querySelectorAll('input[type="file"]').forEach(() => { hasFileInput = true; });
         if (hasFileInput) formData = new FormData();
 
+        // Handle text + file inputs
         paramsContainer.querySelectorAll('.param-input, .param-file-input').forEach(input => {
             if (input.id === 'modal-apikey') return;
-            const pName    = input.id.replace('param-', '');
-            const isFile   = input.type === 'file';
-            const error    = document.getElementById(`error-${pName}`);
+            const pName      = input.id.replace('param-', '');
+            const isFile     = input.type === 'file';
+            const error      = document.getElementById(`error-${pName}`);
             const isOptional = pName.startsWith('_');
 
             if (isFile) {
@@ -468,9 +486,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const label = document.getElementById(`label-${pName}`);
                     if (label) label.style.borderColor = '';
                     if (error) error.style.display = 'none';
-                    if (input.files && input.files[0]) {
-                        formData.append(pName, input.files[0]);
-                    }
+                    if (input.files && input.files[0]) formData.append(pName, input.files[0]);
                 }
             } else {
                 const val = input.value.trim();
@@ -489,6 +505,31 @@ document.addEventListener('DOMContentLoaded', async function () {
                         } else {
                             queryParams.append(pName, val);
                         }
+                    }
+                }
+            }
+        });
+
+        // Handle select inputs
+        paramsContainer.querySelectorAll('.param-select').forEach(select => {
+            const pName      = select.id.replace('param-', '');
+            const val        = select.value;
+            const isOptional = pName.startsWith('_');
+            const error      = document.getElementById(`error-${pName}`);
+
+            if (!isOptional && !val) {
+                isValid = false;
+                select.classList.add('invalid');
+                if (error) error.style.display = 'block';
+            } else {
+                select.classList.remove('invalid');
+                if (error) error.style.display = 'none';
+                if (val) {
+                    const cleanName = isOptional ? pName.substring(1) : pName;
+                    if (hasFileInput && formData) {
+                        formData.append(cleanName, val);
+                    } else {
+                        queryParams.append(cleanName, val);
                     }
                 }
             }
