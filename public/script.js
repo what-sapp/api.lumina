@@ -65,7 +65,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                     <span class="endpoint-name">${itemName}</span>
                 </div>
                 <div class="endpoint-path">${item.path || '/'}</div>
-                <div class="endpoint-desc">${item.desc || 'No description available.'}</div>
                 <div class="endpoint-card-footer">
                     <span class="status-badge ${s.cls}">
                         <span class="material-icons" style="font-size:0.6rem;">${s.icon}</span>
@@ -87,6 +86,25 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         grid.innerHTML = html;
     }
+
+    // Skeleton saat data belum datang
+    function showSkeletons() {
+        const apiContent = document.getElementById('api-content');
+        if (!apiContent) return;
+        apiContent.innerHTML = `<style>@keyframes shimmer{0%,100%{opacity:1}50%{opacity:0.4}}</style>` +
+            Array.from({ length: 6 }).map(() => `
+                <div class="category-section" style="animation:shimmer 1.4s infinite;">
+                    <div class="category-header" style="pointer-events:none;">
+                        <div class="category-header-left">
+                            <div class="category-icon" style="background:var(--border-color);"></div>
+                            <div style="height:0.8rem;width:7rem;background:var(--border-color);border-radius:4px !important;"></div>
+                            <div style="height:0.8rem;width:2rem;background:var(--border-color);border-radius:100px !important;margin-left:0.5rem;"></div>
+                        </div>
+                        <div style="height:0.8rem;width:0.8rem;background:var(--border-color);border-radius:4px !important;"></div>
+                    </div>
+                </div>`).join('');
+    }
+    showSkeletons();
 
     try {
         const endpoints = await (await fetch('/endpoints')).json();
@@ -187,6 +205,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             fragment.appendChild(section);
         });
 
+        // Clear skeleton, masukkan konten asli
+        apiContent.innerHTML = '';
         apiContent.appendChild(fragment);
 
         apiContent.addEventListener('click', e => {
@@ -216,6 +236,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
+            // Lazy render dulu sebelum scroll & maxHeight
+            if (section.dataset.rendered === 'false') {
+                section.dataset.rendered = 'true';
+                renderCards(grid, categoryData[catIndex].items, catIndex);
+            }
+
+            // Tutup accordion lain, lalu scroll ke header yg diklik
             apiContent.querySelectorAll('.category-section').forEach(otherSection => {
                 if (otherSection === section) return;
                 const otherContent = otherSection.querySelector('.accordion-content');
@@ -231,20 +258,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             });
 
-            requestAnimationFrame(() => {
-                const newRect = header.getBoundingClientRect();
-                const targetScrollY = window.scrollY + newRect.top - 70;
-                window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
-            });
-
-            if (section.dataset.rendered === 'false') {
-                section.dataset.rendered = 'true';
-                renderCards(grid, categoryData[catIndex].items, catIndex);
-            }
-
+            // Buka accordion yg diklik
             requestAnimationFrame(() => {
                 content.style.maxHeight = content.scrollHeight + 'px';
             });
+
+            // Tunggu transition tutup selesai (300ms) baru scroll
+            setTimeout(() => {
+                const rect = header.getBoundingClientRect();
+                window.scrollTo({ top: window.scrollY + rect.top - 70, behavior: 'smooth' });
+            }, 310);
         });
     }
 
@@ -337,7 +360,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 group.className   = 'param-group';
 
                 if (isFile) {
-                    // ── File input ──
                     group.innerHTML = `
                         <div class="param-label">
                             ${cleanName}
@@ -351,7 +373,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                         <div id="error-${p}" style="display:none;font-size:0.65rem;color:var(--error-color);margin-top:0.25rem;">File wajib dipilih.</div>
                     `;
                     section.appendChild(group);
-
                     setTimeout(() => {
                         const fileInput = document.getElementById(`param-${p}`);
                         const fileText  = document.getElementById(`file-text-${p}`);
@@ -369,16 +390,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                             });
                         }
                     }, 0);
-
                 } else if (isSelect) {
-                    // ── Select / Dropdown ──
                     const optionsHtml = (paramSchema.options || []).map(opt => {
                         const val     = typeof opt === 'object' ? opt.value : opt;
                         const label   = typeof opt === 'object' ? opt.label : opt;
                         const selected = val === (paramSchema.default || '') ? 'selected' : '';
                         return `<option value="${val}" ${selected}>${label}</option>`;
                     }).join('');
-
                     group.innerHTML = `
                         <div class="param-label">
                             ${cleanName}
@@ -391,9 +409,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         <div id="error-${p}" style="display:none;font-size:0.65rem;color:var(--error-color);margin-top:0.25rem;">This field is required.</div>
                     `;
                     section.appendChild(group);
-
                 } else {
-                    // ── Text input biasa ──
                     group.innerHTML = `
                         <div class="param-label">
                             ${cleanName}
@@ -468,7 +484,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         paramsContainer.querySelectorAll('input[type="file"]').forEach(() => { hasFileInput = true; });
         if (hasFileInput) formData = new FormData();
 
-        // Handle text + file inputs
         paramsContainer.querySelectorAll('.param-input, .param-file-input').forEach(input => {
             if (input.id === 'modal-apikey') return;
             const pName      = input.id.replace('param-', '');
@@ -510,13 +525,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         });
 
-        // Handle select inputs
         paramsContainer.querySelectorAll('.param-select').forEach(select => {
             const pName      = select.id.replace('param-', '');
             const val        = select.value;
             const isOptional = pName.startsWith('_');
             const error      = document.getElementById(`error-${pName}`);
-
             if (!isOptional && !val) {
                 isValid = false;
                 select.classList.add('invalid');
@@ -608,10 +621,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                 document.querySelectorAll('.category-section').forEach(section => {
                     const header   = section.querySelector('.category-header');
                     const content  = section.querySelector('.accordion-content');
-                    const chevron  = header.querySelector('.category-chevron');
-                    const icon     = header.querySelector('.category-icon .material-icons');
+                    const chevron  = header?.querySelector('.category-chevron');
+                    const icon     = header?.querySelector('.category-icon .material-icons');
                     const catIndex = Number(section.dataset.catIndex);
                     const grid     = section.querySelector('.endpoint-grid');
+
+                    if (!header || !content) return;
 
                     if (term && section.dataset.rendered === 'false') {
                         section.dataset.rendered = 'true';
@@ -629,7 +644,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         if (hasMatch) {
                             content.classList.add('open');
                             header.classList.add('open');
-                            chevron.style.transform = 'rotate(180deg)';
+                            if (chevron) chevron.style.transform = 'rotate(180deg)';
                             if (icon) icon.textContent = 'folder_open';
                             requestAnimationFrame(() => {
                                 content.style.maxHeight = content.scrollHeight + 'px';
@@ -640,7 +655,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         content.classList.remove('open');
                         header.classList.remove('open');
                         content.style.maxHeight = '0';
-                        chevron.style.transform = 'rotate(0deg)';
+                        if (chevron) chevron.style.transform = 'rotate(0deg)';
                         if (icon) icon.textContent = 'folder';
                         section.style.display = '';
                         section.querySelectorAll('.endpoint-card').forEach(c => c.style.display = '');
