@@ -34,7 +34,7 @@ module.exports = {
             });
 
             if (!req.file) return res.status(400).json({
-                status: false, creator: 'Shannz',
+                status: false,
                 error: 'No file uploaded. Gunakan form-data dengan field "file".'
             });
 
@@ -53,7 +53,7 @@ module.exports = {
 
             return res.status(200).json({
                 status:    true,
-                creator:   'Shannz',
+                //creator:   'Shannz',
                 result: {
                     url:       fileUrl,
                     filename:  randomName,
