@@ -3,6 +3,7 @@ const express = require('express');
 const fs      = require('fs');
 const path    = require('path');
 const crypto  = require('crypto');
+const multer  = require('multer');
 const set     = require('./settings');
 const admin   = require('firebase-admin');
 
@@ -21,13 +22,18 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// ── File Upload Setup ──
+const uploadDir = path.join(process.cwd(), 'files');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+const upload = multer({ storage: multer.memoryStorage() });
+
 // ════════════════════════════════════════
 //  CACHE
 // ════════════════════════════════════════
-let blacklistCache    = new Set();
-let disabledEndpoints = new Set();
-let apikeyCache       = new Set();
-let requireKeyEndpoints = new Set(); // endpoint yang wajib apikey
+let blacklistCache      = new Set();
+let disabledEndpoints   = new Set();
+let apikeyCache         = new Set();
+let requireKeyEndpoints = new Set();
 
 async function reloadAdminCache() {
     try {
@@ -37,7 +43,6 @@ async function reloadAdminCache() {
         const epSnap = await db.collection('endpoints_status').where('enabled', '==', false).get();
         disabledEndpoints = new Set(epSnap.docs.map(d => d.id));
 
-        // Load endpoint yang require apikey
         const rkSnap = await db.collection('endpoints_status').where('requireKey', '==', true).get();
         requireKeyEndpoints = new Set(rkSnap.docs.map(d => d.id));
 
@@ -134,7 +139,7 @@ app.use((req, res, next) => {
             const statusCode   = res.statusCode || 200;
             const responseData = { status: data.status, statusCode, creator: set.author.toLowerCase(), ...data };
 
-            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info', '/changelog', '/settings'].some(p => req.path.startsWith(p));
+            const skip = ['/admin', '/endpoints', '/set', '/stats', '/server-info', '/changelog', '/settings', '/files'].some(p => req.path.startsWith(p));
             if (!skip) {
                 db.collection('traffic').add({
                     path:      req.path,
@@ -169,6 +174,43 @@ String.prototype.capitalize = function () {
 })();
 
 // ════════════════════════════════════════
+//  FILE UPLOAD ROUTES
+// ════════════════════════════════════════
+app.post('/files/upload', upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ status: false, error: 'No file uploaded. Gunakan form-data field "file".' });
+
+    const ext        = path.extname(req.file.originalname) || '';
+    const randomName = crypto.randomBytes(16).toString('hex') + ext;
+    const filePath   = path.join(uploadDir, randomName);
+
+    fs.writeFileSync(filePath, req.file.buffer);
+
+    const fileUrl = `${req.protocol}://${req.get('host')}/files/${randomName}`;
+
+    // Auto delete setelah 5 menit
+    setTimeout(() => {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }, 5 * 60 * 1000);
+
+    res.json({
+        status:     true,
+        creator:    set.author.toLowerCase(),
+        url:        fileUrl,
+        filename:   randomName,
+        mimetype:   req.file.mimetype,
+        size:       req.file.size,
+        expires_in: '5 minutes',
+        timestamp:  new Date().toISOString(),
+    });
+});
+
+app.get('/files/:filename', (req, res) => {
+    const filePath = path.join(uploadDir, req.params.filename);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ status: false, error: 'File not found or expired.' });
+    res.sendFile(filePath);
+});
+
+// ════════════════════════════════════════
 //  LOAD ENDPOINTS FROM DIRECTORY
 // ════════════════════════════════════════
 function loadEndpointsFromDirectory(directory, baseRoute = '') {
@@ -194,12 +236,10 @@ function loadEndpointsFromDirectory(directory, baseRoute = '') {
                     app.all(endpointPath, (req, res, next) => {
                         const key = endpointPath.replace(/^\//, '').replace(/\//g, '_');
 
-                        // Cek disabled
                         if (disabledEndpoints.has(key)) {
                             return res.status(503).json({ status: false, message: 'This endpoint is temporarily disabled.' });
                         }
 
-                        // Cek per-endpoint apikey
                         if (requireKeyEndpoints.has(key)) {
                             const apikey = req.query.apikey || req.headers['x-api-key'];
                             if (!apikey || !apikeyCache.has(apikey)) {
@@ -226,10 +266,11 @@ function loadEndpointsFromDirectory(directory, baseRoute = '') {
                     const categoryObj = endpoints.find(e => e.name === category);
                     const endpointObj = {};
                     endpointObj[module.name || endpointName] = {
-                        desc:   module.desc   || 'No description provided',
-                        path:   fullPathWithParams,
-                        method: module.method || 'GET',
-                        params: module.params || []
+                        desc:         module.desc         || 'No description provided',
+                        path:         fullPathWithParams,
+                        method:       module.method       || 'GET',
+                        params:       module.params       || [],
+                        paramsSchema: module.paramsSchema || {},
                     };
                     categoryObj.items.push(endpointObj);
                 }
@@ -266,7 +307,6 @@ app.get('/set', (req, res) => {
     res.json({ status: true, ...set });
 });
 
-// Public: list endpoint yang require apikey (untuk docs modal)
 app.get('/endpoints-require-key', (req, res) => {
     res.json({ status: true, keys: [...requireKeyEndpoints] });
 });
@@ -495,7 +535,6 @@ app.get('/admin/endpoints-status', verifyAdmin, async (req, res) => {
     catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// Toggle enabled ON/OFF
 app.post('/admin/endpoints-status', verifyAdmin, async (req, res) => {
     const { key, enabled } = req.body;
     if (!key) return res.status(400).json({ status: false, message: 'key required' });
@@ -506,7 +545,6 @@ app.post('/admin/endpoints-status', verifyAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ status: false, message: e.message }); }
 });
 
-// Toggle requireKey per endpoint
 app.post('/admin/endpoints-require-key', verifyAdmin, async (req, res) => {
     const { key, requireKey } = req.body;
     if (!key) return res.status(400).json({ status: false, message: 'key required' });
@@ -552,7 +590,7 @@ app.delete('/admin/apikeys/:key', verifyAdmin, async (req, res) => {
 });
 
 // ════════════════════════════════════════
-//  ADMIN: SETTINGS (require-apikey toggle)
+//  ADMIN: SETTINGS
 // ════════════════════════════════════════
 app.get('/admin/settings/require-apikey', verifyAdmin, async (req, res) => {
     try {
