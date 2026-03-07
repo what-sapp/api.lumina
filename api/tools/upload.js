@@ -18,7 +18,7 @@ module.exports = {
     name:        'FileUpload',
     desc:        'Upload file sementara, URL otomatis expired setelah 5 menit.',
     category:    'Tools',
-    methods:     ['POST'],
+    //methods:     ['POST'],
     params:      ['file'],
     paramsSchema: {
         file: { type: 'file', required: true },
