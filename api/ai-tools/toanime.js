@@ -93,7 +93,8 @@ module.exports = {
                 body: formJob
             });
             const dataJob = await resJob.json();
-            if (dataJob.code !== 100000) throw new Error("Gagal create job: " + JSON.stringify(dataJob));
+            return res.status(200).json({ status: true, debug: dataJob });
+            //if (dataJob.code !== 100000) throw new Error("Gagal create job: " + JSON.stringify(dataJob));
 
             res.status(200).json({
                 status: true,
