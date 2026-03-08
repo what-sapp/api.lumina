@@ -15,10 +15,11 @@ module.exports = {
                 { label: "Modern Anime",   value: "modern" },
                 { label: "Studio Ghibli",  value: "ghibli" },
                 { label: "Anime Basic",    value: "basic" },
-                { label: "Anime Karakter", value: "karakter" }
+                { label: "Anime Karakter", value: "karakter" },
+                { label: "Custom Prompt",   value: "custom" }
             ]
         },
-        _prompt: { type: "text", label: "Custom Prompt", required: false }
+        _prompt: { type: "text", label: "Custom Anime Prompt (opsional, override style)", required: false }
     },
 
     GUDANG_GAMBAR: "https://api.imgupscaler.ai/api/common/upload/upload-image",
@@ -38,8 +39,11 @@ module.exports = {
         const promptKustom = req.query.prompt || req.body?.prompt || this.GAYA_ANIME[styleKu] || this.GAYA_ANIME.modern;
 
         if (!file) return res.status(400).json({ status: false, error: "File image diperlukan." });
-        if (req.query.style && !this.GAYA_ANIME[styleKu]) {
-            return res.status(400).json({ status: false, error: "Style tidak valid. Pilihan: " + Object.keys(this.GAYA_ANIME).join(", ") });
+        if (styleKu === 'custom' && !promptKustom) {
+            return res.status(400).json({ status: false, error: "Style 'custom' memerlukan parameter 'prompt'." });
+        }
+        if (req.query.style && styleKu !== 'custom' && !this.GAYA_ANIME[styleKu]) {
+            return res.status(400).json({ status: false, error: "Style tidak valid. Pilihan: " + Object.keys(this.GAYA_ANIME).join(", ") + ", custom" });
         }
 
         try {
