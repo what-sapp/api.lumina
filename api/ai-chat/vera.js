@@ -1,6 +1,5 @@
-const https  = require('https');
-const http   = require('http');
-const crypto = require('crypto');
+const https = require('https');
+const http  = require('http');
 
 function request(url, options = {}, body = null) {
     return new Promise((resolve, reject) => {
@@ -29,37 +28,20 @@ function request(url, options = {}, body = null) {
     });
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 const BASE_HEADERS = {
-    'accept':           '*/*',
-    'accept-language':  'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-    'content-type':     'application/json',
-    'origin':           'https://vera.sc',
-    'referer':          'https://vera.sc/',
-    'sec-ch-ua':        '"Chromium";v="107", "Not=A?Brand";v="24"',
-    'sec-ch-ua-mobile': '?1',
+    'accept':             '*/*',
+    'accept-language':    'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+    'content-type':       'application/json',
+    'origin':             'https://vera.sc',
+    'referer':            'https://vera.sc/',
+    'sec-ch-ua':          '"Chromium";v="107", "Not=A?Brand";v="24"',
+    'sec-ch-ua-mobile':   '?1',
     'sec-ch-ua-platform': '"Android"',
-    'sec-fetch-dest':   'empty',
-    'sec-fetch-mode':   'cors',
-    'sec-fetch-site':   'same-site',
-    'user-agent':       'Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
+    'sec-fetch-dest':     'empty',
+    'sec-fetch-mode':     'cors',
+    'sec-fetch-site':     'same-site',
+    'user-agent':         'Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
 };
-
-// ─── TEMPMAIL ────────────────────────────────────────────────────────────────
-
-async function getInbox(username) {
-    const res = await request(`https://akunlama.com/api/v1/mail/list?recipient=${username}`);
-    let data; try { data = res.json(); } catch { return []; }
-    if (!Array.isArray(data) || data.length === 0) return [];
-    return data.map(item => ({ region: item.storage.region, key: item.storage.key }));
-}
-
-async function getOTP(region, key) {
-    const res     = await request(`https://akunlama.com/api/v1/mail/getHtml?region=${region}&key=${key}`);
-    const matches = res.body.match(/\b\d{6}\b/g);
-    return matches ? matches[0] : null;
-}
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 
@@ -68,37 +50,16 @@ let cachedAuth = null;
 async function getAuth() {
     if (cachedAuth && cachedAuth.expiry > Date.now()) return cachedAuth.cookie;
 
-    const username = crypto.randomBytes(6).toString('hex');
-    const email    = `${username}@akunlama.com`;
+    const res = await request('https://workers.vera.sc/identity/get-id', {
+        method: 'GET',
+        headers: BASE_HEADERS
+    });
 
-    const sendRes = await request(
-        'https://workers.vera.sc/identity/email-auth',
-        { method: 'POST', headers: BASE_HEADERS },
-        { email }
-    );
-    if (sendRes.status !== 200) throw new Error('Gagal kirim OTP: ' + sendRes.body);
+    if (res.status !== 200) throw new Error('Gagal generate JWT');
 
-    // Ambil otpToken dari set-cookie
-    const sendCookies = sendRes.headers['set-cookie'] || [];
-    const otpToken    = sendCookies.map(c => c.split(';')[0]).join('; ');
-
-    let otp = null, attempt = 0;
-    while (!otp) {
-        await sleep(3000);
-        const mails = await getInbox(username);
-        if (mails.length > 0) otp = await getOTP(mails[0].region, mails[0].key);
-        if (++attempt > 20) throw new Error('OTP timeout');
-    }
-
-    const signRes = await request(
-        'https://workers.vera.sc/identity/verify-otp',
-        { method: 'POST', headers: { ...BASE_HEADERS, 'cookie': otpToken } },
-        { otp }
-    );
-    if (signRes.status !== 200) throw new Error('Login gagal: ' + signRes.body);
-
-    const setCookie = signRes.headers['set-cookie'] || [];
+    const setCookie = res.headers['set-cookie'] || [];
     const cookieStr = setCookie.map(c => c.split(';')[0]).join('; ');
+    if (!cookieStr) throw new Error('Tidak ada cookie dari get-id');
 
     // Cache 6 hari (expire 7 hari)
     cachedAuth = { cookie: cookieStr, expiry: Date.now() + 6 * 24 * 60 * 60 * 1000 };
@@ -114,8 +75,8 @@ async function chat(prompt, cookie) {
         { message: prompt, attachments: [] }
     );
 
-    const lines   = res.body.split('\n');
-    let fullText  = '';
+    const lines  = res.body.split('\n');
+    let fullText = '';
 
     for (const line of lines) {
         if (!line.startsWith('data:')) continue;
