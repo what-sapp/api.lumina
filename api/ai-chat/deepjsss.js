@@ -3,7 +3,7 @@ const https = require("https");
 const vm = require("vm");
 
 module.exports = {
-    name: "DeepSeekChat Syatem",
+    name: "DeepSeekChat",
     desc: "Chat dengan DeepSeek AI dari APK resmi.",
     category: "AI CHAT",
     //path: "/ai/deepseek",
@@ -201,8 +201,8 @@ module.exports = {
                 audio_id: null
             };
 
-            // Inject system prompt jika ada
-            if (system) chatBody.system_instruction = system;
+            // Inject system prompt dengan prepend ke prompt
+            if (system) chatBody.prompt = `${system}\n\n${prompt}`;
 
             // Chat via streaming
             const chatRes = await fetch(`${this.BASE_URL}/chat/completion`, {
