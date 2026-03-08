@@ -39,11 +39,26 @@ module.exports = {
         'x-fe-version': 'serp_20260306_145043_ET-1ae610e41a8a58dcc562bfae8ff44c0922009bdd'
     },
 
-    async getVqdHash() {
+    async getCfToken() {
+        const { data } = await (await fetch('https://x1st-cf.hf.space/action', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                url: 'https://duck.ai/',
+                mode: 'turnstile-min',
+                siteKey: '0x4AAAAAAAz08YBdLmPKmQfH'
+            })
+        })).json();
+        if (!data?.token) throw new Error('Failed to get CF token');
+        return data.token;
+    },
+
+    async getVqdHash(cfToken) {
         const r = await fetch('https://duck.ai/duckchat/v1/status', {
             headers: {
                 ...this.HEADERS,
-                'x-vqd-accept': '1'
+                'x-vqd-accept': '1',
+                'cf-turnstile-response': cfToken
             }
         });
         const hash = r.headers.get('x-vqd-hash-1') || r.headers.get('x-vqd-4');
@@ -58,7 +73,8 @@ module.exports = {
         if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' diperlukan." });
 
         try {
-            const vqdHash = await this.getVqdHash();
+            const cfToken  = await this.getCfToken();
+            const vqdHash  = await this.getVqdHash(cfToken);
 
             const body = JSON.stringify({
                 model,
