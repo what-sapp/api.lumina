@@ -30,7 +30,7 @@ module.exports = {
         if (!query) return res.status(400).json({ status: false, error: "Parameter 'query' diperlukan." });
 
         try {
-            const frontend = uuidv4();
+            const frontend = randomUUID();
 
             const r = await fetch(this.PROXY, {
                 method: 'POST',
@@ -54,8 +54,8 @@ module.exports = {
                         model_preference: 'turbo',
                         is_related_query: false,
                         is_sponsored: false,
-                        visitor_id: uuidv4(),
-                        frontend_context_uuid: uuidv4(),
+                        visitor_id: randomUUID(),
+                        frontend_context_uuid: randomUUID(),
                         prompt_source: 'user',
                         query_source: 'home',
                         is_incognito: false,
