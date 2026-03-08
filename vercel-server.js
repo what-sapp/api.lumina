@@ -233,7 +233,10 @@ function loadEndpointsFromDirectory(directory, baseRoute = '') {
                     const endpointName = item.replace('.js', '');
                     const endpointPath = `${baseRoute}/${endpointName}`;
 
-                    app.all(endpointPath, (req, res, next) => {
+                    const hasFileParam = Object.values(module.paramsSchema || {}).some(s => s.type === 'file');
+                    const middlewares  = hasFileParam ? [upload.single('image')] : [];
+
+                    app.all(endpointPath, ...middlewares, (req, res, next) => {
                         const key = endpointPath.replace(/^\//, '').replace(/\//g, '_');
 
                         if (disabledEndpoints.has(key)) {
