@@ -128,10 +128,11 @@ module.exports = {
             });
 
             const text = await r.text();
+            console.log('[PPLX STATUS]', r.status);
+            console.log('[PPLX RAW]', text.substring(0, 1000));
 
-            let allChunks = [];
-            let sources   = [];
-            let seenPaths = new Set();
+            const chunksMap = {};
+            let sources     = [];
 
             for (const line of text.split('\n')) {
                 const trimmed = line.trim();
@@ -139,22 +140,22 @@ module.exports = {
                 try {
                     const data = JSON.parse(trimmed.slice(5).trim());
 
-                    // Ambil teks dari diff_block patches
                     if (data.blocks) {
                         for (const block of data.blocks) {
-                            // Hanya proses ask_text block (bukan news_widget dll)
-                            const usage = block.intended_usage || '';
-                            if (!usage.startsWith('ask_text')) continue;
+                            const usage = block?.intended_usage || '';
+                            if (usage !== 'ask_text_0_markdown') continue;
 
                             const patches = block?.diff_block?.patches || [];
                             for (const patch of patches) {
-                                if (patch.op === 'add' && typeof patch.value === 'string') {
-                                    const key = `${usage}:${patch.path}`;
-                                    if (seenPaths.has(key)) continue;
-                                    seenPaths.add(key);
-                                    // Bersihkan prefix artifact ".X.. "
-                                    const clean = patch.value.replace(/^\.[A-Za-z]+\.\. ?/, '');
-                                    if (clean) allChunks.push(clean);
+                                if (patch.op === 'replace' && patch.path === '' && patch.value?.chunks) {
+                                    // Full reset — load semua chunks sekaligus
+                                    patch.value.chunks.forEach((c, i) => { chunksMap[i] = c; });
+                                } else if (patch.op === 'add' && patch.path?.startsWith('/chunks/')) {
+                                    // Append chunk baru
+                                    const idx = parseInt(patch.path.replace('/chunks/', ''));
+                                    if (!isNaN(idx) && typeof patch.value === 'string') {
+                                        chunksMap[idx] = patch.value;
+                                    }
                                 }
                             }
                         }
@@ -163,14 +164,16 @@ module.exports = {
                     // Ambil sources
                     if (data.web_results?.length && !sources.length) {
                         sources = data.web_results.slice(0, 5).map(s => ({
-                            title: s.title,
-                            url: s.url
+                            title: s.name,
+                            url: s.url,
+                            snippet: s.snippet
                         }));
                     }
                 } catch (e) {}
             }
 
-            const answer = allChunks.join('').trim();
+            const keys   = Object.keys(chunksMap).map(Number).sort((a, b) => a - b);
+            const answer = keys.map(k => chunksMap[k]).join('').trim();
 
             res.status(200).json({
                 status: true,
