@@ -12,10 +12,12 @@ module.exports = {
             required: false,
             default: "arcee-ai/trinity-large-preview:free",
             options: [
-                { label: "Arcee Trinity Large", value: "arcee-ai/trinity-large-preview:free" }
+                { label: "Arcee Trinity Large",   value: "arcee-ai/trinity-large-preview:free" },
+                { label: "StepFun Step 3.5 Flash", value: "stepfun/step-3.5-flash:free" },
+                { label: "Nvidia Nemotron 30B",   value: "nvidia/nemotron-3-nano-30b-a3b:free" }
             ]
         }
-    }, 
+    },
 
     API_KEY: "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",
 
