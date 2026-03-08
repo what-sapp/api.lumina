@@ -1,22 +1,29 @@
 const axios = require('axios');
 const crypto = require('crypto');
 
-/**
- * OVERCHAT MULTI-MODEL AI (DeepSeek, GPT-4o, Claude)
- * Credits: AgungDevX
- * Params: q (Message), _model (Optional)
- */
 module.exports = {
     name: "Overchat AI",
     desc: "Akses berbagai model AI premium (DeepSeek V3.2, GPT-4o, Claude Haiku 4.5)",
     category: "AI CHAT",
     params: ["q", "_model"],
+    paramsSchema: {
+        q: { type: "text", label: "Message", required: true },
+        _model: {
+            type: "select",
+            label: "Model",
+            required: false,
+            default: "deepseek/deepseek-non-thinking-v3.2-exp",
+            options: [
+                { label: "DeepSeek V3.2", value: "deepseek/deepseek-non-thinking-v3.2-exp" },
+                { label: "GPT-4o", value: "openai/gpt-4o" },
+                { label: "Claude Haiku 4.5", value: "claude-haiku-4-5-20251001" }
+            ]
+        }
+    },
     async run(req, res) {
         try {
             const { q, _model = "deepseek/deepseek-non-thinking-v3.2-exp" } = req.query;
             if (!q) return res.status(400).json({ status: false, error: "Tanya apa hari ini, mang?" });
-
-            console.log(`AI Request [${_model}]: ${q}`);
 
             const personaMap = {
                 "deepseek/deepseek-non-thinking-v3.2-exp": "deepseek-v-3-2-landing",
@@ -43,14 +50,21 @@ module.exports = {
             const response = await axios.post('https://api.overchat.ai/v1/chat/completions', requestData, {
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': '*/*',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Origin': 'https://overchat.ai',
+                    'Referer': 'https://overchat.ai/',
+                    'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Infinix X6833B) AppleWebKit/537.36 Chrome/107.0.0.0 Mobile Safari/537.36',
                     'X-Device-Uuid': crypto.randomUUID(),
-                    'Origin': 'https://overchat.ai'
+                    'X-Device-Platform': 'web',
+                    'X-Device-Version': '1.0.44'
                 },
-                responseType: 'stream'
+                responseType: 'stream',
+                decompress: true
             });
 
             let fullResponse = '';
-            
+
             response.data.on('data', (chunk) => {
                 const lines = chunk.toString().split('\n');
                 for (const line of lines) {
