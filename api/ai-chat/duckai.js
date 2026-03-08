@@ -13,11 +13,12 @@ module.exports = {
             required: false,
             default: "gpt-4o-mini",
             options: [
-                { label: "GPT-4o Mini",      value: "gpt-4o-mini" },
-                { label: "Claude Haiku",     value: "claude-haiku-3-5" },
-                { label: "Llama 3.3 70B",    value: "meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo" },
-                { label: "Mixtral 8x7B",     value: "mistralai/Mixtral-8x7B-Instruct-v0.1" },
-                { label: "o4-mini",          value: "o4-mini" }
+                { label: "GPT-4o Mini",       value: "gpt-4o-mini" },
+                { label: "GPT-5 Mini",        value: "gpt-5-mini" },
+                { label: "GPT OSS 120B",      value: "openai/gpt-oss-120b" },
+                { label: "Claude Haiku 4.5",  value: "claude-haiku-4-5" },
+                { label: "Llama 4 Scout 17B", value: "meta-llama/Llama-4-Scout-17B-16E-Instruct" },
+                { label: "Mistral Small 24B", value: "mistralai/Mistral-Small-24B-Instruct-2501" }
             ]
         }
     },
@@ -89,6 +90,7 @@ module.exports = {
             });
 
             const text = await r.text();
+            console.log('[DuckAI RAW]', text.substring(0, 500));
             let fullText = '';
 
             for (const line of text.split('\n')) {
