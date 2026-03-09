@@ -5,7 +5,7 @@ module.exports = {
     name: 'UploadF',
     desc: 'Upload file ke uploadf.com dan dapatkan link download.',
     category: 'AI',
-    path: '/tools/uploadf',
+   // path: '/tools/uploadf',
     method: 'GET',
     params: ['file'],
     paramsSchema: {
