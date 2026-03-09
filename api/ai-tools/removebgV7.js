@@ -17,12 +17,20 @@ function generateCookies() {
     return `PHPSESSID=${phpsessid}; lang=en; _ga=${ga1}; _ga_W308RS13QN=${ga2}; _ga_XECZHS4N4G=${ga3}`;
 }
 
+async function getSecurityKey(cookies) {
+    const r     = await axios.get(`${BASE_URL}/upload/`, { headers: { 'User-Agent': UA, 'Cookie': cookies } });
+    const match = r.data.match(/security["'\s:]+["']([a-z0-9]+)["']/);
+    return match ? match[1] : null;
+}
+
 async function getWebToken(cookies) {
-    const r = await axios.get(`${AJAX_URL}?action=ajax_get_webtoken&security=249c6a42bb`, {
+    const security = await getSecurityKey(cookies);
+    if (!security) throw new Error("Gagal mendapatkan security key.");
+    const r = await axios.get(`${AJAX_URL}?action=ajax_get_webtoken&security=${security}`, {
         headers: {
-            'User-Agent': UA,
-            'Referer':    BASE_URL + '/upload/',
-            'Cookie':     cookies,
+            'User-Agent':        UA,
+            'Referer':           BASE_URL + '/upload/',
+            'Cookie':            cookies,
             'X-Requested-With': 'XMLHttpRequest'
         }
     });
