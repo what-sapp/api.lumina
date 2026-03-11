@@ -1,5 +1,5 @@
 const axios       = require('axios');
-const { EventSource } = require('eventsource');
+const EventSource = require('eventsource').EventSource;
 
 function generateSessionHash() {
     return Math.random().toString(36).substring(2, 12);
@@ -65,10 +65,22 @@ async function chatWithQwen(prompt) {
                     eventSource.close();
 
                     let html = null;
+
+                    // Try iframe base64 first
                     if (finalIframe) {
                         const match = finalIframe.match(/base64,([^"]+)/);
                         if (match) {
                             try { html = Buffer.from(match[1], 'base64').toString(); } catch {}
+                        }
+                    }
+
+                    // Fallback: extract HTML from code block
+                    if (!html && fullCode) {
+                        const clean = fullCode.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
+                        if (clean.includes('<html') || clean.includes('<!DOCTYPE')) {
+                            html = clean;
+                        } else {
+                            html = clean;
                         }
                     }
 
@@ -86,7 +98,7 @@ async function chatWithQwen(prompt) {
 }
 
 module.exports = {
-    name: "Qwen2.5 Coder",
+    name: "Qwen Coder",
     desc: "Generate kode / halaman HTML dengan Qwen2.5 Coder via Hugging Face.",
     category: "AI CHAT",
     method: "GET",
