@@ -1,5 +1,5 @@
 const axios       = require('axios');
-const EventSource = require('eventsource');
+const { EventSource } = require('eventsource');
 
 function generateSessionHash() {
     return Math.random().toString(36).substring(2, 12);
@@ -114,4 +114,3 @@ module.exports = {
         }
     }
 };
-
