@@ -297,6 +297,7 @@ app.get('/contributors', (req, res) => res.sendFile(path.join(__dirname, 'public
 app.get('/status',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'status.html')));
 app.get('/luminaai',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'luminaai.html')));
 app.get('/playground',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'playground.html')));
+app.get('/lumina-coder', (req, res) => res.sendFile(path.join(__dirname, 'public', 'lumina-coder.html')));
 app.get('/admin', (req, res, next) => { if (req.path !== '/admin' && req.path !== '/admin/') return next(); res.sendFile(path.join(__dirname, 'public', 'admin.html')); });
 
 // ════════════════════════════════════════
