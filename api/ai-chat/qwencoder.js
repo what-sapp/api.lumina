@@ -76,12 +76,11 @@ async function chatWithQwen(prompt) {
 
                     // Fallback: extract HTML from code block
                     if (!html && fullCode) {
-                        const clean = fullCode.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
-                        if (clean.includes('<html') || clean.includes('<!DOCTYPE')) {
-                            html = clean;
-                        } else {
-                            html = clean;
-                        }
+                        html = fullCode
+                            .replace(/^```[\w]*\n?/, '')
+                            .replace(/\n?```$/, '')
+                            .replace(/^html\n/, '')
+                            .trim();
                     }
 
                     resolve({ code: fullCode, html });
@@ -98,7 +97,7 @@ async function chatWithQwen(prompt) {
 }
 
 module.exports = {
-    name: "Qwen Coder",
+    name: "Qwen2.5 Coder",
     desc: "Generate kode / halaman HTML dengan Qwen2.5 Coder via Hugging Face.",
     category: "AI CHAT",
     method: "GET",
