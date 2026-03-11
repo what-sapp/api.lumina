@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina | Coder</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+
+    <style>
+        /* ── Coder Layout ── */
+        .coder-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+        }
+
+        /* ── Page Header ── */
+        .coder-page-header {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            padding: 2rem 2rem 1.5rem;
+            margin-bottom: 1.25rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            animation: slideInUp 0.5s ease-out;
+        }
+
+        .coder-page-header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        }
+
+        .coder-page-header::after {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(79,70,229,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .coder-header-top {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .coder-icon {
+            width: 2.5rem; height: 2.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .coder-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text-color);
+        }
+
+        .coder-title span {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .coder-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+        }
+
+        .coder-badges {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .coder-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.25rem 0.625rem;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            background: var(--background-color);
+        }
+
+        /* ── Input Section ── */
+        .coder-input-card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+            box-shadow: var(--card-shadow);
+            animation: slideInUp 0.5s ease-out 0.1s both;
+        }
+
+        .coder-input-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--text-muted);
+            margin-bottom: 0.625rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .coder-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.875rem 1rem;
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            line-height: 1.65;
+            resize: vertical;
+            transition: border-color 0.2s ease;
+            outline: none;
+        }
+
+        .coder-textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--highlight-color);
+        }
+
+        .coder-textarea::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        /* Example chips */
+        .example-chips {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+        }
+
+        .example-chip {
+            font-size: 0.62rem;
+            font-weight: 600;
+            padding: 0.25rem 0.625rem;
+            border: 1px solid var(--border-color);
+            background: var(--background-color);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .example-chip:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--highlight-color);
+        }
+
+        /* Generate button */
+        .coder-generate-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            margin-top: 1rem;
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(79,70,229,0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .coder-generate-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            transform: translateX(-100%);
+            transition: 0.4s;
+        }
+
+        .coder-generate-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79,70,229,0.4);
+        }
+
+        .coder-generate-btn:hover::before {
+            transform: translateX(100%);
+        }
+
+        .coder-generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50% !important;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* ── Result Section ── */
+        .coder-result-card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            animation: slideInUp 0.5s ease-out 0.2s both;
+        }
+
+        .coder-result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.875rem 1.25rem;
+            background: var(--background-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .coder-result-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--text-muted);
+        }
+
+        .coder-result-actions {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .coder-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.3rem 0.625rem;
+            border: 1px solid var(--border-color);
+            background: var(--card-background);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .coder-action-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--highlight-color);
+        }
+
+        .coder-action-btn.success {
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        /* Tabs */
+        .coder-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--background-color);
+        }
+
+        .coder-tab {
+            padding: 0.625rem 1.25rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            font-family: 'Outfit', sans-serif;
+            margin-bottom: -1px;
+        }
+
+        .coder-tab:hover {
+            color: var(--text-color);
+        }
+
+        .coder-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: var(--card-background);
+        }
+
+        /* Preview iframe */
+        .coder-preview-wrap {
+            position: relative;
+            background: white;
+        }
+
+        .coder-preview-wrap iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+            display: block;
+        }
+
+        /* Code view */
+        .coder-code-wrap {
+            position: relative;
+        }
+
+        .coder-code {
+            background: var(--background-color);
+            padding: 1.25rem;
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            line-height: 1.75;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 500px;
+            color: var(--text-color);
+            white-space: pre;
+            scrollbar-width: thin;
+        }
+
+        .coder-code::-webkit-scrollbar { width: 4px; height: 4px; }
+        .coder-code::-webkit-scrollbar-thumb { background: var(--border-color); }
+
+        /* Empty state */
+        .coder-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .coder-empty-icon {
+            width: 4rem; height: 4rem;
+            background: var(--highlight-color);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .coder-empty-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 0.35rem;
+        }
+
+        .coder-empty-desc {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        /* Error */
+        .coder-error {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.875rem 1.25rem;
+            background: rgba(244,63,94,0.08);
+            border-top: 1px solid rgba(244,63,94,0.2);
+            font-size: 0.72rem;
+            color: var(--error-color);
+            display: none;
+        }
+
+        /* Loading overlay */
+        .coder-loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            gap: 1rem;
+        }
+
+        .coder-loading-ring {
+            width: 40px; height: 40px;
+            border: 3px solid var(--highlight-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50% !important;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .coder-loading-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .coder-loading-dots::after {
+            content: '';
+            animation: loadDots 1.5s infinite;
+        }
+
+        @keyframes loadDots {
+            0%   { content: ''; }
+            33%  { content: '.'; }
+            66%  { content: '..'; }
+            100% { content: '...'; }
+        }
+
+        /* Status bar */
+        .coder-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1.25rem;
+            border-top: 1px solid var(--border-color);
+            background: var(--background-color);
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .status-bar-dot {
+            width: 6px; height: 6px;
+            border-radius: 50% !important;
+            background: var(--text-muted);
+            display: inline-block;
+            margin-right: 0.35rem;
+        }
+
+        .status-bar-dot.ready  { background: var(--success-color); box-shadow: 0 0 4px rgba(16,185,129,0.5); }
+        .status-bar-dot.loading { background: var(--warning-color); animation: pulseDot 1s infinite; }
+        .status-bar-dot.error  { background: var(--error-color); }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 768px) {
+            .coder-wrapper { padding: 1rem 1rem 2.5rem; }
+            .coder-page-header { padding: 1.25rem; }
+            .coder-title { font-size: 1.1rem; }
+            .coder-preview-wrap iframe { height: 380px; }
+            .coder-code { max-height: 380px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Page Loader -->
+    <div id="page-loader" class="page-loader">
+        <div class="loader-ring"></div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="main-nav" id="main-nav">
+        <a href="/" class="nav-logo">
+            Lumina <span class="nav-logo-accent">API's</span>
+        </a>
+        <div class="hamburger" id="hamburger">
+            <div class="hamburger-inner">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- OVERLAY -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+
+    <!-- MOBILE MENU -->
+    <div class="mobile-menu" id="mobile-menu">
+        <div style="padding: 1.5rem;">
+            <div class="menu-header">
+                <div class="menu-icon-box" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); width:2.5rem; height:2.5rem; position:relative;">
+                    <span class="material-icons" style="color:white; font-size:1.1rem;">code</span>
+                    <div class="menu-header-dot"></div>
+                </div>
+                <div>
+                    <span class="menu-header-title">Navigation</span>
+                    <span class="menu-header-sub">Lumina API</span>
+                </div>
+            </div>
+
+            <nav style="display:flex; flex-direction:column; gap:0.25rem;">
+                <a href="/" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(255,255,255,0.05);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--text-muted);">home</span>
+                    </div>
+                    <span>Home</span>
+                </a>
+                <a href="/docs" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(59,130,246,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:#3b82f6;">description</span>
+                    </div>
+                    <span>Documentation</span>
+                </a>
+                <a href="/contributors" class="menu-item">
+                    <div class="menu-icon-box" style="background:var(--highlight-color);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">people</span>
+                    </div>
+                    <span>Contributors</span>
+                </a>
+                <a href="/luminaai" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(79,70,229,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:#4f46e5;">auto_awesome</span>
+                    </div>
+                    <span>Lumina AI</span>
+                    <span class="menu-badge" style="background:rgba(79,70,229,0.12); color:#4f46e5;">New</span>
+                </a>
+                <a href="/playground" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(34,211,238,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--accent-color);">science</span>
+                    </div>
+                    <span>Playground</span>
+                </a>
+                <a href="/lumina-coder" class="menu-item active">
+                    <div class="menu-icon-box" style="background:rgba(79,70,229,0.15);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">code</span>
+                    </div>
+                    <span>Lumina Coder</span>
+                    <span class="menu-badge" style="background:rgba(79,70,229,0.12); color:#4f46e5;">New</span>
+                </a>
+                <a href="/status" class="menu-item">
+                    <div class="menu-icon-box" style="background:rgba(16,185,129,0.1);">
+                        <span class="material-icons" style="font-size:1rem; color:var(--success-color);">bar_chart</span>
+                    </div>
+                    <span>API Status</span>
+                    <span style="margin-left:auto; display:flex; align-items:center; gap:0.35rem;">
+                        <span class="live-dot"></span>
+                        <span class="live-label">Live</span>
+                    </span>
+                </a>
+            </nav>
+
+            <div class="menu-section-divider">
+                <a href="https://github.com/rynxzyy/Hiuraa-API-Base" target="_blank" class="github-link">
+                    <div class="github-link-icon">
+                        <i class="fab fa-github" style="color:white; font-size:0.95rem;"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <span style="display:block; font-size:0.82rem;">View on GitHub</span>
+                        <span style="font-size:0.6rem; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:0.12em;">Open Source</span>
+                    </div>
+                    <span class="material-icons" style="font-size:1rem; color:rgba(255,255,255,0.4);">arrow_forward</span>
+                </a>
+            </div>
+
+            <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border-color);">
+                <div class="color-customizer">
+                    <div class="customizer-header" id="customizer-toggle">
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="material-icons" style="font-size:1rem; color:var(--primary-color);">palette</span>
+                            <span class="customizer-title">Theme Colors</span>
+                        </div>
+                        <span class="material-icons" id="customizer-chevron" style="font-size:1rem; color:var(--text-muted); transition:transform 0.3s ease;">expand_more</span>
+                    </div>
+                    <div class="customizer-panel" id="customizer-panel">
+                        <div class="customizer-section-label">Quick Presets</div>
+                        <div class="preset-grid">
+                            <button class="preset-btn active" data-primary="#4f46e5" data-accent="#22d3ee" data-nav="#1e1b4b" title="Indigo"><span style="background:#4f46e5"></span><span style="background:#22d3ee"></span></button>
+                            <button class="preset-btn" data-primary="#7c3aed" data-accent="#a29bfe" data-nav="#1a1035" title="Purple"><span style="background:#7c3aed"></span><span style="background:#a29bfe"></span></button>
+                            <button class="preset-btn" data-primary="#0ea5e9" data-accent="#06b6d4" data-nav="#0c1a2e" title="Sky"><span style="background:#0ea5e9"></span><span style="background:#06b6d4"></span></button>
+                            <button class="preset-btn" data-primary="#10b981" data-accent="#34d399" data-nav="#0a1f18" title="Emerald"><span style="background:#10b981"></span><span style="background:#34d399"></span></button>
+                            <button class="preset-btn" data-primary="#f59e0b" data-accent="#fbbf24" data-nav="#1c1505" title="Amber"><span style="background:#f59e0b"></span><span style="background:#fbbf24"></span></button>
+                            <button class="preset-btn" data-primary="#f43f5e" data-accent="#fb7185" data-nav="#1f0a10" title="Rose"><span style="background:#f43f5e"></span><span style="background:#fb7185"></span></button>
+                        </div>
+                        <div class="customizer-section-label" style="margin-top:0.875rem;">Custom</div>
+                        <div class="picker-row">
+                            <label class="picker-label"><span>Primary</span><div class="picker-wrap"><input type="color" id="pick-primary" class="color-picker" value="#4f46e5"><span class="picker-swatch" id="swatch-primary" style="background:#4f46e5"></span></div></label>
+                            <label class="picker-label"><span>Accent</span><div class="picker-wrap"><input type="color" id="pick-accent" class="color-picker" value="#22d3ee"><span class="picker-swatch" id="swatch-accent" style="background:#22d3ee"></span></div></label>
+                            <label class="picker-label"><span>Navbar</span><div class="picker-wrap"><input type="color" id="pick-nav" class="color-picker" value="#1e1b4b"><span class="picker-swatch" id="swatch-nav" style="background:#1e1b4b"></span></div></label>
+                        </div>
+                        <button class="customizer-reset" id="customizer-reset">
+                            <span class="material-icons" style="font-size:0.85rem;">refresh</span>
+                            Reset to Default
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="coder-wrapper">
+
+        <!-- Page Header -->
+        <div class="coder-page-header">
+            <div class="corner-dot tl"></div>
+            <div class="corner-dot tr"></div>
+            <div class="corner-dot bl"></div>
+            <div class="corner-dot br"></div>
+            <div class="corner-label tl">SYS::CODER</div>
+            <div class="corner-label tr">Qwen2.5</div>
+
+            <div class="coder-header-top">
+                <div class="coder-icon">
+                    <span class="material-icons" style="color:white; font-size:1.25rem;">code</span>
+                </div>
+                <div>
+                    <div class="coder-title">Lumina <span>Coder</span></div>
+                    <div class="coder-subtitle">Generate website & HTML dengan AI — powered by Qwen2.5 Coder</div>
+                </div>
+            </div>
+
+            <div class="coder-badges">
+                <span class="coder-badge">
+                    <span class="live-dot" style="width:5px;height:5px;"></span>
+                    Live
+                </span>
+                <span class="coder-badge">
+                    <span class="material-icons" style="font-size:0.7rem;">auto_awesome</span>
+                    Qwen2.5 Coder
+                </span>
+                <span class="coder-badge">
+                    <span class="material-icons" style="font-size:0.7rem;">preview</span>
+                    Live Preview
+                </span>
+                <span class="coder-badge">
+                    <span class="material-icons" style="font-size:0.7rem;">no_encryption</span>
+                    Free
+                </span>
+            </div>
+        </div>
+
+        <!-- Input Card -->
+        <div class="coder-input-card">
+            <div class="coder-input-label">
+                <span class="material-icons" style="font-size:0.85rem;">edit</span>
+                Prompt
+            </div>
+
+            <textarea
+                id="coder-prompt"
+                class="coder-textarea"
+                placeholder="Contoh: Buat halaman landing page dengan hero section, navbar, dan footer. Pakai warna biru..."
+                rows="4"
+            ></textarea>
+
+            <div class="example-chips" id="example-chips">
+                <span class="coder-input-label" style="margin-bottom:0; align-self:center;">Contoh:</span>
+            </div>
+
+            <button class="coder-generate-btn" id="generate-btn" onclick="generateCode()">
+                <span class="material-icons" style="font-size:1rem;">auto_awesome</span>
+                <span id="btn-text">Generate</span>
+            </button>
+        </div>
+
+        <!-- Result Card -->
+        <div class="coder-result-card">
+            <div class="coder-result-header">
+                <div class="coder-result-title">
+                    <span class="material-icons" style="font-size:0.9rem;">web</span>
+                    <span id="result-title">Hasil Generate</span>
+                </div>
+                <div class="coder-result-actions" id="result-actions" style="display:none;">
+                    <button class="coder-action-btn" id="copy-btn" onclick="copyCode()">
+                        <span class="material-icons" style="font-size:0.75rem;">content_copy</span>
+                        Copy
+                    </button>
+                    <button class="coder-action-btn" id="open-btn" onclick="openInNewTab()">
+                        <span class="material-icons" style="font-size:0.75rem;">open_in_new</span>
+                        Open
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="coder-tabs" id="coder-tabs" style="display:none;">
+                <button class="coder-tab active" onclick="switchTab('preview')">
+                    <span class="material-icons" style="font-size:0.75rem; vertical-align:middle; margin-right:0.2rem;">preview</span>
+                    Preview
+                </button>
+                <button class="coder-tab" onclick="switchTab('code')">
+                    <span class="material-icons" style="font-size:0.75rem; vertical-align:middle; margin-right:0.2rem;">code</span>
+                    Code
+                </button>
+            </div>
+
+            <!-- Empty state -->
+            <div class="coder-empty" id="coder-empty">
+                <div class="coder-empty-icon">
+                    <span class="material-icons" style="font-size:1.75rem; color:var(--primary-color);">web</span>
+                </div>
+                <div class="coder-empty-title">Belum ada hasil</div>
+                <div class="coder-empty-desc">Tulis prompt di atas lalu klik Generate</div>
+            </div>
+
+            <!-- Loading -->
+            <div class="coder-loading" id="coder-loading">
+                <div class="coder-loading-ring"></div>
+                <div class="coder-loading-text coder-loading-dots">Generating</div>
+            </div>
+
+            <!-- Preview tab -->
+            <div id="tab-preview" style="display:none;">
+                <div class="coder-preview-wrap">
+                    <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
+            </div>
+
+            <!-- Code tab -->
+            <div id="tab-code" style="display:none;">
+                <div class="coder-code-wrap">
+                    <pre class="coder-code" id="code-output"></pre>
+                </div>
+            </div>
+
+            <!-- Error -->
+            <div class="coder-error" id="coder-error">
+                <span class="material-icons" style="font-size:1rem; flex-shrink:0;">error_outline</span>
+                <span id="error-msg">Terjadi kesalahan.</span>
+            </div>
+
+            <!-- Status bar -->
+            <div class="coder-status-bar">
+                <div style="display:flex; align-items:center;">
+                    <span class="status-bar-dot" id="status-dot"></span>
+                    <span id="status-text">Idle</span>
+                </div>
+                <span id="status-time"></span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="main-footer" style="margin-top:1.5rem;">
+            <span class="footer-copy">© 2025 Robin • All Rights Reserved</span>
+            <span class="footer-id">ID::LUM-CODER</span>
+        </div>
+
+    </div>
+
+    <script>
+        // ── Page Loader ──
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('page-loader');
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 400);
+            }, 300);
+        });
+
+        // ── Hamburger ──
+        const hamburger     = document.getElementById('hamburger');
+        const mobileMenu    = document.getElementById('mobile-menu');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+
+        function toggleMenu() {
+            hamburger.classList.toggle('active');
+            mobileMenu.classList.toggle('active');
+            mobileOverlay.classList.toggle('active');
+            document.body.classList.toggle('noscroll');
+        }
+
+        hamburger.addEventListener('click', toggleMenu);
+        mobileOverlay.addEventListener('click', toggleMenu);
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) toggleMenu();
+        });
+
+        // ── Example Chips ──
+        const EXAMPLES = [
+            { label: 'Navbar', prompt: 'Buat navbar responsive dengan logo di kiri dan menu di kanan, dengan hamburger menu untuk mobile.' },
+            { label: 'Kalkulator', prompt: 'Buat kalkulator sederhana dengan HTML, CSS, dan JavaScript. Desain modern dengan tombol bulat.' },
+            { label: 'Landing Page', prompt: 'Buat halaman landing page dengan hero section gradient, fitur-fitur, dan footer.' },
+            { label: 'Form Login', prompt: 'Buat form login elegan dengan input email, password, tombol login, dan link lupa password.' },
+            { label: 'Card Product', prompt: 'Buat 3 card produk dengan gambar placeholder, nama produk, harga, dan tombol beli. Pakai grid layout.' },
+            { label: 'Dark Dashboard', prompt: 'Buat dashboard dark mode dengan sidebar, header, dan beberapa card statistik.' },
+        ];
+
+        const chipsContainer = document.getElementById('example-chips');
+        EXAMPLES.forEach(ex => {
+            const chip = document.createElement('button');
+            chip.className = 'example-chip';
+            chip.textContent = ex.label;
+            chip.onclick = () => {
+                document.getElementById('coder-prompt').value = ex.prompt;
+                document.getElementById('coder-prompt').focus();
+            };
+            chipsContainer.appendChild(chip);
+        });
+
+        // ── State ──
+        let currentHtml = '';
+        let currentCode = '';
+        let activeTab   = 'preview';
+
+        // ── Generate ──
+        async function generateCode() {
+            const prompt = document.getElementById('coder-prompt').value.trim();
+            if (!prompt) {
+                document.getElementById('coder-prompt').focus();
+                return;
+            }
+
+            setStatus('loading', 'Generating...');
+            setLoading(true);
+            document.getElementById('generate-btn').disabled = true;
+            document.getElementById('btn-text').textContent  = 'Generating...';
+            document.getElementById('coder-error').style.display = 'none';
+
+            const startTime = Date.now();
+
+            try {
+                const res  = await fetch(`/ai-chat/qwencoder?prompt=${encodeURIComponent(prompt)}`);
+                const data = await res.json();
+
+                if (!data.status) throw new Error(data.error || 'Generate gagal');
+
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                currentHtml = data.result?.html || '';
+                currentCode = data.result?.code || '';
+
+                if (!currentHtml && !currentCode) throw new Error('Tidak ada output dari AI');
+
+                setLoading(false);
+                showResult();
+                setStatus('ready', `Done in ${elapsed}s`);
+                document.getElementById('status-time').textContent = new Date().toLocaleTimeString('id-ID');
+
+            } catch (e) {
+                setLoading(false);
+                showError(e.message);
+                setStatus('error', 'Error');
+            } finally {
+                document.getElementById('generate-btn').disabled = false;
+                document.getElementById('btn-text').textContent  = 'Generate';
+            }
+        }
+
+        // ── Enter key support ──
+        document.getElementById('coder-prompt').addEventListener('keydown', e => {
+            if (e.ctrlKey && e.key === 'Enter') generateCode();
+        });
+
+        // ── Show result ──
+        function showResult() {
+            document.getElementById('coder-empty').style.display = 'none';
+            document.getElementById('coder-loading').style.display = 'none';
+            document.getElementById('coder-tabs').style.display   = 'flex';
+            document.getElementById('result-actions').style.display = 'flex';
+            switchTab(activeTab);
+        }
+
+        // ── Switch tab ──
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.coder-tab').forEach((t, i) => {
+                t.classList.toggle('active', (i === 0 && tab === 'preview') || (i === 1 && tab === 'code'));
+            });
+
+            document.getElementById('tab-preview').style.display = tab === 'preview' ? 'block' : 'none';
+            document.getElementById('tab-code').style.display    = tab === 'code'    ? 'block' : 'none';
+
+            if (tab === 'preview' && currentHtml) {
+                const iframe = document.getElementById('preview-iframe');
+                iframe.srcdoc = currentHtml;
+            }
+
+            if (tab === 'code' && currentCode) {
+                document.getElementById('code-output').textContent = currentCode;
+            }
+        }
+
+        // ── Copy ──
+        function copyCode() {
+            const text = currentCode || currentHtml;
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.classList.add('success');
+                btn.innerHTML = '<span class="material-icons" style="font-size:0.75rem;">check</span> Copied!';
+                setTimeout(() => {
+                    btn.classList.remove('success');
+                    btn.innerHTML = '<span class="material-icons" style="font-size:0.75rem;">content_copy</span> Copy';
+                }, 2000);
+            });
+        }
+
+        // ── Open in new tab ──
+        function openInNewTab() {
+            const html = currentHtml || currentCode;
+            if (!html) return;
+            const blob = new Blob([html], { type: 'text/html' });
+            const url  = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        }
+
+        // ── Loading state ──
+        function setLoading(show) {
+            document.getElementById('coder-empty').style.display   = show ? 'none'  : (currentHtml ? 'none' : 'flex');
+            document.getElementById('coder-loading').style.display = show ? 'flex'  : 'none';
+            if (show) {
+                document.getElementById('coder-tabs').style.display    = 'none';
+                document.getElementById('result-actions').style.display = 'none';
+                document.getElementById('tab-preview').style.display   = 'none';
+                document.getElementById('tab-code').style.display      = 'none';
+            }
+        }
+
+        // ── Error ──
+        function showError(msg) {
+            document.getElementById('coder-empty').style.display  = 'flex';
+            document.getElementById('coder-error').style.display  = 'flex';
+            document.getElementById('error-msg').textContent      = msg;
+        }
+
+        // ── Status bar ──
+        function setStatus(state, text) {
+            const dot  = document.getElementById('status-dot');
+            const label = document.getElementById('status-text');
+            dot.className  = 'status-bar-dot ' + state;
+            label.textContent = text;
+        }
+
+        // ── Color Customizer ──
+        const root    = document.documentElement;
+        const nav     = document.getElementById('main-nav');
+        const STORAGE = 'lumina-theme';
+        const DEFAULTS = { primary:'#4f46e5', accent:'#22d3ee', nav:'#1e1b4b' };
+
+        function hexToHsl(hex) {
+            let r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+            const max=Math.max(r,g,b),min=Math.min(r,g,b);
+            let h,s,l=(max+min)/2;
+            if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}
+            return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
+        }
+
+        function hslToHex(h,s,l){s/=100;l/=100;const a=s*Math.min(l,1-l);const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c).toString(16).padStart(2,'0');};return `#${f(0)}${f(8)}${f(4)}`;}
+
+        function applyTheme(colors) {
+            const [ph,ps,pl]=hexToHsl(colors.primary);
+            root.style.setProperty('--primary-color',   colors.primary);
+            root.style.setProperty('--primary-hover',   hslToHex(ph,ps,Math.max(pl-8,10)));
+            root.style.setProperty('--secondary-color', hslToHex(ph,Math.max(ps-15,0),Math.min(pl+18,90)));
+            root.style.setProperty('--accent-color',    colors.accent);
+            root.style.setProperty('--highlight-color', `${colors.primary}18`);
+            const [nh,ns,nl]=hexToHsl(colors.nav);
+            nav.style.background=`linear-gradient(135deg,${colors.nav},${hslToHex(nh,ns,Math.min(nl+6,50))})`;
+            nav.style.boxShadow=`0 4px 24px ${colors.primary}40`;
+            document.getElementById('pick-primary').value=colors.primary;
+            document.getElementById('pick-accent').value=colors.accent;
+            document.getElementById('pick-nav').value=colors.nav;
+            document.getElementById('swatch-primary').style.background=colors.primary;
+            document.getElementById('swatch-accent').style.background=colors.accent;
+            document.getElementById('swatch-nav').style.background=colors.nav;
+            localStorage.setItem(STORAGE,JSON.stringify(colors));
+        }
+
+        const saved=JSON.parse(localStorage.getItem(STORAGE)||'null');
+        if(saved) applyTheme(saved);
+
+        document.querySelectorAll('.preset-btn').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+                btn.classList.add('active');
+                applyTheme({primary:btn.dataset.primary,accent:btn.dataset.accent,nav:btn.dataset.nav});
+            });
+        });
+
+        function onPickerChange(){
+            document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+            applyTheme({primary:document.getElementById('pick-primary').value,accent:document.getElementById('pick-accent').value,nav:document.getElementById('pick-nav').value});
+        }
+        ['pick-primary','pick-accent','pick-nav'].forEach(id=>document.getElementById(id).addEventListener('input',onPickerChange));
+
+        document.getElementById('customizer-reset').addEventListener('click',()=>{
+            document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+            ['--primary-color','--primary-hover','--secondary-color','--accent-color','--highlight-color'].forEach(p=>root.style.removeProperty(p));
+            nav.style.background=''; nav.style.boxShadow='';
+            localStorage.removeItem(STORAGE);
+            applyTheme(DEFAULTS);
+        });
+
+        const custToggle=document.getElementById('customizer-toggle');
+        const custPanel=document.getElementById('customizer-panel');
+        const custChevron=document.getElementById('customizer-chevron');
+        custToggle.addEventListener('click',()=>{
+            const open=custPanel.classList.toggle('open');
+            custChevron.style.transform=open?'rotate(180deg)':'rotate(0deg)';
+        });
+    </script>
+</body>
+</html>
+
