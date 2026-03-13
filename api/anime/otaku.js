@@ -6,7 +6,7 @@ const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '';
 
 async function fetchPage(url) {
     if (!SCRAPER_API_KEY) throw new Error('SCRAPER_API_KEY tidak di-set di environment');
-    const apiUrl = 'http://api.scraperapi.com?api_key=' + SCRAPER_API_KEY + '&url=' + encodeURIComponent(url) + '&render=true';
+    const apiUrl = 'http://api.scraperapi.com?api_key=' + SCRAPER_API_KEY + '&url=' + encodeURIComponent(url);
     const res = await axios.get(apiUrl, { timeout: 60000 });
     if (res.status !== 200) throw new Error('ScraperAPI error: HTTP ' + res.status);
     return cheerio.load(res.data);
