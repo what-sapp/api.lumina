@@ -1,38 +1,15 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-let cloudscraper;
-try { cloudscraper = require('cloudscraper'); } catch (_) { cloudscraper = null; }
-
 const BASE = 'https://otakudesu.blog';
-const HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Sec-Fetch-User': '?1',
-    'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"'
-};
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '';
 
 async function fetchPage(url) {
-    try {
-        const res = await axios.get(url, { headers: HEADERS, timeout: 20000, maxRedirects: 5, decompress: true });
-        if (res.status === 200) return cheerio.load(res.data);
-    } catch (_) {}
-
-    if (cloudscraper) {
-        const html = await cloudscraper.get({ uri: url, headers: { 'Referer': BASE + '/' }, timeout: 30000 });
-        return cheerio.load(html);
-    }
-
-    throw new Error('Gagal fetch halaman, CF block dan cloudscraper tidak tersedia');
+    if (!SCRAPER_API_KEY) throw new Error('SCRAPER_API_KEY tidak di-set di environment');
+    const apiUrl = 'http://api.scraperapi.com?api_key=' + SCRAPER_API_KEY + '&url=' + encodeURIComponent(url) + '&render=true';
+    const res = await axios.get(apiUrl, { timeout: 60000 });
+    if (res.status !== 200) throw new Error('ScraperAPI error: HTTP ' + res.status);
+    return cheerio.load(res.data);
 }
 
 /**
