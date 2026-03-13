@@ -25,27 +25,28 @@ module.exports = {
     async run(req, res) {
         try {
             const $ = await fetchPage(BASE + '/');
-            const sections = [];
+            const days = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu','Random'];
+            const ongoing = { section: 'On-going Anime', url: 'https://otakudesu.blog/ongoing-anime/', items: [] };
+            const complete = { section: 'Complete Anime', url: 'https://otakudesu.blog/complete-anime/', items: [] };
 
-            $('.rseries').each((_, section) => {
-                const h1El = $(section).children('.rapi').find('.rvad h1').first();
-                const section_title = h1El.text().trim();
-                const section_url   = $(section).children('.rapi').children('a').first().attr('href') || null;
-                const items = [];
-                $(section).children('.venz').find('ul li').each((_, li) => {
-                    const episode = $(li).find('.epz').text().replace(/\s+/g, ' ').trim();
-                    const meta    = $(li).find('.epztipe').text().replace(/\s+/g, ' ').trim();
-                    const date    = $(li).find('.newnime').text().trim();
-                    const a       = $(li).find('.thumb a').first();
-                    const url     = a.attr('href') || null;
-                    const title   = $(li).find('.jdlflm').text().trim();
-                    const cover   = $(li).find('img').first().attr('src') || null;
-
-                    if (url && title) items.push({ title, url, cover, episode, meta, date });
-                });
-
-                if (items.length) sections.push({ section: section_title, url: section_url, items });
+            $('.rseries .venz ul li').each((_, li) => {
+                const episode = $(li).find('.epz').text().replace(/\s+/g, ' ').trim();
+                const meta    = $(li).find('.epztipe').text().replace(/\s+/g, ' ').trim();
+                const date    = $(li).find('.newnime').text().trim();
+                const a       = $(li).find('.thumb a').first();
+                const url     = a.attr('href') || null;
+                const title   = $(li).find('.jdlflm').text().trim();
+                const cover   = $(li).find('img').first().attr('src') || null;
+                if (!url || !title) return;
+                const item = { title, url, cover, episode, meta, date };
+                const isOngoing = days.some(d => meta.includes(d));
+                if (isOngoing) ongoing.items.push(item);
+                else complete.items.push(item);
             });
+
+            const sections = [];
+            if (ongoing.items.length) sections.push(ongoing);
+            if (complete.items.length) sections.push(complete);
 
             res.status(200).json({
                 status: true,
