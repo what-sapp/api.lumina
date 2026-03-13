@@ -28,9 +28,9 @@ module.exports = {
             const sections = [];
 
             $('.rseries').each((_, section) => {
-                const section_title = $(section).find('.rvad h1').text().trim();
-                const section_url   = $(section).find('.rapi > a').first().attr('href') || null;
-
+                const h1El = $(section).children('.rapi').find('.rvad h1').first();
+                const section_title = h1El.text().trim();
+                const section_url   = $(section).children('.rapi').children('a').first().attr('href') || null;
                 const items = [];
                 $(section).find('.venz ul li').each((_, li) => {
                     const episode = $(li).find('.epz').text().replace(/\s+/g, ' ').trim();
