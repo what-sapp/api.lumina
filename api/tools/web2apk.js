@@ -19,7 +19,7 @@ module.exports = {
     name: "WebAppBuilder",
     desc: "Convert website URL menjadi file APK Android menggunakan WebAppCreator.",
     category: "Tools",
-    params: ["websiteUrl", "appName", "icon", "_packageName", "_versionName", "_versionCode"],
+    params: ["websiteUrl", "appName", "image", "_packageName", "_versionName", "_versionCode"],
     paramsSchema: {
         websiteUrl: {
             type: "text",
@@ -33,7 +33,7 @@ module.exports = {
             required: true,
             placeholder: "My App"
         },
-        icon: {
+        image: {
             type: "file",
             label: "Icon App (PNG/JPG)",
             required: true
